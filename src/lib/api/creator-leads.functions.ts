@@ -379,3 +379,46 @@ export const approveCreatorReward = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
+/**
+ * Track creator application by ID or mobile number
+ */
+export const trackCreatorApplication = createServerFn({ method: "POST" })
+  .inputValidator((d) =>
+    z
+      .object({
+        query: z.string().min(3),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { q1 } = await import("../db.server");
+    let lead: any = null;
+
+    // Try to find by application_id first (format: BV-12345)
+    if (/^BV-\d+$/.test(data.query)) {
+      lead = await q1<any>(
+        `SELECT * FROM creator_leads WHERE application_id = $1`,
+        [data.query]
+      );
+    } else {
+      // Try to find by mobile number
+      const mobile = data.query.replace(/[^\d+]/g, "");
+      lead = await q1<any>(
+        `SELECT * FROM creator_leads WHERE mobile_number = $1`,
+        [mobile]
+      );
+    }
+
+    if (!lead) {
+      return {
+        ok: false as const,
+        message: "We could not find an application with this ID or mobile number.",
+      };
+    }
+
+    return {
+      ok: true as const,
+      lead,
+    };
+  });
