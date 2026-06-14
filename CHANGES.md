@@ -1,4 +1,4 @@
-# BarbieVerse — Update Changelog
+ # BarbieVerse — Update Changelog
 ## June 2026
 
 ---
