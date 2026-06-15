@@ -6,17 +6,19 @@ import { Link } from "@tanstack/react-router";
 import { Crown, X, Menu } from "lucide-react";
 import { useState, useEffect } from "react";
 import { LanguageToggle } from "@/components/LanguageToggle";
-
-const links = [
-  { to: "/",     label: "Home" },
-  { to: "/join", label: "Join Agency" },
-  { to: "/coins",label: "Buy Coins" },
-  { to: "/blog", label: "Journal" },
-];
+import { useLang } from "@/lib/i18n";
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { t } = useLang();
+
+  const links = [
+    { to: "/",     label: t("nav.home") },
+    { to: "/join", label: t("nav.join") },
+    { to: "/coins",label: t("nav.coins") },
+    { to: "/blog", label: t("nav.blog") },
+  ];
 
   // Enhance backdrop when scrolled
   useEffect(() => {
@@ -76,7 +78,7 @@ export function SiteHeader() {
             to="/join"
             className="hidden h-9 items-center rounded-full bg-gradient-pink px-4 text-xs font-semibold uppercase tracking-wider text-primary-foreground glow-pink btn-magnetic transition-all sm:inline-flex"
           >
-            Get ₹500
+            {t("cta.get500short")}
           </Link>
 
           {/* Mobile hamburger */}
@@ -125,7 +127,7 @@ export function SiteHeader() {
               onClick={() => setOpen(false)}
               className="mt-1 inline-flex h-11 items-center justify-center rounded-full bg-gradient-pink px-5 text-xs font-semibold uppercase tracking-wider text-primary-foreground glow-pink"
             >
-              Get ₹500 bonus
+              {t("cta.get500")}
             </Link>
           </nav>
         </div>

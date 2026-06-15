@@ -1,13 +1,9 @@
 import { useLang } from "@/lib/i18n";
 
-export function LanguageToggle({ compact = false }: { compact?: boolean }) {
+export function LanguageToggle() {
   const { lang, setLang } = useLang();
   return (
-    <div
-      className={`inline-flex items-center rounded-full border border-border/60 bg-card/40 p-0.5 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-md ${
-        compact ? "" : ""
-      }`}
-    >
+    <div className="inline-flex items-center rounded-full border border-border/60 bg-card/40 p-0.5 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-md">
       {(["en", "hi"] as const).map((l) => (
         <button
           key={l}
