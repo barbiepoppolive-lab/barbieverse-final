@@ -372,6 +372,45 @@ function HomePage() {
         </div>
       </section>
 
+      {/* ═══════════════ WHAT YOU ACTUALLY EARN ═══════════════ */}
+      <section className="container mx-auto px-4 py-14 sm:py-20">
+        <Reveal variant="fade-up" className="mx-auto mb-10 max-w-2xl text-center">
+          <div className="text-[11px] uppercase tracking-[0.22em] text-gold">What You Actually Earn</div>
+          <h2 className="mt-3 font-display text-3xl font-medium sm:text-4xl">
+            Real numbers. <span className="italic text-gradient-pink">No hype.</span>
+          </h2>
+        </Reveal>
+        <Reveal variant="fade-up" delay={120}>
+          <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3">
+            {/* Week 1 */}
+            <div className="rounded-2xl border border-primary/20 bg-card/40 p-6 text-center backdrop-blur-xl">
+              <div className="text-4xl">🎯</div>
+              <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">First Week Guaranteed</div>
+              <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">₹1,150 <span className="text-sm text-muted-foreground">(female)</span></div>
+              <div className="font-display text-lg font-bold text-foreground/80">₹575 <span className="text-xs text-muted-foreground">(male)</span></div>
+              <p className="mt-3 text-xs text-muted-foreground">Stream 2 hours daily for 7 days. Poppo pays you directly. No audience needed.</p>
+            </div>
+            {/* Month 1 */}
+            <div className="rounded-2xl border border-gold/20 bg-card/40 p-6 text-center backdrop-blur-xl">
+              <div className="text-4xl">📈</div>
+              <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">Month One Realistic</div>
+              <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">₹4,000 – ₹15,000</div>
+              <p className="mt-3 text-xs text-muted-foreground">Daily task rewards + viewer gifts + PK battles. Results vary by activity.</p>
+            </div>
+            {/* Ongoing */}
+            <div className="rounded-2xl border border-accent/20 bg-card/40 p-6 text-center backdrop-blur-xl">
+              <div className="text-4xl">💎</div>
+              <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">Consistent Streamers</div>
+              <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">₹15,000 – ₹80,000/mo</div>
+              <p className="mt-3 text-xs text-muted-foreground">Top creators with daily 4-6 hour streams and strong audiences.</p>
+            </div>
+          </div>
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            All earnings paid directly by Poppo Live to your bank account. BarbieVerse provides agency support and guidance.
+          </p>
+        </Reveal>
+      </section>
+
       {/* ═══════════════ WHY STREAMERS CHOOSE ═══════════════ */}
       <section className="container mx-auto px-4 py-14 sm:py-20">
         <Reveal variant="fade-up" className="mx-auto mb-10 max-w-2xl text-center">
