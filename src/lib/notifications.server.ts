@@ -11,6 +11,105 @@ async function getSettings(keys: string[]): Promise<Record<string, string>> {
   return map;
 }
 
+// ─── WhatsApp Cloud API (Meta Official) ──────────────────────────────────────
+// Uses graph.facebook.com directly — no BSP needed.
+// Required env vars:
+//   WHATSAPP_PHONE_NUMBER_ID  — from Meta Developer Dashboard
+//   WHATSAPP_ACCESS_TOKEN     — from Meta Developer Dashboard (permanent token recommended)
+
+export async function sendWhatsAppNotification(opts: {
+  to: string; // phone with country code, e.g. 9198xxxxxxx (no + or spaces)
+  template: string; // template name approved in Meta Business Manager
+  lang?: string; // template language code, default "en"
+  params?: string[]; // template parameters (optional)
+}) {
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+
+  if (!phoneNumberId || !accessToken) {
+    console.warn("[whatsapp] WHATSAPP_PHONE_NUMBER_ID or WHATSAPP_ACCESS_TOKEN not set, skipping");
+    return { ok: false, skipped: true };
+  }
+
+  const to = opts.to.replace(/[^0-9]/g, ""); // sanitize: digits only
+  const lang = opts.lang || "en";
+
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to,
+          type: "template",
+          template: {
+            name: opts.template,
+            language: { code: lang },
+            ...(opts.params?.length
+              ? {
+                  components: [
+                    {
+                      type: "body",
+                      parameters: opts.params.map((p) => ({ type: "text", text: p })),
+                    },
+                  ],
+                }
+              : {}),
+          },
+        }),
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error("[whatsapp] send failed", res.status, JSON.stringify(data));
+      return { ok: false, error: data };
+    }
+
+    console.log("[whatsapp] sent to", to, "template:", opts.template);
+    return { ok: true, data };
+  } catch (e) {
+    console.error("[whatsapp] error", e);
+    return { ok: false };
+  }
+}
+
+// ─── Legacy Interakt support (for users still on Interakt webhook) ──────────
+export async function sendInteraktNotification(opts: {
+  message: string;
+  to?: string;
+}) {
+  const s = await getSettings(["interakt_webhook", "admin_whatsapp"]);
+  const url = s.interakt_webhook;
+  if (!url) {
+    console.warn("[interakt] webhook URL not configured");
+    return { ok: false, skipped: true };
+  }
+  const to = opts.to || s.admin_whatsapp;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phoneNumber: to, message: opts.message }),
+    });
+    if (!res.ok) {
+      console.error("[interakt] send failed", res.status, await res.text());
+      return { ok: false };
+    }
+    return { ok: true };
+  } catch (e) {
+    console.error("[interakt] error", e);
+    return { ok: false };
+  }
+}
+
+// ─── Email (Brevo) ──────────────────────────────────────────────────────────
 export async function sendBrevoEmail(opts: {
   to: string;
   toName?: string;
@@ -51,34 +150,7 @@ export async function sendBrevoEmail(opts: {
   }
 }
 
-export async function sendInteraktNotification(opts: {
-  message: string;
-  to?: string; // phone with country code, e.g. 9198xxxxxxx
-}) {
-  const s = await getSettings(["interakt_webhook", "admin_whatsapp"]);
-  const url = s.interakt_webhook;
-  if (!url) {
-    console.warn("[interakt] webhook URL not configured");
-    return { ok: false, skipped: true };
-  }
-  const to = opts.to || s.admin_whatsapp;
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phoneNumber: to, message: opts.message }),
-    });
-    if (!res.ok) {
-      console.error("[interakt] send failed", res.status, await res.text());
-      return { ok: false };
-    }
-    return { ok: true };
-  } catch (e) {
-    console.error("[interakt] error", e);
-    return { ok: false };
-  }
-}
-
+// ─── Email HTML Templates ───────────────────────────────────────────────────
 export function welcomeEmailHtml(name: string) {
   return `
     <div style="font-family:Inter,Arial,sans-serif;background:#0a0a0a;color:#fff;padding:32px;">
@@ -95,4 +167,90 @@ export function welcomeEmailHtml(name: string) {
       </div>
     </div>
   `;
+}
+
+// ─── Convenience wrappers for common notifications ──────────────────────────
+
+/** Send welcome message to new creator lead */
+export async function notifyNewLead(opts: {
+  mobile: string;
+  name?: string;
+  platform: string;
+}) {
+  const s = await getSettings(["admin_whatsapp"]);
+
+  // Notify admin
+  if (s.admin_whatsapp) {
+    await sendWhatsAppNotification({
+      to: s.admin_whatsapp,
+      template: "new_lead_alert",
+      lang: "en",
+      params: [opts.name || "Unknown", opts.mobile, opts.platform],
+    });
+  }
+
+  // Notify lead (if they have WhatsApp)
+  await sendWhatsAppNotification({
+    to: opts.mobile,
+    template: "welcome_creator",
+    lang: "en",
+    params: [opts.name || "Creator", opts.platform],
+  });
+}
+
+/** Send order confirmation */
+export async function notifyOrderPlaced(opts: {
+  whatsapp: string;
+  orderId: string;
+  coins: number;
+  amount: string;
+}) {
+  await sendWhatsAppNotification({
+    to: opts.whatsapp,
+    template: "order_placed",
+    lang: "en",
+    params: [opts.orderId, String(opts.coins), `₹${opts.amount}`],
+  });
+}
+
+/** Send payment received */
+export async function notifyPaymentReceived(opts: {
+  whatsapp: string;
+  orderId: string;
+}) {
+  await sendWhatsAppNotification({
+    to: opts.whatsapp,
+    template: "payment_received",
+    lang: "en",
+    params: [opts.orderId],
+  });
+}
+
+/** Send coins credited */
+export async function notifyCoinsCredited(opts: {
+  whatsapp: string;
+  orderId: string;
+  coins: number;
+}) {
+  await sendWhatsAppNotification({
+    to: opts.whatsapp,
+    template: "coins_credited",
+    lang: "en",
+    params: [opts.orderId, String(opts.coins)],
+  });
+}
+
+/** Send refund status */
+export async function notifyRefundStatus(opts: {
+  whatsapp: string;
+  orderId: string;
+  status: string;
+  amount: string;
+}) {
+  await sendWhatsAppNotification({
+    to: opts.whatsapp,
+    template: "refund_status",
+    lang: "en",
+    params: [opts.orderId, `₹${opts.amount}`, opts.status],
+  });
 }
