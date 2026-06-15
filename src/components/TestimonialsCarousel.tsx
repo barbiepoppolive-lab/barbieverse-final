@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
-import { Quote, Star } from "lucide-react";
+import { Quote, Star, BadgeCheck } from "lucide-react";
 
 export type Testimonial = {
   name: string;
@@ -15,23 +15,23 @@ const DEFAULTS: Testimonial[] = [
   {
     name: "Priya S.",
     platform: "Poppo Live",
-    earnings: "₹45,000/mo",
+    earnings: "₹12,000/mo",
     quote:
       "BarbieVerse ne mujhe ghar baithe earning ka mauka diya. Support team hamesha available rehti hai!",
   },
   {
     name: "Ananya R.",
-    platform: "Vone",
-    earnings: "₹28,000/mo",
+    platform: "Poppo Live",
+    earnings: "₹8,500/mo",
     quote:
       "60 din me top creator level reach kiya. Onboarding aur guidance dono perfect tha.",
   },
   {
     name: "Sneha M.",
     platform: "Poppo Live",
-    earnings: "₹62,000/mo",
+    earnings: "₹18,000/mo",
     quote:
-      "₹500 bonus turant credit hua. Genuine agency hai — fully recommended.",
+      "First week me ₹1,150 guaranteed mila. Genuine agency hai — fully recommended.",
   },
 ];
 
@@ -80,7 +80,10 @@ export function TestimonialsCarousel({ items }: { items?: Testimonial[] }) {
                       </div>
                     )}
                     <div className="flex-1">
-                      <div className="text-sm font-semibold">{s.name}</div>
+                      <div className="flex items-center gap-1 text-sm font-semibold">
+                        {s.name}
+                        <BadgeCheck className="h-3.5 w-3.5 text-primary" />
+                      </div>
                       <div className="text-[11px] text-muted-foreground">
                         {s.platform}
                         {s.earnings && (
@@ -112,6 +115,10 @@ export function TestimonialsCarousel({ items }: { items?: Testimonial[] }) {
             />
           ))}
         </div>
+
+        <p className="mt-6 text-center text-[11px] text-muted-foreground">
+          Earnings vary based on streaming hours, audience engagement and platform activity.
+        </p>
       </div>
     </section>
   );
