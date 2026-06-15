@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { listPosts } from "@/lib/api/posts.functions";
@@ -98,6 +98,7 @@ function BlogList() {
           )}
         </div>
       </section>
+      <Outlet />
     </SiteLayout>
   );
 }
