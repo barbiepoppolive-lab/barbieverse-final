@@ -98,7 +98,7 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
   const ctaPrimaryText   = settings.hero_cta_primary_text   || t("hero.cta.primary");
   const ctaPrimaryLink   = settings.hero_cta_primary_link   || "/join";
   const ctaSecondaryText = settings.hero_cta_secondary_text || t("hero.cta.secondary");
-  const ctaSecondaryLink = settings.hero_cta_secondary_link || "/coins";
+  const ctaSecondaryLink = settings.hero_cta_secondary_link || "/join";
 
   const badges: Badge[] = safeParse(settings.hero_trust_badges, [
     { icon: "🏆", label: t("hero.badge.wealth") },
