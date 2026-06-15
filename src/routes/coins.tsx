@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { getPublicSettings } from "@/lib/api/settings.functions";
@@ -35,6 +35,32 @@ function parsePkg(v: string | undefined, fallback: Pkg): Pkg {
 function CoinsPage() {
   const { data: settings } = useSuspenseQuery(settingsQO);
   const { t } = useLang();
+
+  // Check if coin sales are enabled (default: enabled)
+  const coinsEnabled = settings.coins_enabled !== "false";
+
+  if (!coinsEnabled) {
+    return (
+      <SiteLayout>
+        <section className="container mx-auto px-4 py-16 text-center">
+          <div className="mx-auto max-w-md rounded-2xl border border-border/60 bg-card/60 p-8 backdrop-blur-md">
+            <AlertCircle className="mx-auto h-14 w-14 text-muted-foreground" />
+            <h1 className="mt-4 font-display text-2xl font-bold">Coin Sales Paused</h1>
+            <p className="mt-3 text-muted-foreground">
+              Coin recharge is currently paused. Please check back later or contact support on WhatsApp.
+            </p>
+            <Link
+              to="/"
+              className="mt-6 inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card/60 px-5 text-sm font-semibold hover:border-gold/60"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back to Home
+            </Link>
+          </div>
+        </section>
+      </SiteLayout>
+    );
+  }
+
   const packages: Pkg[] = [
     parsePkg(settings.coin_package_1, { name: t("section.packages.starter"), coins: 100, price: 99 }),
     parsePkg(settings.coin_package_2, { name: t("section.packages.popular"), coins: 500, price: 449 }),
