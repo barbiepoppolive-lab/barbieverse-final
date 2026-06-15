@@ -70,14 +70,30 @@ function CoinsPage() {
 
   const [step, setStep] = useState<"pick" | "form" | "pay" | "done">("pick");
   const [selected, setSelected] = useState<Pkg | null>(null);
+  const [quantity, setQuantity] = useState(1);
   const [method, setMethod] = useState<Method>("upi");
   const [orderResult, setOrderResult] = useState<{ id: string; expected_amount_rupees: string } | null>(null);
   const submit = useServerFn(submitOrder);
   const [loading, setLoading] = useState(false);
 
+  const selectPackage = (p: Pkg) => {
+    setSelected(p);
+    setQuantity(1);
+    setStep("form");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <SiteLayout>
       <section className="container mx-auto px-4 py-12 lg:py-16">
+        {/* Trust bar */}
+        <div className="mx-auto mb-8 flex max-w-3xl flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground">
+          <span>🔒 Your UID only — never your password</span>
+          <span>⚡️ Coins credited within 30 minutes</span>
+          <span>💬 WhatsApp support available</span>
+          <span>🇮🇳 UPI payment — zero extra charges</span>
+        </div>
+
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="font-display text-4xl font-bold sm:text-5xl">
             {t("coins.recharge")} <span className="text-gradient-pink">{t("coins.poppo")}</span> {t("section.packages.coins")}
@@ -90,34 +106,48 @@ function CoinsPage() {
         {step === "pick" && (
           <div className="mx-auto mt-12 grid max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {packages.map((p, i) => (
-              <button
+              <PackageCard
                 key={i}
-                onClick={() => { setSelected(p); setStep("form"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                className={`group relative rounded-2xl border bg-card/60 p-6 text-left backdrop-blur-md transition-all hover:scale-[1.02] hover:border-primary ${i === 1 ? "border-primary glow-pink" : "border-border/60"}`}
-              >
-                {i === 1 && <span className="absolute -top-3 right-4 rounded-full bg-gradient-pink px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">{t("coins.mostpopular")}</span>}
-                <div className="text-sm text-muted-foreground">{p.name}</div>
-                <div className="mt-3 flex items-baseline gap-2">
-                  <Coins className="h-6 w-6 text-primary" />
-                  <span className="font-display text-3xl font-bold">{p.coins}</span>
-                  <span className="text-xs text-muted-foreground">{t("coins.coins")}</span>
-                </div>
-                <div className="mt-4 font-display text-2xl font-bold text-gradient-pink">₹{p.price}</div>
-                <div className="mt-4 text-xs text-muted-foreground">≈ ₹{(p.price / p.coins).toFixed(2)}{t("coins.percoin")}</div>
-                <div className="mt-5 inline-flex items-center text-sm font-semibold text-primary">{t("section.packages.select")}</div>
-              </button>
+                pkg={p}
+                index={i}
+                onSelect={() => selectPackage(p)}
+                isPopular={i === 1}
+              />
             ))}
+          </div>
+        )}
+
+        {/* How It Works */}
+        {step === "pick" && (
+          <div className="mx-auto mt-16 max-w-3xl">
+            <h2 className="text-center font-display text-2xl font-bold">How It Works</h2>
+            <div className="mt-8 grid gap-6 sm:grid-cols-3">
+              <div className="text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-pink text-lg font-bold text-primary-foreground">1</div>
+                <p className="mt-3 text-sm text-muted-foreground">Select your coin package and quantity</p>
+              </div>
+              <div className="text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-pink text-lg font-bold text-primary-foreground">2</div>
+                <p className="mt-3 text-sm text-muted-foreground">Pay via UPI to our ID — enter your UTR number</p>
+              </div>
+              <div className="text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-pink text-lg font-bold text-primary-foreground">3</div>
+                <p className="mt-3 text-sm text-muted-foreground">Coins credited to your Poppo account within 30 minutes</p>
+              </div>
+            </div>
           </div>
         )}
 
         {step === "form" && selected && (
           <DetailsStep
             pkg={selected}
+            quantity={quantity}
+            onQuantityChange={setQuantity}
             method={method}
             onMethodChange={setMethod}
             onBack={() => setStep("pick")}
             loading={loading}
-            onSubmit={async (form) => {
+                onSubmit={async (form) => {
               setLoading(true);
               try {
                 const res: any = await submit({
@@ -126,8 +156,9 @@ function CoinsPage() {
                     whatsapp: form.whatsapp,
                     poppo_id: form.poppo_id,
                     package: selected.name,
-                    coins: selected.coins,
-                    amount: selected.price,
+                    coins: selected.coins * quantity,
+                    amount: selected.price * quantity,
+                    quantity,
                     utr: form.utr || "",
                     payment_method: method,
                   },
@@ -180,15 +211,67 @@ function CoinsPage() {
             </button>
           </div>
         )}
+
+        {/* FAQ Section */}
+        {step === "pick" && (
+          <div className="mx-auto mt-16 max-w-2xl">
+            <h2 className="text-center font-display text-2xl font-bold">Frequently Asked Questions</h2>
+            <div className="mt-8 space-y-4">
+              <FaqItem
+                q="Is it safe to recharge here?"
+                a="Yes. We only need your Poppo User ID. We never ask for your password or login credentials."
+              />
+              <FaqItem
+                q="How long does delivery take?"
+                a="Within 30 minutes of payment verification during business hours."
+              />
+              <FaqItem
+                q="What if I enter the wrong Poppo ID?"
+                a="Double-check your ID before submitting. We cannot reverse transactions with incorrect IDs."
+              />
+              <FaqItem
+                q="What payment methods are accepted?"
+                a="UPI only. Scan our QR code or use our UPI ID directly."
+              />
+              <FaqItem
+                q="How do I find my Poppo User ID?"
+                a="Open Poppo app → tap My → your numeric ID is below your profile photo."
+              />
+            </div>
+          </div>
+        )}
       </section>
     </SiteLayout>
   );
 }
 
+function PackageCard({ pkg, index, onSelect, isPopular }: { pkg: Pkg; index: number; onSelect: () => void; isPopular: boolean }) {
+  const { t } = useLang();
+  return (
+    <button
+      onClick={onSelect}
+      className={`group relative rounded-2xl border bg-card/60 p-6 text-left backdrop-blur-md transition-all hover:scale-[1.02] hover:border-primary ${isPopular ? "border-primary glow-pink" : "border-border/60"}`}
+    >
+      {isPopular && <span className="absolute -top-3 right-4 rounded-full bg-gradient-pink px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">{t("coins.mostpopular")}</span>}
+      <div className="text-sm text-muted-foreground">{pkg.name}</div>
+      <div className="mt-3 flex items-baseline gap-2">
+        <Coins className="h-6 w-6 text-primary" />
+        <span className="font-display text-3xl font-bold">{pkg.coins}</span>
+        <span className="text-xs text-muted-foreground">{t("coins.coins")}</span>
+      </div>
+      <div className="mt-4 font-display text-2xl font-bold text-gradient-pink">₹{pkg.price}</div>
+      <div className="mt-4 text-xs text-muted-foreground">≈ ₹{(pkg.price / pkg.coins).toFixed(2)}{t("coins.percoin")}</div>
+      <div className="mt-5 inline-flex items-center text-sm font-semibold text-primary">{t("section.packages.select")}</div>
+    </button>
+  );
+}
+
 function DetailsStep({
-  pkg, method, onMethodChange, onBack, onSubmit, loading,
+  pkg, quantity, onQuantityChange, method, onMethodChange, onBack, onSubmit, loading,
 }: {
   pkg: Pkg;
+  quantity: number;
+  onQuantityChange: (q: number) => void;
   method: Method;
   onMethodChange: (m: Method) => void;
   onBack: () => void;
@@ -228,9 +311,34 @@ function DetailsStep({
           <span className="text-muted-foreground">Package</span>
           <span className="font-semibold">{pkg.name} ({pkg.coins} coins)</span>
         </div>
+        <div className="mt-3 flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Quantity</span>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-lg font-bold hover:border-primary"
+            >
+              −
+            </button>
+            <span className="w-8 text-center font-semibold">{quantity}</span>
+            <button
+              type="button"
+              onClick={() => onQuantityChange(Math.min(10, quantity + 1))}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-lg font-bold hover:border-primary"
+            >
+              +
+            </button>
+          </div>
+        </div>
         <div className="mt-2 flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Amount</span>
-          <span className="font-display text-xl font-bold text-gradient-pink">₹{pkg.price}</span>
+          <span className="font-display text-xl font-bold text-gradient-pink">₹{pkg.price * quantity}</span>
+        </div>
+        <div className="mt-1 text-right text-xs text-muted-foreground">
+          for {pkg.coins * quantity} coins
+        </div>
+      </div>
         </div>
       </div>
 
@@ -443,6 +551,23 @@ function FormField({ name, label, required, placeholder }: { name: string; label
     <div>
       <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}{required && <span className="text-primary"> *</span>}</label>
       <input name={name} required={required} placeholder={placeholder} className="h-11 w-full rounded-lg border border-input bg-input/50 px-3 text-sm focus:border-primary focus:outline-none" />
+    </div>
+  );
+}
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-xl border border-border/60 bg-card/40 backdrop-blur-md">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between p-4 text-left text-sm font-semibold"
+      >
+        {q}
+        <span className="ml-2 text-lg text-muted-foreground">{open ? "−" : "+"}</span>
+      </button>
+      {open && <div className="px-4 pb-4 text-sm text-muted-foreground">{a}</div>}
     </div>
   );
 }
