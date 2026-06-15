@@ -4,9 +4,9 @@ import { submitLead } from "@/lib/api/leads.functions";
 import { Sparkles, CheckCircle2 } from "lucide-react";
 import { useLang } from "@/lib/i18n";
 
-type Props = { source: "direct" | "wobb" };
+type Props = { source: "direct" | "wobb"; successMsg?: string };
 
-export function LeadForm({ source }: Props) {
+export function LeadForm({ source, successMsg }: Props) {
   const submit = useServerFn(submitLead);
   const { t } = useLang();
   const [loading, setLoading] = useState(false);
@@ -19,16 +19,18 @@ export function LeadForm({ source }: Props) {
         <CheckCircle2 className="mx-auto h-14 w-14 text-primary" />
         <h2 className="mt-4 font-display text-2xl font-bold">{t("lead.success.title")}</h2>
         <p className="mt-2 text-muted-foreground">
-          {t("lead.success.desc")}
+          {successMsg || t("lead.success.desc")}
         </p>
-        <div className="mt-6 space-y-3 rounded-xl bg-secondary/50 p-4 text-left text-sm">
-          <div className="font-semibold">{t("lead.success.next")}</div>
-          <ol className="ml-4 list-decimal space-y-1 text-muted-foreground">
-            <li>{t("lead.success.step1")}</li>
-            <li>{t("lead.success.step2")}</li>
-            <li>{t("lead.success.step3")}</li>
-          </ol>
-        </div>
+        {!successMsg && (
+          <div className="mt-6 space-y-3 rounded-xl bg-secondary/50 p-4 text-left text-sm">
+            <div className="font-semibold">{t("lead.success.next")}</div>
+            <ol className="ml-4 list-decimal space-y-1 text-muted-foreground">
+              <li>{t("lead.success.step1")}</li>
+              <li>{t("lead.success.step2")}</li>
+              <li>{t("lead.success.step3")}</li>
+            </ol>
+          </div>
+        )}
       </div>
     );
   }
