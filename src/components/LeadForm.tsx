@@ -2,18 +2,13 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { submitLead } from "@/lib/api/leads.functions";
 import { Sparkles, CheckCircle2 } from "lucide-react";
+import { useLang } from "@/lib/i18n";
 
 type Props = { source: "direct" | "wobb" };
 
-const followerOptions = [
-  { value: "under_1k", label: "Under 1K" },
-  { value: "1k_10k", label: "1K – 10K" },
-  { value: "10k_100k", label: "10K – 100K" },
-  { value: "100k_plus", label: "100K+" },
-] as const;
-
 export function LeadForm({ source }: Props) {
   const submit = useServerFn(submitLead);
+  const { t } = useLang();
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,17 +17,16 @@ export function LeadForm({ source }: Props) {
     return (
       <div className="rounded-2xl border border-primary/30 bg-card/60 p-8 text-center backdrop-blur-md">
         <CheckCircle2 className="mx-auto h-14 w-14 text-primary" />
-        <h2 className="mt-4 font-display text-2xl font-bold">You're in! 🎉</h2>
+        <h2 className="mt-4 font-display text-2xl font-bold">{t("lead.success.title")}</h2>
         <p className="mt-2 text-muted-foreground">
-          We received your details. Our team will reach out on WhatsApp within 24 hours with your
-          Poppo Live signup link and your ₹500 bonus instructions.
+          {t("lead.success.desc")}
         </p>
         <div className="mt-6 space-y-3 rounded-xl bg-secondary/50 p-4 text-left text-sm">
-          <div className="font-semibold">Next steps:</div>
+          <div className="font-semibold">{t("lead.success.next")}</div>
           <ol className="ml-4 list-decimal space-y-1 text-muted-foreground">
-            <li>Check your email for the welcome message</li>
-            <li>Our team will WhatsApp you with the Poppo signup link</li>
-            <li>Sign up & go live once — receive ₹500 instantly</li>
+            <li>{t("lead.success.step1")}</li>
+            <li>{t("lead.success.step2")}</li>
+            <li>{t("lead.success.step3")}</li>
           </ol>
         </div>
       </div>
@@ -58,9 +52,9 @@ export function LeadForm({ source }: Props) {
         try {
           const res = await submit({ data });
           if ((res as any)?.ok) setDone(true);
-          else setError("Something went wrong. Please try again.");
+          else setError(t("lead.error"));
         } catch (err: any) {
-          setError(err?.message || "Submission failed");
+          setError(err?.message || t("lead.error.submit"));
         } finally {
           setLoading(false);
         }
@@ -68,17 +62,17 @@ export function LeadForm({ source }: Props) {
       className="space-y-4 rounded-2xl border border-border/60 bg-card/60 p-6 backdrop-blur-md sm:p-8"
     >
       <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-        <Sparkles className="h-4 w-4" /> Claim your ₹500 bonus
+        <Sparkles className="h-4 w-4" /> {t("lead.title")}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field name="name" label="Full Name" placeholder="Priya Sharma" required />
-        <Field name="instagram" label="Instagram Handle" placeholder="@yourhandle" />
-        <Field name="email" type="email" label="Email Address" placeholder="you@email.com" required />
-        <Field name="whatsapp" label="WhatsApp Number" placeholder="+91 98765 43210" required />
-        <Field name="city" label="City" placeholder="Mumbai" />
+        <Field name="name" label={t("lead.name")} placeholder={t("lead.name.placeholder")} required />
+        <Field name="instagram" label={t("lead.instagram")} placeholder={t("lead.instagram.placeholder")} />
+        <Field name="email" type="email" label={t("lead.email")} placeholder={t("lead.email.placeholder")} required />
+        <Field name="whatsapp" label={t("lead.whatsapp")} placeholder={t("lead.whatsapp.placeholder")} required />
+        <Field name="city" label={t("lead.city")} placeholder={t("lead.city.placeholder")} />
         <div>
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-            Follower Count
+            {t("lead.followers")}
           </label>
           <select
             name="follower_count"
@@ -86,11 +80,10 @@ export function LeadForm({ source }: Props) {
             defaultValue="under_1k"
             className="h-11 w-full rounded-lg border border-input bg-input/50 px-3 text-sm focus:border-primary focus:outline-none"
           >
-            {followerOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
+            <option value="under_1k">{t("lead.followers.u1k")}</option>
+            <option value="1k_10k">{t("lead.followers.1k10k")}</option>
+            <option value="10k_100k">{t("lead.followers.10k100k")}</option>
+            <option value="100k_plus">{t("lead.followers.100k")}</option>
           </select>
         </div>
       </div>
@@ -100,10 +93,10 @@ export function LeadForm({ source }: Props) {
         disabled={loading}
         className="h-12 w-full rounded-full bg-gradient-pink text-sm font-bold text-primary-foreground glow-pink transition-transform hover:scale-[1.02] disabled:opacity-60"
       >
-        {loading ? "Submitting..." : "Claim ₹500 Bonus →"}
+        {loading ? t("lead.submitting") : t("lead.submit")}
       </button>
       <p className="text-center text-xs text-muted-foreground">
-        By submitting, you agree to be contacted by Barbieverse on WhatsApp & email.
+        {t("lead.agree")}
       </p>
     </form>
   );

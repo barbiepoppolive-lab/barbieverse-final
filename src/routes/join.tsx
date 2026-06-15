@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { LeadForm } from "@/components/LeadForm";
 import { Gift, Zap, IndianRupee } from "lucide-react";
+import { useLang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/join")({
   head: () => ({
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/join")({
       },
     ],
   }),
-  component: () => <JoinPage source="direct" headline="Join Poppo Live and earn ₹500 instantly" sub="India's fastest growing live streaming app" />,
+  component: () => <JoinPage source="direct" />,
 });
 
 export function JoinPage({
@@ -28,19 +29,20 @@ export function JoinPage({
   sub,
 }: {
   source: "direct" | "wobb";
-  headline: string;
-  sub: string;
+  headline?: string;
+  sub?: string;
 }) {
+  const { t } = useLang();
   return (
     <SiteLayout>
       <section className="container mx-auto px-4 py-12 lg:py-20">
         <div className="grid items-start gap-10 lg:grid-cols-2">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-              <Gift className="h-3.5 w-3.5" /> Limited Time Offer
+              <Gift className="h-3.5 w-3.5" /> {t("join.page.badge")}
             </div>
             <h1 className="mt-4 font-display text-4xl font-bold leading-[1.1] sm:text-5xl lg:text-6xl">
-              {headline.split("₹500").map((part, i, arr) =>
+              {(headline || t("join.page.title")).split("₹500").map((part, i, arr) =>
                 i < arr.length - 1 ? (
                   <span key={i}>
                     {part}
@@ -51,20 +53,20 @@ export function JoinPage({
                 ),
               )}
             </h1>
-            <p className="mt-4 text-lg text-muted-foreground">{sub}</p>
+            <p className="mt-4 text-lg text-muted-foreground">{sub || t("join.page.sub")}</p>
             <ul className="mt-8 space-y-4">
               {[
-                { icon: IndianRupee, t: "₹500 instant bonus", d: "Credited within 24 hours of signup" },
-                { icon: Zap, t: "Earn while you stream", d: "Hosts earn ₹500–₹2,000 per session" },
-                { icon: Gift, t: "Dedicated host support", d: "WhatsApp support in Hindi & English" },
+                { icon: IndianRupee, title: t("join.benefit1.title"), desc: t("join.benefit1.desc") },
+                { icon: Zap, title: t("join.benefit2.title"), desc: t("join.benefit2.desc") },
+                { icon: Gift, title: t("join.benefit3.title"), desc: t("join.benefit3.desc") },
               ].map((b) => (
-                <li key={b.t} className="flex gap-4">
+                <li key={b.title} className="flex gap-4">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-pink glow-pink">
                     <b.icon className="h-5 w-5 text-primary-foreground" />
                   </div>
                   <div>
-                    <div className="font-semibold">{b.t}</div>
-                    <div className="text-sm text-muted-foreground">{b.d}</div>
+                    <div className="font-semibold">{b.title}</div>
+                    <div className="text-sm text-muted-foreground">{b.desc}</div>
                   </div>
                 </li>
               ))}
