@@ -25,6 +25,7 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/terms-and-conditions", changefreq: "yearly", priority: "0.3" },
           { path: "/creator-reward-policy", changefreq: "yearly", priority: "0.4" },
           { path: "/recharge-policy", changefreq: "yearly", priority: "0.4" },
+          { path: "/blog/how-to-earn-money-on-poppo-live-india", changefreq: "monthly", priority: "0.9" },
         ];
 
         // Dynamic: published blog posts
