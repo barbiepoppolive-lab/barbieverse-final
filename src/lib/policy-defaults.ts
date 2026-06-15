@@ -122,7 +122,21 @@ Questions about these Terms? Visit our [Contact page](/contact).`,
 
   policy_creator_reward: `## What Is The Creator Reward
 
-BarbieVerse may offer **onboarding rewards** to eligible creators who successfully join supported platforms through official BarbieVerse referral channels. Reward amounts, eligibility and timelines are set by BarbieVerse and may change at any time.
+When you join Poppo Live through BarbieVerse, you gain access to Poppo's **Solo Live Mission** — a guaranteed first-week earning program for new hosts. This is paid directly by Poppo Live, not by BarbieVerse.
+
+## How The Poppo First Week Mission Works
+
+- Stream **2 hours daily** for **7 consecutive days**
+- Complete **face authentication** on your Poppo account
+- Reach **Level 5** on your Poppo profile
+- Poppo pays you **20,000 points ($2) daily** — totalling $14 (₹1,150) in week one
+
+## Gender-Based Earnings
+
+| Creator Type | Week 1 Earnings |
+|-------------|----------------|
+| Female Host | ₹1,150 |
+| Male Host | ₹575 |
 
 ## Eligibility Requirements
 
@@ -130,24 +144,13 @@ BarbieVerse may offer **onboarding rewards** to eligible creators who successful
 - Accurate information must be provided.
 - Only **one reward** is available per creator.
 - Duplicate applications are not eligible.
-- Reward eligibility is subject to verification.
+- Must reach Level 5 and complete face authentication.
 
 ## Reward Review Process
 
 - Applications are **reviewed manually**.
 - Reward approval timelines may vary.
 - Submitting an application does **not guarantee** reward approval.
-
-## Reward Qualification Rules
-
-Creators may be required to:
-
-- Complete registration on the supported platform.
-- Complete onboarding as outlined by BarbieVerse.
-- Maintain an active creator account.
-- Meet minimum participation requirements (such as going live for a defined period).
-
-BarbieVerse reserves the right to define and update reward qualification criteria.
 
 ## Disqualification Conditions
 
@@ -162,13 +165,14 @@ The following may result in disqualification from reward campaigns:
 
 ## Creator Earnings Disclaimer
 
-- Creator earnings are **not guaranteed**.
+- Week 1 earnings are guaranteed through Poppo's Solo Live Mission if requirements are met.
+- Ongoing earnings are **not guaranteed**.
 - Results vary based on creator activity, audience engagement and platform-specific factors.
 - **Past creator performance does not guarantee future earnings.**
 
 ## Platform Independence
 
-BarbieVerse is an **independent creator support ecosystem**. Platform operations, account approvals, account restrictions and creator earnings remain under the control of the respective platforms.
+BarbieVerse is an **independent creator support ecosystem**. Platform operations, account approvals, account restrictions and creator earnings remain under the control of Poppo Live.
 
 ## Policy Updates
 
