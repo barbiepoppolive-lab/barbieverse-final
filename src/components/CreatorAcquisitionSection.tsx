@@ -166,6 +166,7 @@ function JoinModal({ onClose }: { onClose: () => void }) {
           whatsapp_number: whatsapp.trim() || undefined,
           upi_id: upi.trim(),
           platform,
+          intent: "reward_only",
           lead_source: "homepage_carousel",
           landing_page: typeof window !== "undefined" ? window.location.pathname : undefined,
         },

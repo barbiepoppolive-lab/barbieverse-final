@@ -38,6 +38,11 @@ const DICT = {
     "hero.stat.reward": "Creator Reward",
 
     // ===== CAROUSEL / CREATOR ACQUISITION =====
+    "creator.eyebrow": "For Aspiring Creators",
+    "creator.title.start": "Start Your",
+    "creator.title.journey": "Creator Journey",
+    "creator.tagline": "Learn from Barbie, one of Poppo's highest wealth-level creators, and begin your creator journey with agency support.",
+    "creator.track": "Already applied? Track your application →",
     "carousel.eyebrow": "For Aspiring Creators",
     "carousel.slide1.title": "Earn From Home",
     "carousel.slide1.desc": "Go live, build an audience and receive gifts while streaming.",
@@ -447,6 +452,11 @@ const DICT = {
     "hero.stat.reward": "क्रिएटर रिवॉर्ड",
 
     // ===== CAROUSEL =====
+    "creator.eyebrow": "नए क्रिएटर्स के लिए",
+    "creator.title.start": "शुरू करें अपनी",
+    "creator.title.journey": "क्रिएटर जर्नी",
+    "creator.tagline": "Poppo की टॉप क्रिएटर बार्बी से सीखें और एजेंसी सपोर्ट के साथ अपनी क्रिएटर जर्नी शुरू करें।",
+    "creator.track": "पहले से अप्लाई किया? यहाँ ट्रैक करें →",
     "carousel.eyebrow": "नए क्रिएटर्स के लिए",
     "carousel.slide1.title": "घर से कमाएँ",
     "carousel.slide1.desc": "लाइव जाएँ, ऑडियंस बनाएँ और स्ट्रीमिंग के दौरान गिफ्ट्स पाएँ।",

@@ -15,7 +15,7 @@ const settingKeySchema = z.string().min(3).max(200);
 
 // Keys that are safe for public consumption
 const PUBLIC_SETTING_KEYS = new Set([
-  "hero_eyebrow", "hero_name", "hero_title", "hero_intro", "hero_signature", "hero_photo_url",
+  "hero_eyebrow", "hero_name", "hero_title", "hero_subtitle", "hero_intro", "hero_signature", "hero_photo_url",
   "hero_cta_primary_text", "hero_cta_primary_link", "hero_cta_secondary_text", "hero_cta_secondary_link",
   "hero_trust_badges", "vip_tiers", "vip_support_text", "vip_cta_text",
   "coin_package_1", "coin_package_2", "coin_package_3", "coin_package_4",
