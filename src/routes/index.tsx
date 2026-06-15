@@ -24,6 +24,7 @@ import { Reveal } from "@/components/Reveal";
 import { TiltCard } from "@/components/TiltCard";
 import { useGlobalMouse, usePrefersReducedMotion, useIsLowPower } from "@/hooks/use-motion";
 import { useEffect, useRef } from "react";
+import { useLang } from "@/lib/i18n";
 
 // ── Data query options (unchanged) ───────────────────────────────────────────
 const postsQO   = queryOptions({ queryKey: ["posts", "home"],             queryFn: () => listPosts({ data: {} }) });
@@ -85,24 +86,25 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
   const mouse = useGlobalMouse();
   const reduced = usePrefersReducedMotion();
   const lowPower = useIsLowPower();
+  const { t } = useLang();
 
   const heroPhoto     = settings.hero_photo_url?.trim() || founderPortrait.url;
-  const heroEyebrow   = settings.hero_eyebrow   || "Founder, Barbieverse";
-  const heroName      = settings.hero_name      || "Barbie";
-  const heroTitle     = settings.hero_title     || "India's Highest Wealth-Level Poppo Creator";
-  const heroSubtitle  = settings.hero_subtitle  || "Helping New Creators Start, Grow & Earn From Home";
-  const heroIntro     = settings.hero_intro     || "Join the creator ecosystem built by Barbie. Get onboarding support, growth guidance, creator rewards and a premium community designed to help streamers succeed.";
-  const heroSignature = settings.hero_signature || "— with love, Barbie";
-  const ctaPrimaryText   = settings.hero_cta_primary_text   || "Start My Creator Journey";
+  const heroEyebrow   = settings.hero_eyebrow   || t("hero.eyebrow");
+  const heroName      = settings.hero_name      || t("hero.name");
+  const heroTitle     = settings.hero_title     || t("hero.title");
+  const heroSubtitle  = settings.hero_subtitle  || t("hero.subtitle");
+  const heroIntro     = settings.hero_intro     || t("hero.intro");
+  const heroSignature = settings.hero_signature || t("hero.signature");
+  const ctaPrimaryText   = settings.hero_cta_primary_text   || t("hero.cta.primary");
   const ctaPrimaryLink   = settings.hero_cta_primary_link   || "/join";
-  const ctaSecondaryText = settings.hero_cta_secondary_text || "Explore Earnings";
+  const ctaSecondaryText = settings.hero_cta_secondary_text || t("hero.cta.secondary");
   const ctaSecondaryLink = settings.hero_cta_secondary_link || "/coins";
 
   const badges: Badge[] = safeParse(settings.hero_trust_badges, [
-    { icon: "🏆", label: "Highest Wealth-Level Creator" },
-    { icon: "💎", label: "Official Agency Founder" },
-    { icon: "⚡", label: "Fast Coin Recharge Support" },
-    { icon: "🌸", label: "Creator Community" },
+    { icon: "🏆", label: t("hero.badge.wealth") },
+    { icon: "💎", label: t("hero.badge.agency") },
+    { icon: "⚡", label: t("hero.badge.recharge") },
+    { icon: "🌸", label: t("hero.badge.community") },
   ]);
 
   // Parallax translate values — disabled for reduced-motion / low-power
@@ -239,7 +241,7 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
                     <div className="font-display text-lg leading-tight">{heroName}</div>
                   </div>
                   <div className="flex items-center gap-1 rounded-full bg-gold/15 px-3 py-1 text-[11px] font-semibold text-gold glow-gold-sm">
-                    <Sparkles className="h-3 w-3" /> Top Creator
+                    <Sparkles className="h-3 w-3" /> {t("hero.portrait.badge")}
                   </div>
                 </div>
               </TiltCard>
@@ -254,7 +256,7 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
               >
                 <div className="flex items-center gap-2">
                   <Heart className="h-4 w-4 fill-primary text-primary" />
-                  <div className="font-display text-sm italic">"Built by a top creator."</div>
+                  <div className="font-display text-sm italic">"{t("hero.quote")}"</div>
                 </div>
               </div>
 
@@ -268,7 +270,7 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
               >
                 <div className="text-center">
                   <div className="text-gradient-pink font-display text-xl font-medium">₹500</div>
-                  <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Creator Reward</div>
+                  <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{t("hero.stat.reward")}</div>
                 </div>
               </div>
             </div>
@@ -291,22 +293,23 @@ function HomePage() {
   const { data: whySlides }   = useSuspenseQuery(whyQO);
   const { data: howSlides }   = useSuspenseQuery(howQO);
   const { data: chooseSlides } = useSuspenseQuery(chooseQO);
+  const { t } = useLang();
 
   const vipTiers: Tier[] = safeParse(settings.vip_tiers, [
-    { icon: "🌸", name: "Silver Supporter" },
-    { icon: "✨", name: "Gold Member" },
-    { icon: "💎", name: "Platinum Elite" },
-    { icon: "👑", name: "Diamond Circle" },
-    { icon: "🌌", name: "BarbieVerse Royalty" },
+    { icon: "🌸", name: t("section.vip.tier1") },
+    { icon: "✨", name: t("section.vip.tier2") },
+    { icon: "💎", name: t("section.vip.tier3") },
+    { icon: "👑", name: t("section.vip.tier4") },
+    { icon: "🌌", name: t("section.vip.tier5") },
   ]);
-  const vipSupportText = settings.vip_support_text || "Priority Support • Faster Processing • Exclusive Benefits";
-  const vipCtaText     = settings.vip_cta_text     || "Explore VIP Benefits";
+  const vipSupportText = settings.vip_support_text || t("section.vip.support");
+  const vipCtaText     = settings.vip_cta_text     || t("section.vip.cta");
 
   const packages: Pkg[] = [
-    parsePkg(settings.coin_package_1, { name: "Starter", coins: 100,  price: 99 }),
-    parsePkg(settings.coin_package_2, { name: "Popular", coins: 500,  price: 449 }),
-    parsePkg(settings.coin_package_3, { name: "Value",   coins: 1000, price: 849 }),
-    parsePkg(settings.coin_package_4, { name: "Mega",    coins: 5000, price: 3999 }),
+    parsePkg(settings.coin_package_1, { name: t("section.packages.starter"), coins: 100,  price: 99 }),
+    parsePkg(settings.coin_package_2, { name: t("section.packages.popular"), coins: 500,  price: 449 }),
+    parsePkg(settings.coin_package_3, { name: t("section.packages.value"),   coins: 1000, price: 849 }),
+    parsePkg(settings.coin_package_4, { name: t("section.packages.mega"),    coins: 5000, price: 3999 }),
   ];
 
   const testimonials = safeParse<Testimonial[]>(settings.testimonials_json, []);
@@ -337,10 +340,9 @@ function HomePage() {
       {/* ═══════════════ WHY BARBIEVERSE ═══════════════ */}
       <section className="container mx-auto px-4 py-14 sm:py-20">
         <Reveal variant="fade-up" className="mx-auto mb-10 max-w-2xl text-center">
-          <div className="text-[11px] uppercase tracking-[0.22em] text-gold">Why Barbieverse</div>
+          <div className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("section.why.eyebrow")}</div>
           <h2 className="mt-3 font-display text-3xl font-medium sm:text-4xl">
-            A creator ecosystem built by{" "}
-            <span className="italic text-gradient-pink">a proven top creator</span>
+            {t("section.why.heading")}
           </h2>
         </Reveal>
         <Reveal variant="fade-up" delay={120}>
@@ -358,11 +360,11 @@ function HomePage() {
         </div>
         <div className="container mx-auto px-4 py-14 sm:py-20">
           <Reveal variant="fade-up" className="mx-auto mb-10 max-w-2xl text-center">
-            <div className="text-[11px] uppercase tracking-[0.22em] text-gold">The Journey</div>
+            <div className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("section.journey.eyebrow")}</div>
             <h2 className="mt-3 font-display text-3xl font-medium sm:text-4xl">
-              How <span className="italic text-gradient-pink">success happens</span>
+              {t("section.journey.heading")}
             </h2>
-            <p className="mt-3 text-sm text-muted-foreground">From signup to top-creator status — guided every step.</p>
+            <p className="mt-3 text-sm text-muted-foreground">{t("section.journey.sub")}</p>
           </Reveal>
           <Reveal variant="fade-up" delay={120}>
             <TimelineCarousel slides={howSlides} />
@@ -373,10 +375,9 @@ function HomePage() {
       {/* ═══════════════ WHY STREAMERS CHOOSE ═══════════════ */}
       <section className="container mx-auto px-4 py-14 sm:py-20">
         <Reveal variant="fade-up" className="mx-auto mb-10 max-w-2xl text-center">
-          <div className="text-[11px] uppercase tracking-[0.22em] text-gold">Why Streamers Choose Barbieverse</div>
+          <div className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("section.why2.eyebrow")}</div>
           <h2 className="mt-3 font-display text-3xl font-medium sm:text-4xl">
-            Premium support.{" "}
-            <span className="italic text-gradient-pink">Real earning.</span>
+            {t("section.why2.heading")}
           </h2>
         </Reveal>
         <Reveal variant="fade-up" delay={120}>
@@ -404,13 +405,13 @@ function HomePage() {
         <section className="container mx-auto px-4 py-14 sm:py-20">
           <Reveal variant="fade-up" className="flex items-end justify-between gap-4">
             <div>
-              <div className="text-[11px] uppercase tracking-[0.22em] text-gold">Journal</div>
+              <div className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("section.blog.eyebrow")}</div>
               <h2 className="mt-3 font-display text-3xl font-medium sm:text-4xl">
-                From the <span className="italic text-gradient-pink">atelier</span>
+                {t("section.blog.heading")}
               </h2>
             </div>
             <Link to="/blog" className="hidden text-sm font-medium text-gold hover:underline sm:inline-flex">
-              View all →
+              {t("section.blog.viewall")}
             </Link>
           </Reveal>
 
