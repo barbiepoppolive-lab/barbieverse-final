@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
+import { SmartPaymentVerification } from "@/components/SmartPaymentVerification";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { getPublicSettings } from "@/lib/api/settings.functions";
 import { submitOrder } from "@/lib/api/orders.functions";
@@ -72,7 +73,7 @@ function CoinsPage() {
   const [selected, setSelected] = useState<Pkg | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [method, setMethod] = useState<Method>("upi");
-  const [orderResult, setOrderResult] = useState<{ id: string; expected_amount_rupees: string } | null>(null);
+  const [orderResult, setOrderResult] = useState<{ id: string; expected_amount_rupees: string; name: string; whatsapp: string; poppo_id: string } | null>(null);
   const submit = useServerFn(submitOrder);
   const [loading, setLoading] = useState(false);
 
@@ -164,7 +165,7 @@ function CoinsPage() {
                   },
                 });
                 if (!res?.ok) return;
-                setOrderResult({ id: res.id, expected_amount_rupees: res.expected_amount_rupees });
+                setOrderResult({ id: res.id, expected_amount_rupees: res.expected_amount_rupees, name: form.name, whatsapp: form.whatsapp, poppo_id: form.poppo_id });
 
                 if (method === "upi") {
                   // Auto-open UPI app with the unique amount (paise-precise match)
@@ -184,7 +185,26 @@ function CoinsPage() {
           />
         )}
 
-        {step === "pay" && selected && orderResult && (
+        {step === "pay" && selected && orderResult && method === "upi" && (
+          <SmartPaymentVerification
+            upiId={settings.upi_id || "barbieverse@upi"}
+            payeeName={settings.upi_payee_name || "Barbieverse"}
+            amountRupees={orderResult.expected_amount_rupees}
+            orderId={orderResult.id}
+            orderShortId={orderResult.id.slice(0, 8)}
+            customerName={orderResult.name}
+            customerWhatsapp={orderResult.whatsapp}
+            poppoId={orderResult.poppo_id}
+            packageName={selected.name}
+            quantity={quantity}
+            totalCoins={selected.coins * quantity}
+            whatsappNumber={settings.admin_whatsapp || "919555644465"}
+            onBack={() => setStep("form")}
+            onDone={() => setStep("done")}
+          />
+        )}
+
+        {step === "pay" && selected && orderResult && method !== "upi" && (
           <PayStep
             pkg={selected}
             settings={settings}
@@ -430,15 +450,12 @@ function PayStep({
   onBack: () => void;
   onDone: () => void;
 }) {
-  const upiId = settings.upi_id || "barbieverse@upi";
-  const payeeName = settings.upi_payee_name || "Barbieverse";
   const usdtAddress = settings.usdt_wallet_address || "";
   const usdtNetwork = settings.usdt_network || "TRC20";
   const usdtRate = Number(settings.usdt_inr_rate || "90") || 90;
   const usdtAmount = (pkg.price / usdtRate).toFixed(2);
 
-  const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amountRupees}&cu=INR&tn=${encodeURIComponent("BV-" + orderId.slice(0, 8))}`;
-  const qrData = method === "upi" ? upiLink : method === "usdt" ? usdtAddress : `${settings.bank_account_name || ""} ${settings.bank_account_number || ""} ${settings.bank_ifsc || ""}`;
+  const qrData = method === "usdt" ? usdtAddress : `${settings.bank_account_name || ""} ${settings.bank_account_number || ""} ${settings.bank_ifsc || ""}`;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(qrData || "barbieverse")}`;
 
   const [copied, setCopied] = useState<string | null>(null);
@@ -449,42 +466,6 @@ function PayStep({
       <button onClick={onBack} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back
       </button>
-
-      {method === "upi" && (
-        <div className="rounded-2xl border border-primary/40 bg-card/60 p-6 backdrop-blur-md">
-          <div className="text-xs font-semibold uppercase tracking-wider text-primary">Pay via UPI</div>
-          <div className="mt-3 rounded-xl bg-secondary/40 p-4 text-center">
-            <div className="text-xs text-muted-foreground">Pay exactly this amount</div>
-            <div className="mt-1 font-display text-4xl font-bold text-gradient-pink">₹{amountRupees}</div>
-            <div className="mt-1 text-[11px] text-muted-foreground">Unique amount — used to auto-verify your payment</div>
-          </div>
-
-          <a
-            href={upiLink}
-            className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-full bg-gradient-pink text-sm font-bold text-primary-foreground glow-pink"
-          >
-            Open UPI App
-          </a>
-
-          <div className="mt-4 flex flex-col items-center gap-3 rounded-xl border border-border/60 bg-background/40 p-4">
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Or scan QR</div>
-            <img src={qrSrc} alt="UPI QR" className="h-44 w-44 rounded-lg bg-white p-2" />
-            <div className="w-full space-y-2">
-              <CopyRow label="UPI ID" value={upiId} k="upi" copied={copied} onCopy={copy} />
-              <CopyRow label="Amount" value={`₹${amountRupees}`} k="amt" copied={copied} onCopy={copy} />
-            </div>
-          </div>
-
-          <div className="mt-4 flex items-start gap-2 rounded-lg bg-primary/10 p-3 text-xs text-muted-foreground">
-            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            After paying, your payment is auto-detected. Coins will be sent within minutes — you'll get a WhatsApp confirmation.
-          </div>
-
-          <button onClick={onDone} className="mt-5 h-11 w-full rounded-full border border-border bg-card text-sm font-semibold hover:border-primary">
-            I've paid — track on WhatsApp
-          </button>
-        </div>
-      )}
 
       {method === "usdt" && (
         <UsdtPay
