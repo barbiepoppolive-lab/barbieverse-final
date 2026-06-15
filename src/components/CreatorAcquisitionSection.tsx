@@ -10,32 +10,15 @@ import { useLang } from "@/lib/i18n";
 
 type Slide = { headline: string; description: string; button: string; emoji: string };
 
-const SLIDES: Slide[] = [
-  {
-    headline: "Earn From Home",
-    description: "Go live, build an audience and receive gifts while streaming.",
-    button: "Join Now",
-    emoji: "💎",
-  },
-  {
-    headline: "Learn From Barbie",
-    description: "Join the creator ecosystem built by one of Poppo's highest wealth-level creators.",
-    button: "Join Agency",
-    emoji: "👑",
-  },
-  {
-    headline: "₹500 Joining Bonus Reserved",
-    description: "Eligible creators who successfully complete onboarding can receive a ₹500 creator reward.",
-    button: "Claim Bonus",
-    emoji: "🎁",
-  },
-  {
-    headline: "Dedicated Agency Support",
-    description: "Receive onboarding help, creator guidance and support from the BarbieVerse team.",
-    button: "Get Started",
-    emoji: "🌸",
-  },
-];
+function useSlides(): Slide[] {
+  const { t } = useLang();
+  return [
+    { headline: t("carousel.slide1.title"), description: t("carousel.slide1.desc"), button: t("carousel.slide1.cta"), emoji: "💎" },
+    { headline: t("carousel.slide2.title"), description: t("carousel.slide2.desc"), button: t("carousel.slide2.cta"), emoji: "👑" },
+    { headline: t("carousel.slide3.title"), description: t("carousel.slide3.desc"), button: t("carousel.slide3.cta"), emoji: "🎁" },
+    { headline: t("carousel.slide4.title"), description: t("carousel.slide4.desc"), button: t("carousel.slide4.cta"), emoji: "🌸" },
+  ];
+}
 
 export function CreatorAcquisitionSection() {
   const [emblaRef, embla] = useEmblaCarousel(
@@ -45,6 +28,7 @@ export function CreatorAcquisitionSection() {
   const [selected, setSelected] = useState(0);
   const [open, setOpen] = useState(false);
   const { t } = useLang();
+  const SLIDES = useSlides();
 
   useEffect(() => {
     if (!embla) return;
@@ -120,13 +104,14 @@ export function CreatorAcquisitionSection() {
 }
 
 function SlideCard({ slide, onJoin }: { slide: Slide; onJoin: () => void }) {
+  const { t } = useLang();
   return (
     <div className="group relative h-full overflow-hidden rounded-3xl border border-gold/20 bg-gradient-to-br from-card/80 via-card/40 to-card/20 p-7 backdrop-blur-xl shadow-luxe sm:p-9">
       <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/25 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-accent/15 blur-3xl" />
       <div className="relative grid gap-6 sm:grid-cols-[1fr_auto] sm:items-center">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.22em] text-gold">BarbieVerse Agency</div>
+          <div className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("carousel.brand")}</div>
           <h3 className="mt-3 font-display text-2xl font-medium leading-tight sm:text-3xl lg:text-4xl">
             {slide.headline}
           </h3>
@@ -152,6 +137,7 @@ function SlideCard({ slide, onJoin }: { slide: Slide; onJoin: () => void }) {
 
 function JoinModal({ onClose }: { onClose: () => void }) {
   const submit = useServerFn(submitCreatorLead);
+  const { t } = useLang();
   const [mobile, setMobile] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [upi, setUpi] = useState("");
@@ -165,11 +151,11 @@ function JoinModal({ onClose }: { onClose: () => void }) {
     e.preventDefault();
     setError(null);
     if (!mobile.trim() || !upi.trim()) {
-      setError("Mobile number and UPI ID are required.");
+      setError(t("modal.join.error.mobile"));
       return;
     }
     if (!agreed) {
-      setError("Please accept the Creator Reward Policy to continue.");
+      setError(t("modal.join.error.policy"));
       return;
     }
     setSubmitting(true);
@@ -185,12 +171,12 @@ function JoinModal({ onClose }: { onClose: () => void }) {
         },
       });
       if (!res.ok) {
-        setError(res.message || "Could not submit application.");
+        setError(res.message || t("modal.join.error.submit"));
       } else {
         setResult({ application_id: res.application_id, platform: res.platform });
       }
     } catch (err: any) {
-      setError(err?.message || "Something went wrong. Please try again.");
+      setError(err?.message || t("modal.join.error.wrong"));
     } finally {
       setSubmitting(false);
     }
@@ -211,40 +197,40 @@ function JoinModal({ onClose }: { onClose: () => void }) {
           <SuccessScreen applicationId={result.application_id} platform={result.platform} onClose={onClose} />
         ) : (
           <form onSubmit={handleSubmit} className="p-6 sm:p-8">
-            <div className="text-[11px] uppercase tracking-[0.22em] text-gold">Join the Agency</div>
-            <h3 className="mt-2 font-display text-2xl font-medium">Apply in 60 seconds</h3>
+            <div className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("modal.join.heading")}</div>
+            <h3 className="mt-2 font-display text-2xl font-medium">{t("modal.join.title")}</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              Reserve your ₹500 creator bonus. Eligible after successful onboarding.
+              {t("modal.join.subtitle")}
             </p>
 
             <div className="mt-5 space-y-4">
-              <Field label="Mobile Number" required>
+              <Field label={t("modal.join.mobile")} required>
                 <input
                   value={mobile} onChange={(e) => setMobile(e.target.value)}
                   type="tel" inputMode="tel" autoComplete="tel" required
-                  placeholder="10-digit mobile"
+                  placeholder={t("modal.join.mobile.placeholder")}
                   className="h-11 w-full rounded-lg border border-input bg-input/40 px-3 text-sm"
                 />
               </Field>
-              <Field label="WhatsApp Number (optional)">
+              <Field label={t("modal.join.whatsapp")}>
                 <input
                   value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)}
                   type="tel" inputMode="tel"
-                  placeholder="If different from mobile"
+                  placeholder={t("modal.join.whatsapp.placeholder")}
                   className="h-11 w-full rounded-lg border border-input bg-input/40 px-3 text-sm"
                 />
-                <p className="mt-1 text-[11px] text-muted-foreground">Used to send your application confirmation.</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">{t("modal.join.whatsapp.help")}</p>
               </Field>
-              <Field label="UPI ID" required>
+              <Field label={t("modal.join.upi")} required>
                 <input
                   value={upi} onChange={(e) => setUpi(e.target.value)}
                   type="text" autoComplete="off" required
-                  placeholder="yourname@bank"
+                  placeholder={t("modal.join.upi.placeholder")}
                   className="h-11 w-full rounded-lg border border-input bg-input/40 px-3 text-sm"
                 />
-                <p className="mt-1 text-[11px] text-muted-foreground">Where your ₹500 bonus will be sent on eligibility.</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">{t("modal.join.upi.help")}</p>
               </Field>
-              <Field label="Platform" required>
+              <Field label={t("modal.join.platform")} required>
                 <div className="grid grid-cols-2 gap-2">
                   {(["poppo", "vone"] as const).map((p) => (
                     <button
@@ -278,9 +264,9 @@ function JoinModal({ onClose }: { onClose: () => void }) {
                 className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
               />
               <span>
-                I have read and agree to the{" "}
+                {t("modal.join.policy.agree")}{" "}
                 <Link to="/creator-reward-policy" target="_blank" className="font-semibold text-gold hover:underline">
-                  Creator Reward Policy
+                  {t("modal.join.policy.link")}
                 </Link>
                 .
               </span>
@@ -291,7 +277,7 @@ function JoinModal({ onClose }: { onClose: () => void }) {
               disabled={submitting || !agreed}
               className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gradient-pink text-sm font-semibold uppercase tracking-wider text-primary-foreground glow-pink disabled:opacity-60"
             >
-              {submitting ? "Submitting…" : "Continue To Join"} <ArrowRight className="h-4 w-4" />
+              {submitting ? t("modal.join.submitting") : t("modal.join.submit")} <ArrowRight className="h-4 w-4" />
             </button>
           </form>
         )}
@@ -311,38 +297,33 @@ function Field({ label, required, children }: { label: string; required?: boolea
   );
 }
 
-const STAGES = [
-  "Application Submitted",
-  "Registration Pending",
-  "Verification Pending",
-  "Bonus Approval Pending",
-  "Reward Paid",
-] as const;
+const STEPS = ["step.submitted", "step.pending", "step.verification", "step.bonus", "step.paid"] as const;
 
 function SuccessScreen({ applicationId, platform, onClose }: { applicationId: string; platform: string; onClose: () => void }) {
   const referralUrl = platformReferralUrl(platform);
+  const { t } = useLang();
   return (
     <div className="p-6 sm:p-8">
       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-gold">
-        <CheckCircle2 className="h-4 w-4" /> Application Submitted Successfully
+        <CheckCircle2 className="h-4 w-4" /> {t("modal.success.title")}
       </div>
       <div className="mt-4 rounded-2xl border border-gold/30 bg-gradient-pink/10 p-5 text-center">
-        <div className="text-xs uppercase tracking-wider text-muted-foreground">Your Application ID</div>
+        <div className="text-xs uppercase tracking-wider text-muted-foreground">{t("modal.success.id")}</div>
         <div className="mt-1 font-display text-3xl font-bold text-gradient-pink">{applicationId}</div>
       </div>
       <p className="mt-4 text-sm text-muted-foreground">
-        Your <span className="font-semibold text-foreground">₹500 creator bonus</span> has been reserved pending successful onboarding and verification.
+        Your <span className="font-semibold text-foreground">{t("modal.success.bonus")}</span> {t("modal.success.reserved")}
       </p>
 
       <ol className="mt-5 space-y-2.5">
-        {STAGES.map((stage, i) => (
-          <li key={stage} className="flex items-center gap-2.5 text-sm">
+        {STEPS.map((key, i) => (
+          <li key={key} className="flex items-center gap-2.5 text-sm">
             {i === 0 ? (
               <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
             ) : (
               <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
             )}
-            <span className={i === 0 ? "text-foreground" : "text-muted-foreground"}>{stage}</span>
+            <span className={i === 0 ? "text-foreground" : "text-muted-foreground"}>{t(key)}</span>
           </li>
         ))}
       </ol>
@@ -354,7 +335,7 @@ function SuccessScreen({ applicationId, platform, onClose }: { applicationId: st
           onClick={onClose}
           className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-gradient-pink text-xs font-semibold uppercase tracking-wider text-primary-foreground glow-pink"
         >
-          Continue To {platformLabel(platform)} <ArrowRight className="h-3.5 w-3.5" />
+          {t("modal.success.continue")} {platformLabel(platform)} <ArrowRight className="h-3.5 w-3.5" />
         </a>
         <Link
           to="/track-application"
@@ -362,7 +343,7 @@ function SuccessScreen({ applicationId, platform, onClose }: { applicationId: st
           onClick={onClose}
           className="inline-flex h-11 items-center justify-center rounded-full border border-border bg-card/60 text-xs font-semibold uppercase tracking-wider hover:border-gold/60"
         >
-          Track My Application
+          {t("modal.success.track")}
         </Link>
       </div>
     </div>
