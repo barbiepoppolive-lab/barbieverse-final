@@ -6,6 +6,7 @@ import { submitOrder } from "@/lib/api/orders.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Coins, CheckCircle2, Copy, ShieldCheck, ArrowLeft, Smartphone, Bitcoin, Building2, Loader2, AlertCircle } from "lucide-react";
+import { useLang } from "@/lib/i18n";
 
 type Method = "upi" | "usdt" | "netbanking";
 const POPPO_ID_REGEX = /^\d{8,10}$/;
@@ -33,11 +34,12 @@ function parsePkg(v: string | undefined, fallback: Pkg): Pkg {
 
 function CoinsPage() {
   const { data: settings } = useSuspenseQuery(settingsQO);
+  const { t } = useLang();
   const packages: Pkg[] = [
-    parsePkg(settings.coin_package_1, { name: "Starter", coins: 100, price: 99 }),
-    parsePkg(settings.coin_package_2, { name: "Popular", coins: 500, price: 449 }),
-    parsePkg(settings.coin_package_3, { name: "Value", coins: 1000, price: 849 }),
-    parsePkg(settings.coin_package_4, { name: "Mega", coins: 5000, price: 3999 }),
+    parsePkg(settings.coin_package_1, { name: t("section.packages.starter"), coins: 100, price: 99 }),
+    parsePkg(settings.coin_package_2, { name: t("section.packages.popular"), coins: 500, price: 449 }),
+    parsePkg(settings.coin_package_3, { name: t("section.packages.value"), coins: 1000, price: 849 }),
+    parsePkg(settings.coin_package_4, { name: t("section.packages.mega"), coins: 5000, price: 3999 }),
   ];
 
   const [step, setStep] = useState<"pick" | "form" | "pay" | "done">("pick");
@@ -52,10 +54,10 @@ function CoinsPage() {
       <section className="container mx-auto px-4 py-12 lg:py-16">
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="font-display text-4xl font-bold sm:text-5xl">
-            Recharge <span className="text-gradient-pink">Poppo Live</span> Coins
+            {t("coins.recharge")} <span className="text-gradient-pink">{t("coins.poppo")}</span> {t("section.packages.coins")}
           </h1>
           <p className="mt-4 text-muted-foreground">
-            UPI payment auto-verified · Coins delivered within minutes · 100% safe.
+            {t("coins.page.sub")}
           </p>
         </div>
 
@@ -67,16 +69,16 @@ function CoinsPage() {
                 onClick={() => { setSelected(p); setStep("form"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                 className={`group relative rounded-2xl border bg-card/60 p-6 text-left backdrop-blur-md transition-all hover:scale-[1.02] hover:border-primary ${i === 1 ? "border-primary glow-pink" : "border-border/60"}`}
               >
-                {i === 1 && <span className="absolute -top-3 right-4 rounded-full bg-gradient-pink px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">Most Popular</span>}
+                {i === 1 && <span className="absolute -top-3 right-4 rounded-full bg-gradient-pink px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">{t("coins.mostpopular")}</span>}
                 <div className="text-sm text-muted-foreground">{p.name}</div>
                 <div className="mt-3 flex items-baseline gap-2">
                   <Coins className="h-6 w-6 text-primary" />
                   <span className="font-display text-3xl font-bold">{p.coins}</span>
-                  <span className="text-xs text-muted-foreground">coins</span>
+                  <span className="text-xs text-muted-foreground">{t("coins.coins")}</span>
                 </div>
                 <div className="mt-4 font-display text-2xl font-bold text-gradient-pink">₹{p.price}</div>
-                <div className="mt-4 text-xs text-muted-foreground">≈ ₹{(p.price / p.coins).toFixed(2)}/coin</div>
-                <div className="mt-5 inline-flex items-center text-sm font-semibold text-primary">Select →</div>
+                <div className="mt-4 text-xs text-muted-foreground">≈ ₹{(p.price / p.coins).toFixed(2)}{t("coins.percoin")}</div>
+                <div className="mt-5 inline-flex items-center text-sm font-semibold text-primary">{t("section.packages.select")}</div>
               </button>
             ))}
           </div>
