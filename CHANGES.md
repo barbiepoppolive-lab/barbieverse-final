@@ -3,6 +3,38 @@
 
 ---
 
+## 🔄 WhatsApp Notifications — Manual One-Click (Latest)
+
+### No Facebook/Meta Account Needed!
+
+**Approach:**
+1. **Telegram alerts** — Admin gets instant free Telegram notification when payment is confirmed
+2. **One-click WhatsApp** — Admin hovers over WhatsApp button in admin panel, clicks pre-filled message, hits send
+
+**Changes Made:**
+- **`src/routes/admin.orders.tsx`** — Added dropdown menu with quick WhatsApp messages (Payment Received, Coins Credited, Refund Approved, Welcome Message)
+- **`src/lib/notifications.server.ts`** — Simplified to just Telegram alerts + WhatsApp URL generators
+- **`src/lib/api/confirm-payment.server.ts`** — Removed WhatsApp API calls, just Telegram alert
+- **`src/routes/api/public/interakt-action.ts`** — Removed WhatsApp API calls, just logging
+- **`.env.example`** — Removed AiSensy/Interakt credentials, just Telegram vars
+- **`WHATSAPP_SETUP.md`** — Rewritten for manual approach
+- **`SETUP.md`** — Updated WhatsApp section
+
+### Environment Variables:
+```
+TELEGRAM_BOT_TOKEN=your_bot_token    # From @BotFather
+TELEGRAM_CHAT_ID=your_chat_id        # Your Telegram chat ID
+```
+
+### Why Manual is Better for Small Agencies:
+- **100% Free** — no API costs
+- **No Facebook account** — no Meta verification hassle
+- **Personal touch** — customer gets a real WhatsApp message from you
+- **Instant alerts** — Telegram notifies you immediately
+- **One-click convenience** — pre-filled messages, just hit send
+
+---
+
 ## 🗄️ Database Migrations (Run in order in Supabase SQL Editor)
 
 ### 1. `20260613_001_creator_acquisition.sql`

@@ -11,73 +11,36 @@ async function getSettings(keys: string[]): Promise<Record<string, string>> {
   return map;
 }
 
-// ─── WhatsApp Cloud API (Meta Official) ──────────────────────────────────────
-// Uses graph.facebook.com directly — no BSP needed.
-// Required env vars:
-//   WHATSAPP_PHONE_NUMBER_ID  — from Meta Developer Dashboard
-//   WHATSAPP_ACCESS_TOKEN     — from Meta Developer Dashboard (permanent token recommended)
+// ─── WhatsApp Notifications (One-Click Manual) ─────────────────────────────
+// WhatsApp messages are sent manually by admin via one-click buttons in admin panel
+// This function generates pre-filled WhatsApp URLs for manual sending
 
-export async function sendWhatsAppNotification(opts: {
-  to: string; // phone with country code, e.g. 9198xxxxxxx (no + or spaces)
-  template: string; // template name approved in Meta Business Manager
-  lang?: string; // template language code, default "en"
-  params?: string[]; // template parameters (optional)
-}) {
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+export function getWhatsAppUrl(opts: {
+  to: string; // phone with country code
+  message: string;
+}): string {
+  const phone = opts.to.replace(/[^0-9]/g, "");
+  return `https://wa.me/${phone}?text=${encodeURIComponent(opts.message)}`;
+}
 
-  if (!phoneNumberId || !accessToken) {
-    console.warn("[whatsapp] WHATSAPP_PHONE_NUMBER_ID or WHATSAPP_ACCESS_TOKEN not set, skipping");
-    return { ok: false, skipped: true };
-  }
+// Convenience wrappers for generating WhatsApp messages
+export function getWhatsAppPaymentReceivedMessage(opts: {
+  name: string;
+  orderId: string;
+  coins: number;
+  poppoId: string;
+  amount: string;
+}): string {
+  return `Hi ${opts.name}, we received your payment for Order #${opts.orderId.slice(0,8)}. Your ${opts.coins} coins for Poppo ID ${opts.poppoId} will be credited within 30 minutes. Track: ${process.env.PUBLIC_APP_URL || "https://barbieverse.org"}/track?id=${opts.orderId}`;
+}
 
-  const to = opts.to.replace(/[^0-9]/g, ""); // sanitize: digits only
-  const lang = opts.lang || "en";
-
-  try {
-    const res = await fetch(
-      `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to,
-          type: "template",
-          template: {
-            name: opts.template,
-            language: { code: lang },
-            ...(opts.params?.length
-              ? {
-                  components: [
-                    {
-                      type: "body",
-                      parameters: opts.params.map((p) => ({ type: "text", text: p })),
-                    },
-                  ],
-                }
-              : {}),
-          },
-        }),
-      }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      console.error("[whatsapp] send failed", res.status, JSON.stringify(data));
-      return { ok: false, error: data };
-    }
-
-    console.log("[whatsapp] sent to", to, "template:", opts.template);
-    return { ok: true, data };
-  } catch (e) {
-    console.error("[whatsapp] error", e);
-    return { ok: false };
-  }
+export function getWhatsAppCoinsCreditedMessage(opts: {
+  name: string;
+  orderId: string;
+  coins: number;
+  poppoId: string;
+}): string {
+  return `Hi ${opts.name}, your ${opts.coins} coins have been credited to Poppo ID ${opts.poppoId}! 🎉 Enjoy streaming! Thank you for choosing Barbieverse 💖`;
 }
 
 // ─── Legacy Interakt support (for users still on Interakt webhook) ──────────
@@ -179,23 +142,18 @@ export async function notifyNewLead(opts: {
 }) {
   const s = await getSettings(["admin_whatsapp"]);
 
-  // Notify admin
-  if (s.admin_whatsapp) {
-    await sendWhatsAppNotification({
-      to: s.admin_whatsapp,
-      template: "new_lead_alert",
-      lang: "en",
-      params: [opts.name || "Unknown", opts.mobile, opts.platform],
+  // Notify admin via Telegram
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (botToken && chatId) {
+    const msg = `🎀 <b>NEW CREATOR LEAD</b>\n\n👤 Name: ${opts.name || "Unknown"}\n📱 Mobile: ${opts.mobile}\n🌐 Platform: ${opts.platform}`;
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: "HTML" }),
     });
   }
-
-  // Notify lead (if they have WhatsApp)
-  await sendWhatsAppNotification({
-    to: opts.mobile,
-    template: "welcome_creator",
-    lang: "en",
-    params: [opts.name || "Creator", opts.platform],
-  });
+  // Customer notification: admin sends manually via WhatsApp button
 }
 
 /** Send order confirmation */
@@ -205,12 +163,7 @@ export async function notifyOrderPlaced(opts: {
   coins: number;
   amount: string;
 }) {
-  await sendWhatsAppNotification({
-    to: opts.whatsapp,
-    template: "order_placed",
-    lang: "en",
-    params: [opts.orderId, String(opts.coins), `₹${opts.amount}`],
-  });
+  // Admin gets Telegram alert, customer gets manual WhatsApp
 }
 
 /** Send payment received */
@@ -218,12 +171,7 @@ export async function notifyPaymentReceived(opts: {
   whatsapp: string;
   orderId: string;
 }) {
-  await sendWhatsAppNotification({
-    to: opts.whatsapp,
-    template: "payment_received",
-    lang: "en",
-    params: [opts.orderId],
-  });
+  // Admin gets Telegram alert, customer gets manual WhatsApp
 }
 
 /** Send coins credited */
@@ -232,12 +180,7 @@ export async function notifyCoinsCredited(opts: {
   orderId: string;
   coins: number;
 }) {
-  await sendWhatsAppNotification({
-    to: opts.whatsapp,
-    template: "coins_credited",
-    lang: "en",
-    params: [opts.orderId, String(opts.coins)],
-  });
+  // Admin gets Telegram alert, customer gets manual WhatsApp
 }
 
 /** Send refund status */
@@ -247,10 +190,5 @@ export async function notifyRefundStatus(opts: {
   status: string;
   amount: string;
 }) {
-  await sendWhatsAppNotification({
-    to: opts.whatsapp,
-    template: "refund_status",
-    lang: "en",
-    params: [opts.orderId, `₹${opts.amount}`, opts.status],
-  });
+  // Admin gets Telegram alert, customer gets manual WhatsApp
 }

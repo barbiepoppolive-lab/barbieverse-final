@@ -77,18 +77,9 @@ export const Route = createFileRoute("/api/public/interakt-action")({
           [order.id],
         );
 
-        try {
-          const { sendInteraktNotification } = await import("@/lib/notifications.server");
-          await sendInteraktNotification({
-            to: order.whatsapp.replace(/[^\d]/g, ""),
-            message:
-              `🎉 Your coins are credited!\n` +
-              `Hi ${order.name}, ${order.coins} coins have been added to Poppo ID ${order.poppo_id}.\n` +
-              `Open Poppo Live to check. Thank you for choosing Barbieverse 💖`,
-          });
-        } catch (e) {
-          console.error("[interakt-action] customer notify failed", e);
-        }
+        // Customer notification: admin sends manually via WhatsApp button in admin panel
+        // Just log the completion
+        console.log(`[interakt-action] Order ${order.id} completed for ${order.name}`);
 
         return Response.json({ ok: true, status: "completed" });
       },

@@ -20,33 +20,27 @@
 
 ## Integration Setup (Priority Order)
 
-### 1. WhatsApp Notifications (Interakt)
+### 1. WhatsApp Notifications (Manual — Free)
 
-**What it does:** Sends WhatsApp messages for:
-- Welcome message when someone joins
-- Payment confirmation when order is placed
-- UTR submission acknowledgment
-- Coins delivered confirmation
-- Refund status updates
-- Admin alerts for new leads/payments
+**What it does:** Sends WhatsApp messages via one-click buttons in admin panel
 
-**Setup steps:**
+**How it works:**
+1. You get Telegram alert when payment is confirmed
+2. Open admin panel → Orders page
+3. Hover over WhatsApp button → see quick message options
+4. Click a message → opens WhatsApp Web with pre-filled message
+5. Hit Send → done!
 
-1. Go to [interakt.shop](https://www.interakt.shop) and create an account
-2. Choose a plan (Starter ₹3,499/quarter works for small volume)
-3. Complete WhatsApp Business API verification
-4. Create message templates for each notification type
-5. Get your webhook URL from Interakt dashboard
-6. Run this SQL in Supabase SQL Editor:
+**Setup (2 minutes):**
 
-```sql
-INSERT INTO settings (key, value, category, description) VALUES
-('interakt_webhook', 'YOUR_WEBHOOK_URL_HERE', 'notifications', 'Interakt WhatsApp webhook URL'),
-('admin_whatsapp', 'YOUR_ADMIN_PHONE_NUMBER', 'notifications', 'Admin phone for alerts')
-ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+1. Set up Telegram bot (see below)
+2. Add to Railway:
+```
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
 ```
 
-7. Add `INTERAKT_WEBHOOK_SECRET` to Railway environment variables (for incoming webhooks)
+**See:** WHATSAPP_SETUP.md for step-by-step instructions
 
 ---
 

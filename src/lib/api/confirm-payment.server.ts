@@ -108,7 +108,8 @@ export const confirmPayment = createServerFn({ method: "POST" })
       [data.utr, data.verified_via, data.order_id]
     );
 
-    // Fire-and-forget: Telegram + customer WhatsApp
+    // Fire-and-forget: Telegram alert to admin
+    // Customer notification: admin sends manually via WhatsApp button in admin panel
     const customerName = data.customer_name || order.name;
     const customerWhatsapp = data.customer_whatsapp || order.whatsapp;
     const poppoId = data.poppo_id || order.poppo_id;
@@ -118,32 +119,18 @@ export const confirmPayment = createServerFn({ method: "POST" })
     const totalCoins = data.total_coins || order.coins;
 
     try {
-      await Promise.allSettled([
-        sendTelegramAlert({
-          customerName,
-          customerWhatsapp,
-          poppoId,
-          packageName,
-          quantity,
-          amountRupees,
-          utrNumber: data.utr,
-          orderId: order.id,
-          layerUsed: data.verified_via,
-          totalCoins,
-        }),
-        // Notify customer via WhatsApp
-        (async () => {
-          const { sendInteraktNotification } = await import("../notifications.server");
-          await sendInteraktNotification({
-            to: customerWhatsapp.replace(/[^\d]/g, ""),
-            message:
-              `✅ Payment received!\n` +
-              `Hi ${customerName}, we got your payment (UTR: ${data.utr}).\n` +
-              `Your ${totalCoins} coins for Poppo ID ${poppoId} will be credited within 30 minutes.\n` +
-              `Track: ${process.env.PUBLIC_APP_URL || "https://barbieverse.org"}/track?id=${order.id}`,
-          });
-        })(),
-      ]);
+      await sendTelegramAlert({
+        customerName,
+        customerWhatsapp,
+        poppoId,
+        packageName,
+        quantity,
+        amountRupees,
+        utrNumber: data.utr,
+        orderId: order.id,
+        layerUsed: data.verified_via,
+        totalCoins,
+      });
     } catch (e) {
       console.error("[confirmPayment notifications]", e);
     }

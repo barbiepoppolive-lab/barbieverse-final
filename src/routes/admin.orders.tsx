@@ -171,15 +171,56 @@ function OrderRow({ o, onRefresh }: { o: any; onRefresh: () => void }) {
         {/* Actions */}
         <td className="px-4 py-3">
           <div className="flex items-center gap-1">
-            <a
-              href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}`}
-              target="_blank"
-              rel="noreferrer"
-              title="WhatsApp customer"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border hover:border-primary"
-            >
-              <MessageCircle className="h-3.5 w-3.5" />
-            </a>
+            {/* WhatsApp with pre-filled message */}
+            <div className="relative group">
+              <a
+                href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(getWhatsAppMessage(o))}`}
+                target="_blank"
+                rel="noreferrer"
+                title="Send WhatsApp confirmation"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border hover:border-green-500 hover:bg-green-500/10"
+              >
+                <MessageCircle className="h-3.5 w-3.5 text-green-500" />
+              </a>
+              {/* Quick message dropdown */}
+              <div className="absolute right-0 top-8 z-50 hidden group-hover:block w-64">
+                <div className="rounded-lg border border-border bg-card shadow-lg p-2 space-y-1">
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider px-2 py-1">Quick Messages</div>
+                  <a
+                    href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hi ${o.name}, we received your payment for Order #${o.id.slice(0,8)}. Your ${o.coins} coins for Poppo ID ${o.poppo_id} will be credited within 30 minutes. Track: ${window.location.origin}/track?id=${o.id}`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block px-2 py-1.5 text-xs rounded hover:bg-green-500/10 text-green-400"
+                  >
+                    ✅ Payment Received
+                  </a>
+                  <a
+                    href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hi ${o.name}, your ${o.coins} coins have been credited to Poppo ID ${o.poppo_id}! 🎉 Enjoy streaming! Thank you for choosing Barbieverse 💖`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block px-2 py-1.5 text-xs rounded hover:bg-green-500/10 text-green-400"
+                  >
+                    🎉 Coins Credited
+                  </a>
+                  <a
+                    href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hi ${o.name}, your refund of ₹${o.amount} has been approved. It will be credited to your bank account within 3-5 business days.`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block px-2 py-1.5 text-xs rounded hover:bg-green-500/10 text-green-400"
+                  >
+                    💰 Refund Approved
+                  </a>
+                  <a
+                    href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hi ${o.name}, thank you for your interest in Barbieverse! 🎀 Join our creator family and earn ₹1,150 in your first week. Get started: ${window.location.origin}/join`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block px-2 py-1.5 text-xs rounded hover:bg-green-500/10 text-green-400"
+                  >
+                    🎀 Welcome Message
+                  </a>
+                </div>
+              </div>
+            </div>
             <button
               onClick={() => setExpanded((v) => !v)}
               title="Expand for notes & refund"
