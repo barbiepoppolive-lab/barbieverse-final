@@ -86,9 +86,10 @@ function CoinsPage() {
 
   return (
     <SiteLayout>
-      <section className="container mx-auto px-4 py-12 lg:py-16">
+      <section className="container mx-auto px-4 py-12 lg:py-16 relative">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 mx-auto h-[200px] max-w-2xl rounded-full bg-primary/10 blur-[120px] drift" />
         {/* Trust bar */}
-        <div className="mx-auto mb-8 flex max-w-3xl flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground">
+        <div className="mx-auto mb-8 flex max-w-3xl flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground glass-surface rounded-2xl px-6 py-4">
           <span>🔒 Your UID only — never your password</span>
           <span>⚡️ Coins credited within 30 minutes</span>
           <span>💬 WhatsApp support available</span>
@@ -123,15 +124,15 @@ function CoinsPage() {
           <div className="mx-auto mt-16 max-w-3xl">
             <h2 className="text-center font-display text-2xl font-bold">How It Works</h2>
             <div className="mt-8 grid gap-6 sm:grid-cols-3">
-              <div className="text-center">
+              <div className="text-center card-lift rounded-2xl p-6">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-pink text-lg font-bold text-primary-foreground">1</div>
                 <p className="mt-3 text-sm text-muted-foreground">Select your coin package and quantity</p>
               </div>
-              <div className="text-center">
+              <div className="text-center card-lift rounded-2xl p-6">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-pink text-lg font-bold text-primary-foreground">2</div>
                 <p className="mt-3 text-sm text-muted-foreground">Pay via UPI to our ID — enter your UTR number</p>
               </div>
-              <div className="text-center">
+              <div className="text-center card-lift rounded-2xl p-6">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-pink text-lg font-bold text-primary-foreground">3</div>
                 <p className="mt-3 text-sm text-muted-foreground">Coins credited to your Poppo account within 30 minutes</p>
               </div>
@@ -270,7 +271,7 @@ function PackageCard({ pkg, index, onSelect, isPopular }: { pkg: Pkg; index: num
   return (
     <button
       onClick={onSelect}
-      className={`group relative rounded-2xl border bg-card/60 p-6 text-left backdrop-blur-md transition-all hover:scale-[1.02] hover:border-primary ${isPopular ? "border-primary glow-pink" : "border-border/60"}`}
+      className={`group relative rounded-2xl border bg-card/60 p-6 text-left backdrop-blur-md transition-all card-lift card-glow ${isPopular ? "border-primary glow-pink" : "border-border/60"}`}
     >
       {isPopular && <span className="absolute -top-3 right-4 rounded-full bg-gradient-pink px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">{t("coins.mostpopular")}</span>}
       <div className="text-sm text-muted-foreground">{pkg.name}</div>
@@ -539,14 +540,14 @@ function FormField({ name, label, required, placeholder }: { name: string; label
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-xl border border-border/60 bg-card/40 backdrop-blur-md">
+    <div className="rounded-xl border border-border/60 bg-card/40 backdrop-blur-md card-glow transition-all">
       <button
         type="button"
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between p-4 text-left text-sm font-semibold"
       >
-        {q}
-        <span className="ml-2 text-lg text-muted-foreground">{open ? "−" : "+"}</span>
+        <span>{q}</span>
+        <span className={`ml-2 text-lg text-muted-foreground transition-transform duration-300 ${open ? "rotate-45" : ""}`}>{open ? "−" : "+"}</span>
       </button>
       {open && <div className="px-4 pb-4 text-sm text-muted-foreground">{a}</div>}
     </div>

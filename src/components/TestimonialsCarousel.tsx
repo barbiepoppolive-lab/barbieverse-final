@@ -66,7 +66,7 @@ export function TestimonialsCarousel({ items }: { items?: Testimonial[] }) {
           <div className="flex">
             {slides.map((s, i) => (
               <div key={i} className="min-w-0 shrink-0 grow-0 basis-full px-2 sm:basis-[60%] sm:px-3 lg:basis-[40%]">
-                <article className="relative h-full rounded-3xl border border-gold/20 bg-card/60 p-6 backdrop-blur-xl shadow-luxe sm:p-8">
+                <article className="relative h-full rounded-3xl border border-gold/20 bg-card/60 p-6 backdrop-blur-xl shadow-luxe card-lift sm:p-8">
                   <Quote className="h-6 w-6 text-gold/60" />
                   <p className="mt-3 text-sm leading-relaxed text-foreground/90 sm:text-base">
                     "{s.quote}"

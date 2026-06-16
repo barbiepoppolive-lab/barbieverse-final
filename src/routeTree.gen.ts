@@ -24,6 +24,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as JoinWobbRouteImport } from './routes/join.wobb'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as BlogHowToEarnMoneyRouteImport } from './routes/blog.how-to-earn-money-on-poppo-live-india'
 import { Route as AdminUpiSetupRouteImport } from './routes/admin.upi-setup'
 import { Route as AdminUnmatchedRouteImport } from './routes/admin.unmatched'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
@@ -113,6 +114,11 @@ const JoinWobbRoute = JoinWobbRouteImport.update({
 const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
+  getParentRoute: () => BlogRoute,
+} as any)
+const BlogHowToEarnMoneyRoute = BlogHowToEarnMoneyRouteImport.update({
+  id: '/how-to-earn-money-on-poppo-live-india',
+  path: '/how-to-earn-money-on-poppo-live-india',
   getParentRoute: () => BlogRoute,
 } as any)
 const AdminUpiSetupRoute = AdminUpiSetupRouteImport.update({
@@ -217,6 +223,8 @@ export interface FileRoutesByFullPath {
   '/admin/unmatched': typeof AdminUnmatchedRoute
   '/admin/upi-setup': typeof AdminUpiSetupRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyRoute
+  '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyRoute
   '/join/wobb': typeof JoinWobbRoute
   '/admin/': typeof AdminIndexRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
@@ -248,6 +256,8 @@ export interface FileRoutesByTo {
   '/admin/unmatched': typeof AdminUnmatchedRoute
   '/admin/upi-setup': typeof AdminUpiSetupRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyRoute
+  '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyRoute
   '/join/wobb': typeof JoinWobbRoute
   '/admin': typeof AdminIndexRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
@@ -281,6 +291,8 @@ export interface FileRoutesById {
   '/admin/unmatched': typeof AdminUnmatchedRoute
   '/admin/upi-setup': typeof AdminUpiSetupRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyRoute
+  '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyRoute
   '/join/wobb': typeof JoinWobbRoute
   '/admin/': typeof AdminIndexRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
@@ -315,6 +327,7 @@ export interface FileRouteTypes {
     | '/admin/unmatched'
     | '/admin/upi-setup'
     | '/blog/$slug'
+    | '/blog/how-to-earn-money-on-poppo-live-india'
     | '/join/wobb'
     | '/admin/'
     | '/api/public/interakt-action'
@@ -346,6 +359,7 @@ export interface FileRouteTypes {
     | '/admin/unmatched'
     | '/admin/upi-setup'
     | '/blog/$slug'
+    | '/blog/how-to-earn-money-on-poppo-live-india'
     | '/join/wobb'
     | '/admin'
     | '/api/public/interakt-action'
@@ -378,6 +392,7 @@ export interface FileRouteTypes {
     | '/admin/unmatched'
     | '/admin/upi-setup'
     | '/blog/$slug'
+    | '/blog/how-to-earn-money-on-poppo-live-india'
     | '/join/wobb'
     | '/admin/'
     | '/api/public/interakt-action'
@@ -508,6 +523,13 @@ declare module '@tanstack/react-router' {
       path: '/$slug'
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof BlogRoute
+    }
+    '/blog/how-to-earn-money-on-poppo-live-india': {
+      id: '/blog/how-to-earn-money-on-poppo-live-india'
+      path: '/how-to-earn-money-on-poppo-live-india'
+      fullPath: '/blog/how-to-earn-money-on-poppo-live-india'
+      preLoaderRoute: typeof BlogHowToEarnMoneyRouteImport
       parentRoute: typeof BlogRoute
     }
     '/admin/upi-setup': {
@@ -654,10 +676,12 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface BlogRouteChildren {
   BlogSlugRoute: typeof BlogSlugRoute
+  BlogHowToEarnMoneyRoute: typeof BlogHowToEarnMoneyRoute
 }
 
 const BlogRouteChildren: BlogRouteChildren = {
   BlogSlugRoute: BlogSlugRoute,
+  BlogHowToEarnMoneyRoute: BlogHowToEarnMoneyRoute,
 }
 
 const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)

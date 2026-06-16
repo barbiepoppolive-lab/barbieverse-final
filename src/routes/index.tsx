@@ -131,7 +131,7 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
         style={reduced || lowPower ? {} : { transform: `translate(${px * 0.6}px, ${py * 0.4}px)`, transition: "transform 0.8s cubic-bezier(.22,1,.36,1)" }}
       />
       <div
-        className="pointer-events-none absolute bottom-0 left-0 -z-10 h-[380px] w-[380px] rounded-full bg-accent/15 blur-[120px]"
+        className="pointer-events-none absolute bottom-0 left-0 -z-10 h-[380px] w-[380px] rounded-full bg-accent/15 blur-[120px] drift"
         style={reduced || lowPower ? {} : { transform: `translate(${-px * 0.4}px, ${-py * 0.3}px)`, transition: "transform 0.9s cubic-bezier(.22,1,.36,1)" }}
       />
       <div
@@ -383,7 +383,7 @@ function HomePage() {
         <Reveal variant="fade-up" delay={120}>
           <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3">
             {/* Week 1 */}
-            <div className="rounded-2xl border border-primary/20 bg-card/40 p-6 text-center backdrop-blur-xl">
+            <div className="rounded-2xl border border-primary/20 bg-card/40 p-6 text-center backdrop-blur-xl card-lift card-glow">
               <div className="text-4xl">🎯</div>
               <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">First Week Guaranteed</div>
               <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">₹1,150 <span className="text-sm text-muted-foreground">(female)</span></div>
@@ -391,14 +391,14 @@ function HomePage() {
               <p className="mt-3 text-xs text-muted-foreground">Stream 2 hours daily for 7 days. Poppo pays you directly. No audience needed.</p>
             </div>
             {/* Month 1 */}
-            <div className="rounded-2xl border border-gold/20 bg-card/40 p-6 text-center backdrop-blur-xl">
+            <div className="rounded-2xl border border-gold/20 bg-card/40 p-6 text-center backdrop-blur-xl card-lift card-glow">
               <div className="text-4xl">📈</div>
               <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">Month One Realistic</div>
               <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">₹4,000 – ₹15,000</div>
               <p className="mt-3 text-xs text-muted-foreground">Daily task rewards + viewer gifts + PK battles. Results vary by activity.</p>
             </div>
             {/* Ongoing */}
-            <div className="rounded-2xl border border-accent/20 bg-card/40 p-6 text-center backdrop-blur-xl">
+            <div className="rounded-2xl border border-accent/20 bg-card/40 p-6 text-center backdrop-blur-xl card-lift card-glow">
               <div className="text-4xl">💎</div>
               <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">Consistent Streamers</div>
               <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">₹15,000 – ₹80,000/mo</div>

@@ -14,7 +14,7 @@ export function VipStrip({
 }) {
   return (
     <section className="relative overflow-hidden border-y border-gold/15 bg-gradient-noir">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 mx-auto h-[200px] max-w-2xl rounded-full bg-gold/10 blur-[120px]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 mx-auto h-[200px] max-w-2xl rounded-full bg-gold/10 blur-[120px] drift" />
       <div className="container mx-auto px-4 py-12 sm:py-16">
         <div className="flex flex-col items-center text-center">
           <div className="inline-flex items-center gap-2 rounded-full hairline-gold bg-card/40 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-gold backdrop-blur-md">

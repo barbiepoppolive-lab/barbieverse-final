@@ -226,20 +226,6 @@
   );
 }
 
-/* ── Card hover lift ─────────────────────────────────────── */
-@utility card-lift {
-  transition:
-    transform 0.4s cubic-bezier(.22,1,.36,1),
-    box-shadow 0.4s cubic-bezier(.22,1,.36,1),
-    border-color 0.3s ease;
-}
-.card-lift:hover {
-  transform: translateY(-6px);
-  box-shadow:
-    0 20px 60px -12px oklch(0.5 0.25 345 / 0.35),
-    0 0 0 1px oklch(0.72 0.25 350 / 0.15);
-}
-
 /* ── Floating animation for decorative elements ──────────── */
 @utility float-slow {
   animation: floatSlow 7s ease-in-out infinite alternate;
@@ -337,4 +323,168 @@
 ::selection {
   background: oklch(0.72 0.25 350 / 0.3);
   color: oklch(0.97 0.01 340);
+}
+
+/* ============================================================
+   PREMIUM UI — Quiet Luxury
+   Subtle, GPU-composited, zero layout thrash.
+   ============================================================ */
+
+/* ── Card micro-lift ─────────────────────────────────────── */
+@utility card-lift {
+  transition:
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.25s ease;
+}
+.card-lift:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 12px 40px -12px oklch(0.5 0.25 345 / 0.3),
+    0 0 0 1px oklch(0.72 0.25 350 / 0.1);
+}
+
+/* ── Card glow border ────────────────────────────────────── */
+@utility card-glow {
+  border: 1px solid oklch(0.72 0.25 350 / 0.08);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.card-glow:hover {
+  border-color: oklch(0.72 0.25 350 / 0.2);
+  box-shadow: 0 0 30px -10px oklch(0.72 0.25 350 / 0.12);
+}
+
+/* ── Button glow ─────────────────────────────────────────── */
+@utility btn-glow {
+  position: relative;
+  transition:
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-glow:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 30px -8px oklch(0.72 0.27 350 / 0.4);
+}
+.btn-glow:active {
+  transform: scale(0.98);
+}
+
+/* ── Gentle drift (decorative halos only) ────────────────── */
+@utility drift {
+  animation: drift 5s ease-in-out infinite alternate;
+}
+@keyframes drift {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-4px); }
+}
+
+/* ── Pulse subtle (trust badges, CTA glow) ──────────────── */
+@utility pulse-subtle {
+  animation: pulseSubtle 3s ease-in-out infinite;
+}
+@keyframes pulseSubtle {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
+
+/* ── Glass surface ───────────────────────────────────────── */
+@utility glass-surface {
+  background: oklch(0.13 0.025 350 / 0.45);
+  border: 1px solid oklch(0.72 0.25 350 / 0.12);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  box-shadow:
+    0 0 0 1px oklch(0.72 0.25 350 / 0.04) inset,
+    0 8px 32px -12px oklch(0 0 0 / 0.4);
+}
+
+/* ── Fade in up (page section entrance) ──────────────────── */
+@utility fade-in-up {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fade-in-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Animated border glow (hero only) ────────────────────── */
+@utility border-glow {
+  position: relative;
+  overflow: hidden;
+}
+.border-glow::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from 0deg,
+    oklch(0.72 0.25 350 / 0.15),
+    oklch(0.82 0.13 75 / 0.2),
+    oklch(0.62 0.26 330 / 0.15),
+    oklch(0.72 0.25 350 / 0.15)
+  );
+  z-index: -1;
+  animation: borderGlow 6s linear infinite;
+  opacity: 0.6;
+}
+@keyframes borderGlow {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Spotlight (mouse-tracking glow, JS sets --sx, --sy) ─── */
+@utility spotlight {
+  position: relative;
+  overflow: hidden;
+}
+.spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    350px circle at var(--sx, 50%) var(--sy, 50%),
+    oklch(0.72 0.25 350 / 0.1),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+.spotlight:hover::before {
+  opacity: 1;
+}
+
+/* ── Reduce motion overrides ─────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .drift,
+  .pulse-subtle,
+  .border-glow::after,
+  .text-shimmer,
+  .bg-animated-mesh,
+  .stagger-children > * {
+    animation: none !important;
+  }
+  .card-lift:hover,
+  .card-glow:hover,
+  .btn-glow:hover {
+    transform: none !important;
+  }
+}
+
+/* ── Mobile: disable hover effects on touch ──────────────── */
+@media (hover: none) and (pointer: coarse) {
+  .card-lift:hover,
+  .card-glow:hover,
+  .btn-glow:hover {
+    transform: none !important;
+  }
+  .spotlight::before {
+    display: none;
+  }
 }
