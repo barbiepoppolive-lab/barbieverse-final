@@ -2,24 +2,30 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { getPost } from "@/lib/api/posts.functions";
+import { HowToEarnBlogPost } from "./blog.how-to-earn-money-on-poppo-live-india";
+
+const HARDCODED_SLUGS: Record<string, React.ComponentType> = {
+  "how-to-earn-money-on-poppo-live-india": HowToEarnBlogPost,
+};
 
 const postQO = (slug: string) =>
   queryOptions({ queryKey: ["post", slug], queryFn: () => getPost({ data: { slug } }) });
 
 export const Route = createFileRoute("/blog/$slug")({
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(postQO(params.slug)),
-  head: ({ loaderData }) => {
-    const post = (loaderData as any)?.post;
-    if (!post) return { meta: [{ title: "Post not found | Barbieverse" }] };
-    return {
-      meta: [
-        { title: `${post.title} | Barbieverse Blog` },
-        { name: "description", content: post.excerpt || post.title },
-        { property: "og:title", content: post.title },
-        { property: "og:description", content: post.excerpt || post.title },
-        ...(post.featured_image ? [{ property: "og:image", content: post.featured_image }] : []),
-      ],
-    };
+  loader: ({ context, params }) => {
+    if (HARDCODED_SLUGS[params.slug]) return;
+    return context.queryClient.ensureQueryData(postQO(params.slug));
+  },
+  head: ({ params }) => {
+    if (HARDCODED_SLUGS[params.slug]) {
+      return {
+        meta: [
+          { title: "How to Earn Money on Poppo Live in India (2026 Beginner Guide) | Barbieverse" },
+          { name: "description", content: "Complete beginner guide to earning money on Poppo Live in India." },
+        ],
+      };
+    }
+    return { meta: [{ title: "Blog | Barbieverse" }] };
   },
   component: PostPage,
   notFoundComponent: () => (
@@ -35,6 +41,8 @@ export const Route = createFileRoute("/blog/$slug")({
 
 function PostPage() {
   const { slug } = Route.useParams();
+  const Hardcoded = HARDCODED_SLUGS[slug];
+  if (Hardcoded) return <Hardcoded />;
   const { data } = useSuspenseQuery(postQO(slug));
   const post = (data as any)?.post;
   const related = (data as any)?.related ?? [];

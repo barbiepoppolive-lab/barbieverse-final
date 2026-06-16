@@ -100,10 +100,10 @@ export const Route = createFileRoute("/blog/how-to-earn-money-on-poppo-live-indi
       },
     ],
   }),
-  component: EarnMoneyPoppoGuide,
+  component: HowToEarnBlogPost,
 });
 
-function EarnMoneyPoppoGuide() {
+export function HowToEarnBlogPost() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [checklist, setChecklist] = useState<boolean[]>(new Array(CHECKLIST_ITEMS.length).fill(false));
   const [activeToc, setActiveToc] = useState("");

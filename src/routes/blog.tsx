@@ -48,6 +48,27 @@ function BlogList() {
           </p>
         </div>
 
+        {/* Featured SEO article */}
+        <div className="mx-auto mt-10 max-w-6xl">
+          <Link
+            to="/blog/how-to-earn-money-on-poppo-live-india"
+            className="group flex flex-col gap-6 rounded-2xl border border-gold/20 bg-card/60 p-6 backdrop-blur-md transition-all hover:border-gold/50 sm:flex-row sm:items-center sm:p-8"
+          >
+            <div className="flex-1">
+              <span className="inline-block rounded-full bg-gold/15 px-3 py-1 text-xs font-medium text-gold">Featured Guide</span>
+              <h2 className="mt-3 font-display text-xl font-bold transition-colors group-hover:text-gold sm:text-2xl">
+                How to Earn Money on Poppo Live in India (2026 Beginner Guide)
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Complete step-by-step guide for new creators. From account setup to your first earnings.
+              </p>
+              <span className="mt-3 inline-block text-sm font-semibold text-primary group-hover:underline">
+                Read guide →
+              </span>
+            </div>
+          </Link>
+        </div>
+
         <div className="mx-auto mt-10 flex max-w-3xl flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
