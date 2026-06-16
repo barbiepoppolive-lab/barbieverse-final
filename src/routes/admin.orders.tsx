@@ -59,6 +59,27 @@ function rowClass(s: string) {
   return "";
 }
 
+// ── Auto-filled WhatsApp messages based on order status ────────────────────
+function getWhatsAppMessage(order: any): string {
+  const name = order.name || "Customer";
+  const orderId = order.id?.slice(0, 8) || "XXXX";
+  const coins = order.coins || 0;
+  const poppoId = order.poppo_id || "N/A";
+  const amount = order.amount || 0;
+  const trackUrl = `${typeof window !== "undefined" ? window.location.origin : "https://barbieverse.org"}/track?id=${order.id}`;
+
+  switch (order.status) {
+    case "paid_pending_delivery":
+      return `Hi ${name}! ✅\n\nPayment received for Order #${orderId}.\n💰 Amount: ₹${amount}\n🎮 Poppo ID: ${poppoId}\n📦 Coins: ${coins}\n\nYour coins will be credited within 30 minutes.\nTrack: ${trackUrl}`;
+    case "completed":
+      return `Hi ${name}! 🎉\n\nOrder #${orderId} is complete!\n📦 ${coins} coins credited to Poppo ID ${poppoId}\n\nEnjoy streaming! Thank you for choosing Barbieverse 💖\nTrack: ${trackUrl}`;
+    case "rejected":
+      return `Hi ${name},\n\nOrder #${orderId} could not be processed.\n💰 Refund of ₹${amount} will be credited within 3-5 business days.\n\nContact us for questions.`;
+    default:
+      return `Hi ${name}!\n\nRegarding your Order #${orderId} for ${coins} coins (₹${amount}).\n\nTrack: ${trackUrl}\n\n— Team Barbieverse`;
+  }
+}
+
 function refundBadge(s: string) {
   if (!s || s === "none") return null;
   const map: Record<string, string> = {
@@ -183,11 +204,11 @@ function OrderRow({ o, onRefresh }: { o: any; onRefresh: () => void }) {
                 <MessageCircle className="h-3.5 w-3.5 text-green-500" />
               </a>
               {/* Quick message dropdown */}
-              <div className="absolute right-0 top-8 z-50 hidden group-hover:block w-64">
+              <div className="absolute right-0 top-8 z-50 hidden group-hover:block w-72">
                 <div className="rounded-lg border border-border bg-card shadow-lg p-2 space-y-1">
                   <div className="text-[10px] text-muted-foreground uppercase tracking-wider px-2 py-1">Quick Messages</div>
                   <a
-                    href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hi ${o.name}, we received your payment for Order #${o.id.slice(0,8)}. Your ${o.coins} coins for Poppo ID ${o.poppo_id} will be credited within 30 minutes. Track: ${window.location.origin}/track?id=${o.id}`)}`}
+                    href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hi ${o.name}! ✅\n\nPayment received for Order #${o.id.slice(0,8)}.\n💰 Amount: ₹${o.amount}\n🎮 Poppo ID: ${o.poppo_id}\n📦 Coins: ${o.coins}\n\nYour coins will be credited within 30 minutes.\nTrack: ${window.location.origin}/track?id=${o.id}`)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="block px-2 py-1.5 text-xs rounded hover:bg-green-500/10 text-green-400"
@@ -195,7 +216,7 @@ function OrderRow({ o, onRefresh }: { o: any; onRefresh: () => void }) {
                     ✅ Payment Received
                   </a>
                   <a
-                    href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hi ${o.name}, your ${o.coins} coins have been credited to Poppo ID ${o.poppo_id}! 🎉 Enjoy streaming! Thank you for choosing Barbieverse 💖`)}`}
+                    href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hi ${o.name}! 🎉\n\nOrder #${o.id.slice(0,8)} is complete!\n📦 ${o.coins} coins credited to Poppo ID ${o.poppo_id}\n\nEnjoy streaming! Thank you for choosing Barbieverse 💖\nTrack: ${window.location.origin}/track?id=${o.id}`)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="block px-2 py-1.5 text-xs rounded hover:bg-green-500/10 text-green-400"
@@ -203,15 +224,15 @@ function OrderRow({ o, onRefresh }: { o: any; onRefresh: () => void }) {
                     🎉 Coins Credited
                   </a>
                   <a
-                    href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hi ${o.name}, your refund of ₹${o.amount} has been approved. It will be credited to your bank account within 3-5 business days.`)}`}
+                    href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hi ${o.name},\n\nOrder #${o.id.slice(0,8)} could not be processed.\n💰 Refund of ₹${o.amount} will be credited within 3-5 business days.\n\nContact us for questions.`)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="block px-2 py-1.5 text-xs rounded hover:bg-green-500/10 text-green-400"
                   >
-                    💰 Refund Approved
+                    💰 Refund Processed
                   </a>
                   <a
-                    href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hi ${o.name}, thank you for your interest in Barbieverse! 🎀 Join our creator family and earn ₹1,150 in your first week. Get started: ${window.location.origin}/join`)}`}
+                    href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hi ${o.name}! 🎀\n\nThank you for your interest in Barbieverse!\n\nJoin our creator family and earn ₹1,150 in your first week.\n\nGet started: ${window.location.origin}/join\n\n— Team Barbieverse`)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="block px-2 py-1.5 text-xs rounded hover:bg-green-500/10 text-green-400"
