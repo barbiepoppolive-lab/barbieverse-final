@@ -360,8 +360,6 @@ function DetailsStep({
           for {pkg.coins * quantity} coins
         </div>
       </div>
-        </div>
-      </div>
 
       <FormField name="name" label="Your Name" required />
       <div>
