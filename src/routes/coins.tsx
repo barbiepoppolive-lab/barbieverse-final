@@ -170,8 +170,8 @@ function CoinsPage() {
 
                 if (method === "upi") {
                   // Auto-open UPI app with the unique amount (paise-precise match)
-                  const upiId = settings.upi_id || "barbieverse@upi";
-                  const payee = settings.upi_payee_name || "Barbieverse";
+                  const upiId = settings.upi_id || "thestrongwingsofficial@okaxis";
+                  const payee = settings.upi_payee_name || "Barbie";
                   const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payee)}&am=${res.expected_amount_rupees}&cu=INR&tn=${encodeURIComponent("BV-" + (res.id || "").slice(0, 8))}`;
                   setStep("pay");
                   // Slight delay so the new screen mounts before we navigate
@@ -188,8 +188,8 @@ function CoinsPage() {
 
         {step === "pay" && selected && orderResult && method === "upi" && (
           <SmartPaymentVerification
-            upiId={settings.upi_id || "barbieverse@upi"}
-            payeeName={settings.upi_payee_name || "Barbieverse"}
+            upiId={settings.upi_id || "thestrongwingsofficial@okaxis"}
+            payeeName={settings.upi_payee_name || "Barbie"}
             amountRupees={orderResult.expected_amount_rupees}
             orderId={orderResult.id}
             orderShortId={orderResult.id.slice(0, 8)}
