@@ -27,7 +27,7 @@ export const Route = createFileRoute("/blog/$slug")({
     }
     return { meta: [{ title: "Blog | Barbieverse" }] };
   },
-  component: PostPage,
+  component: PostRouter,
   notFoundComponent: () => (
     <SiteLayout>
       <div className="container mx-auto py-24 text-center">
@@ -39,10 +39,14 @@ export const Route = createFileRoute("/blog/$slug")({
   errorComponent: ({ error }) => <div className="p-8">Error: {error.message}</div>,
 });
 
-function PostPage() {
+function PostRouter() {
   const { slug } = Route.useParams();
   const Hardcoded = HARDCODED_SLUGS[slug];
   if (Hardcoded) return <Hardcoded />;
+  return <DbPostPage slug={slug} />;
+}
+
+function DbPostPage({ slug }: { slug: string }) {
   const { data } = useSuspenseQuery(postQO(slug));
   const post = (data as any)?.post;
   const related = (data as any)?.related ?? [];
