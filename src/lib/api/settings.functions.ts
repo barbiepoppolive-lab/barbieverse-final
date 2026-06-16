@@ -23,7 +23,7 @@ const PUBLIC_SETTING_KEYS = new Set([
   "poppo_referral_url", "vone_referral_url",
   "creator_intent_option_1_label", "creator_intent_option_2_label",
   "creator_intent_option_3_label", "creator_intent_option_4_label",
-  "upi_payee_name",
+  "upi_payee_name", "upi_id",
   "contact_general_label", "contact_general_value", "contact_creator_label", "contact_creator_value",
   "contact_recharge_label", "contact_recharge_value", "contact_business_label", "contact_business_value",
   "contact_response_time",
