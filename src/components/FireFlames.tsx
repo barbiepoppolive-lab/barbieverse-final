@@ -32,36 +32,37 @@ export function FireFlames({ className = "" }: { className?: string }) {
     }
 
     function spawnFlame() {
-      // 70% bottom, 15% left, 15% right
+      // Even distribution: 50% bottom, 25% left, 25% right
       const r = Math.random();
       let edge: Flame["edge"] = "bottom";
       let x = Math.random() * W;
       let baseY = H;
 
-      if (r > 0.7 && r <= 0.85) {
+      if (r > 0.5 && r <= 0.75) {
         edge = "left";
-        x = 0;
-        baseY = H * 0.3 + Math.random() * H * 0.6;
-      } else if (r > 0.85) {
+        x = -2;
+        baseY = Math.random() * H;
+      } else if (r > 0.75) {
         edge = "right";
-        x = W;
-        baseY = H * 0.3 + Math.random() * H * 0.6;
+        x = W + 2;
+        baseY = Math.random() * H;
       } else {
-        // bottom flames concentrated near edges for fire-frame look
-        const side = Math.random() > 0.5 ? 1 : 0;
-        x = side ? W * 0.7 + Math.random() * W * 0.3 : Math.random() * W * 0.3;
+        // Bottom — spread evenly across full width
+        edge = "bottom";
+        x = Math.random() * W;
+        baseY = H - 2;
       }
 
       flames.push({
         x,
         y: baseY,
         baseY,
-        size: 4 + Math.random() * 10,
-        speed: 0.8 + Math.random() * 1.5,
+        size: 3 + Math.random() * 8,
+        speed: 0.6 + Math.random() * 1.2,
         life: 0,
-        maxLife: 20 + Math.random() * 30,
-        hue: 10 + Math.random() * 40, // orange to yellow
-        drift: (Math.random() - 0.5) * 1.2,
+        maxLife: 15 + Math.random() * 25,
+        hue: 10 + Math.random() * 40,
+        drift: (Math.random() - 0.5) * 1.5,
         edge,
       });
     }
@@ -113,15 +114,27 @@ export function FireFlames({ className = "" }: { className?: string }) {
     function animate() {
       ctx!.clearRect(0, 0, W, H);
 
-      // Spawn new flames
-      for (let i = 0; i < 3; i++) spawnFlame();
+      // Spawn 4 flames per frame for denser fire
+      for (let i = 0; i < 4; i++) spawnFlame();
 
       // Update and draw
       for (let i = flames.length - 1; i >= 0; i--) {
         const f = flames[i];
         f.life++;
-        f.y -= f.speed;
-        f.x += f.drift;
+
+        // Move flames perpendicular to their edge
+        if (f.edge === "bottom") {
+          f.y -= f.speed;
+          f.x += f.drift;
+        } else if (f.edge === "left") {
+          f.x -= f.speed * 0.7;
+          f.y -= f.speed * 0.5 + Math.random() * 0.3;
+          f.drift = -Math.abs(f.drift);
+        } else if (f.edge === "right") {
+          f.x += f.speed * 0.7;
+          f.y -= f.speed * 0.5 + Math.random() * 0.3;
+          f.drift = Math.abs(f.drift);
+        }
 
         if (f.life >= f.maxLife) {
           flames.splice(i, 1);
@@ -130,6 +143,9 @@ export function FireFlames({ className = "" }: { className?: string }) {
 
         drawFlame(f);
       }
+
+      // Cap at 150 flames for performance
+      while (flames.length > 150) flames.shift();
 
       animId = requestAnimationFrame(animate);
     }
