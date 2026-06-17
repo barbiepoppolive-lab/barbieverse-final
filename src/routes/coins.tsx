@@ -182,8 +182,8 @@ function CoinsPage() {
 
         {step === "pay" && selected && orderResult && method === "upi" && (
           <SmartPaymentVerification
-            upiId={settings.upi_id || "thestrongwingsofficial@okaxis"}
-            payeeName={settings.upi_payee_name || "Barbie"}
+            upiId="thestrongwingsofficial@okaxis"
+            payeeName="Barbie"
             amountRupees={orderResult.expected_amount_rupees}
             orderId={orderResult.id}
             orderShortId={orderResult.id.slice(0, 8)}
