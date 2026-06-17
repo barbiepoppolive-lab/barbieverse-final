@@ -75,24 +75,18 @@ export const submitOrder = createServerFn({ method: "POST" })
 
     if (data.payment_method !== "upi") {
       try {
-        const botToken = process.env.TELEGRAM_BOT_TOKEN;
-        const chatId = process.env.TELEGRAM_CHAT_ID;
-        if (botToken && chatId) {
-          const msg =
-            `💰 <b>NEW ${data.payment_method.toUpperCase()} ORDER</b>\n\n` +
-            `👤 Customer: ${data.name}\n` +
-            `📱 WhatsApp: ${data.whatsapp}\n` +
-            `🎮 Poppo ID: ${data.poppo_id}\n` +
-            `📦 ${data.coins} coins (${data.package})\n` +
-            `💰 Amount: ₹${data.amount}\n` +
-            `🔑 Ref: ${data.utr || "N/A"}\n\n` +
-            `⚡ Verify & send coins!`;
-          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: "HTML" }),
-          });
-        }
+        const { sendTelegramWithWhatsAppButtons } = await import("../notifications.server");
+        await sendTelegramWithWhatsAppButtons({
+          customerName: data.name,
+          customerWhatsapp: data.whatsapp,
+          poppoId: data.poppo_id,
+          packageName: data.package,
+          quantity: data.quantity,
+          amountRupees: String(data.amount),
+          orderId: row?.id || "",
+          coins: data.coins,
+          alertType: "new_order",
+        });
       } catch (e) {
         console.error("[order notify]", e);
       }
@@ -144,28 +138,20 @@ export const submitUtr = createServerFn({ method: "POST" })
       [data.utr, data.order_id],
     );
 
-    // Notify admin via Telegram
+    // Notify admin via Telegram with WhatsApp buttons
     try {
-      const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      const chatId = process.env.TELEGRAM_CHAT_ID;
-      if (botToken && chatId) {
-        const method = order.payment_method === "usdt" ? "USDT" : "Net Banking";
-        const msg =
-          `📝 <b>UTR SUBMITTED — ${method.toUpperCase()}</b>\n\n` +
-          `👤 Customer: ${order.name}\n` +
-          `📱 WhatsApp: ${order.whatsapp}\n` +
-          `🎮 Poppo ID: ${order.poppo_id}\n` +
-          `📦 ${order.coins} coins (${order.package})\n` +
-          `💰 Amount: ₹${order.amount}\n` +
-          `🔑 UTR/Ref: ${data.utr}\n` +
-          `📋 Order: #${order.id.slice(0, 8)}\n\n` +
-          `⚡ Verify & send coins!`;
-        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: "HTML" }),
-        });
-      }
+      const { sendTelegramWithWhatsAppButtons } = await import("../notifications.server");
+      await sendTelegramWithWhatsAppButtons({
+        customerName: order.name,
+        customerWhatsapp: order.whatsapp,
+        poppoId: order.poppo_id,
+        packageName: order.package,
+        quantity: order.quantity || 1,
+        amountRupees: String(order.amount),
+        orderId: order.id,
+        coins: order.coins,
+        alertType: "payment_confirmed",
+      });
     } catch (e) {
       console.error("[submitUtr] telegram notify", e);
     }
@@ -315,25 +301,20 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
     );
 
     if (data.status === "completed" && order.status !== "completed") {
-      // Telegram alert to admin
+      // Send Telegram alert with WhatsApp button
       try {
-        const botToken = process.env.TELEGRAM_BOT_TOKEN;
-        const chatId = process.env.TELEGRAM_CHAT_ID;
-        if (botToken && chatId) {
-          const msg =
-            `✅ <b>ORDER COMPLETED</b>\n\n` +
-            `👤 Customer: ${order.name}\n` +
-            `📱 WhatsApp: ${order.whatsapp}\n` +
-            `🎮 Poppo ID: ${order.poppo_id}\n` +
-            `📦 ${order.coins} coins delivered\n` +
-            `💰 Amount: ₹${order.amount}\n` +
-            `📋 Order: #${order.id.slice(0, 8)}`;
-          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: "HTML" }),
-          });
-        }
+        const { sendTelegramWithWhatsAppButtons } = await import("../notifications.server");
+        await sendTelegramWithWhatsAppButtons({
+          customerName: order.name,
+          customerWhatsapp: order.whatsapp,
+          poppoId: order.poppo_id,
+          packageName: order.package,
+          quantity: order.quantity || 1,
+          amountRupees: String(order.amount),
+          orderId: order.id,
+          coins: order.coins,
+          alertType: "order_completed",
+        });
       } catch (e) {
         console.error("[order complete] telegram notify", e);
       }
@@ -408,21 +389,18 @@ export const updateRefundStatus = createServerFn({ method: "POST" })
     // Notify admin via Telegram when refund is processed
     if (["approved", "completed"].includes(data.refund_status)) {
       try {
-        const botToken = process.env.TELEGRAM_BOT_TOKEN;
-        const chatId = process.env.TELEGRAM_CHAT_ID;
-        if (botToken && chatId) {
-          const msg =
-            `💸 <b>REFUND ${data.refund_status.toUpperCase()}</b>\n\n` +
-            `👤 Customer: ${order.name}\n` +
-            `💰 Amount: ₹${order.amount}\n` +
-            `📋 Order: #${order.id.slice(0, 8)}\n` +
-            `📦 ${order.coins} coins (${order.package})`;
-          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: "HTML" }),
-          });
-        }
+        const { sendTelegramWithWhatsAppButtons } = await import("../notifications.server");
+        await sendTelegramWithWhatsAppButtons({
+          customerName: order.name,
+          customerWhatsapp: order.whatsapp,
+          poppoId: order.poppo_id,
+          packageName: order.package,
+          quantity: order.quantity || 1,
+          amountRupees: String(order.amount),
+          orderId: order.id,
+          coins: order.coins,
+          alertType: "refund",
+        });
       } catch (e) {
         console.error("[refund notify]", e);
       }

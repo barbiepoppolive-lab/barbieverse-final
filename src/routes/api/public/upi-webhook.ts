@@ -94,27 +94,20 @@ export const Route = createFileRoute("/api/public/upi-webhook")({
           return Response.json({ ok: false, matched: false });
         }
 
-        // Notify admin via Telegram
+        // Notify admin via Telegram with WhatsApp buttons
         try {
-          const botToken = process.env.TELEGRAM_BOT_TOKEN;
-          const chatId = process.env.TELEGRAM_CHAT_ID;
-          if (botToken && chatId) {
-            const msg =
-              `🎀 <b>AUTO-MATCHED PAYMENT</b>\n\n` +
-              `👤 Customer: ${order.name}\n` +
-              `📱 WhatsApp: ${order.whatsapp}\n` +
-              `🎮 Poppo ID: ${order.poppo_id}\n` +
-              `📦 ${order.coins} coins (${order.package})\n` +
-              `💰 Amount: ₹${(order.expected_amount_paise / 100).toFixed(2)}\n` +
-              `🔑 UTR: ${order.utr || "N/A"}\n` +
-              `📋 Order: #${order.id.slice(0, 8)}\n\n` +
-              `⚡ Send ${order.coins} coins now!`;
-            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: "HTML" }),
-            });
-          }
+          const { sendTelegramWithWhatsAppButtons } = await import("@/lib/notifications.server");
+          await sendTelegramWithWhatsAppButtons({
+            customerName: order.name,
+            customerWhatsapp: order.whatsapp,
+            poppoId: order.poppo_id,
+            packageName: order.package,
+            quantity: order.quantity || 1,
+            amountRupees: (order.expected_amount_paise / 100).toFixed(2),
+            orderId: order.id,
+            coins: order.coins,
+            alertType: "payment_confirmed",
+          });
         } catch (e) {
           console.error("[upi-webhook] telegram notify failed", e);
         }

@@ -11,6 +11,131 @@ async function getSettings(keys: string[]): Promise<Record<string, string>> {
   return map;
 }
 
+// ─── Telegram with Inline WhatsApp Buttons ─────────────────────────────────
+// Sends a Telegram alert with inline buttons. Tapping a button sends a
+// pre-filled WhatsApp message to the customer — no admin page needed.
+
+function encodeCb(data: string): string {
+  return Buffer.from(data).toString("base64url");
+}
+
+export async function sendTelegramWithWhatsAppButtons(opts: {
+  customerName: string;
+  customerWhatsapp: string;
+  poppoId: string;
+  packageName: string;
+  quantity: number;
+  amountRupees: string;
+  orderId: string;
+  coins: number;
+  alertType: "payment_confirmed" | "order_completed" | "new_order" | "refund";
+}) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!botToken || !chatId) return { ok: false, skipped: true };
+
+  const trackUrl = `${process.env.PUBLIC_APP_URL || "https://barbieverse.org"}/track?id=${opts.orderId}`;
+  const shortId = opts.orderId.slice(0, 8);
+
+  const titles: Record<string, string> = {
+    payment_confirmed: "🎀 PAYMENT CONFIRMED",
+    order_completed: "✅ ORDER COMPLETED",
+    new_order: "💰 NEW ORDER",
+    refund: "💸 REFUND PROCESSED",
+  };
+
+  let msg = `${titles[opts.alertType] || "📦 ORDER UPDATE"}\n\n` +
+    `👤 Customer: ${opts.customerName}\n` +
+    `📱 WhatsApp: ${opts.customerWhatsapp}\n` +
+    `🎮 Poppo ID: ${opts.poppoId}\n` +
+    `📦 ${opts.coins} coins (${opts.packageName})\n` +
+    `💰 Amount: ₹${opts.amountRupees}\n` +
+    `📋 Order: #${shortId}`;
+
+  // Build inline keyboard buttons
+  const buttons: any[][] = [];
+
+  if (opts.alertType === "payment_confirmed" || opts.alertType === "new_order") {
+    // Payment received + Coins credited buttons
+    buttons.push([
+      {
+        text: "💬 Send Payment Received",
+        url: `https://wa.me/${opts.customerWhatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+          `Hi ${opts.customerName}! Your payment of ₹${opts.amountRupees} for ${opts.coins} coins (Order #${shortId}) has been received. We're processing your order now.`
+        )}`,
+      },
+    ]);
+    buttons.push([
+      {
+        text: "🎉 Send Coins Credited",
+        url: `https://wa.me/${opts.customerWhatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+          `Hi ${opts.customerName}! Your ${opts.coins} coins have been credited to Poppo ID ${opts.poppoId}! 🎉 Enjoy streaming! Thank you for choosing Barbieverse 💖`
+        )}`,
+      },
+    ]);
+    buttons.push([
+      {
+        text: "🔗 Send Track Link",
+        url: `https://wa.me/${opts.customerWhatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+          `Hi ${opts.customerName}! Track your order here: ${trackUrl}`
+        )}`,
+      },
+    ]);
+  }
+
+  if (opts.alertType === "order_completed") {
+    buttons.push([
+      {
+        text: "🎉 Send Coins Credited",
+        url: `https://wa.me/${opts.customerWhatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+          `Hi ${opts.customerName}! Your ${opts.coins} coins have been credited to Poppo ID ${opts.poppoId}! 🎉 Enjoy streaming! Thank you for choosing Barbieverse 💖`
+        )}`,
+      },
+    ]);
+    buttons.push([
+      {
+        text: "🔗 Send Track Link",
+        url: `https://wa.me/${opts.customerWhatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+          `Hi ${opts.customerName}! Your order #${shortId} is complete. Track here: ${trackUrl}`
+        )}`,
+      },
+    ]);
+  }
+
+  if (opts.alertType === "refund") {
+    buttons.push([
+      {
+        text: "💸 Send Refund Info",
+        url: `https://wa.me/${opts.customerWhatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+          `Hi ${opts.customerName}! Your refund of ₹${opts.amountRupees} for Order #${shortId} has been processed. It will reflect in your account within 3-5 business days.`
+        )}`,
+      },
+    ]);
+  }
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: msg,
+        parse_mode: "HTML",
+        reply_markup: buttons.length > 0 ? { inline_keyboard: buttons } : undefined,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("[telegram] send failed", res.status, JSON.stringify(data));
+      return { ok: false, error: data };
+    }
+    return { ok: true };
+  } catch (e) {
+    console.error("[telegram] error", e);
+    return { ok: false };
+  }
+}
+
 // ─── WhatsApp Notifications (One-Click Manual) ─────────────────────────────
 // WhatsApp messages are sent manually by admin via one-click buttons in admin panel
 // This function generates pre-filled WhatsApp URLs for manual sending

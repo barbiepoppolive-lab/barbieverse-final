@@ -1,68 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { sendTelegramWithWhatsAppButtons } from "@/lib/notifications.server";
 
 /**
  * Server function: confirms a payment by updating the order's UTR,
- * setting status to 'paid_pending_delivery', and sending Telegram alert.
+ * setting status to 'paid_pending_delivery', and sending Telegram alert
+ * with inline WhatsApp buttons for one-click customer notifications.
  */
-
-async function sendTelegramAlert(opts: {
-  customerName: string;
-  customerWhatsapp: string;
-  poppoId: string;
-  packageName: string;
-  quantity: number;
-  amountRupees: string;
-  utrNumber: string;
-  orderId: string;
-  layerUsed: string;
-  totalCoins: number;
-}) {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
-
-  if (!botToken || !chatId) {
-    console.warn("[telegram] TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set, skipping");
-    return { ok: false, skipped: true };
-  }
-
-  const msg =
-    `🎀 <b>NEW COIN ORDER CONFIRMED</b>\n\n` +
-    `👤 Customer: ${opts.customerName}\n` +
-    `📱 WhatsApp: ${opts.customerWhatsapp}\n` +
-    `🎮 Poppo ID: ${opts.poppoId}\n` +
-    `📦 Package: ${opts.packageName}\n` +
-    `🔢 Quantity: ${opts.quantity}\n` +
-    `💰 Amount: ₹${opts.amountRupees}\n` +
-    `🔑 UTR: ${opts.utrNumber}\n` +
-    `📋 Order ID: ${opts.orderId}\n` +
-    `🔍 Verified via: ${opts.layerUsed}\n\n` +
-    `⚡ Send ${opts.totalCoins} coins now!`;
-
-  try {
-    const res = await fetch(
-      `https://api.telegram.org/bot${botToken}/sendMessage`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: msg,
-          parse_mode: "HTML",
-        }),
-      }
-    );
-    const data = await res.json();
-    if (!res.ok) {
-      console.error("[telegram] send failed", res.status, JSON.stringify(data));
-      return { ok: false, error: data };
-    }
-    return { ok: true };
-  } catch (e) {
-    console.error("[telegram] error", e);
-    return { ok: false };
-  }
-}
 
 export const confirmPayment = createServerFn({ method: "POST" })
   .inputValidator((d) =>
@@ -97,47 +41,6 @@ export const confirmPayment = createServerFn({ method: "POST" })
       return { ok: false, error: "This order is already finalized" };
     }
 
-    // If webhook already matched (paid_pending_delivery), just save UTR and send alert
-    if (order.status === "paid_pending_delivery") {
-      await q1(
-        `UPDATE orders SET utr = $1, utr_submitted_at = now(), verified_via = $2, updated_at = now() WHERE id = $3`,
-        [data.utr, data.verified_via, data.order_id]
-      );
-
-      // Send Telegram alert with UTR info
-      const customerName = data.customer_name || order.name;
-      const customerWhatsapp = data.customer_whatsapp || order.whatsapp;
-      const poppoId = data.poppo_id || order.poppo_id;
-      const packageName = data.package_name || order.package;
-      const quantity = data.quantity || order.quantity || 1;
-      const amountRupees = data.amount_rupees || String(order.amount);
-      const totalCoins = data.total_coins || order.coins;
-
-      try {
-        await sendTelegramAlert({
-          customerName, customerWhatsapp, poppoId, packageName,
-          quantity, amountRupees, utrNumber: data.utr,
-          orderId: order.id, layerUsed: data.verified_via, totalCoins,
-        });
-      } catch (e) {
-        console.error("[confirmPayment notifications]", e);
-      }
-
-      return { ok: true, order_id: order.id };
-    }
-
-    // Normal flow: pending or awaiting_payment — update status and send alert
-    await q1(
-      `UPDATE orders
-       SET utr = $1,
-           utr_submitted_at = now(),
-           status = 'paid_pending_delivery',
-           verified_via = $2,
-           updated_at = now()
-       WHERE id = $3`,
-      [data.utr, data.verified_via, data.order_id]
-    );
-
     const customerName = data.customer_name || order.name;
     const customerWhatsapp = data.customer_whatsapp || order.whatsapp;
     const poppoId = data.poppo_id || order.poppo_id;
@@ -146,14 +49,41 @@ export const confirmPayment = createServerFn({ method: "POST" })
     const amountRupees = data.amount_rupees || String(order.amount);
     const totalCoins = data.total_coins || order.coins;
 
+    // If webhook already matched (paid_pending_delivery), just save UTR and send alert
+    if (order.status === "paid_pending_delivery") {
+      await q1(
+        `UPDATE orders SET utr = $1, utr_submitted_at = now(), verified_via = $2, updated_at = now() WHERE id = $3`,
+        [data.utr, data.verified_via, data.order_id]
+      );
+    } else {
+      // Normal flow: pending or awaiting_payment — update status
+      await q1(
+        `UPDATE orders
+         SET utr = $1,
+             utr_submitted_at = now(),
+             status = 'paid_pending_delivery',
+             verified_via = $2,
+             updated_at = now()
+         WHERE id = $3`,
+        [data.utr, data.verified_via, data.order_id]
+      );
+    }
+
+    // Send Telegram alert with inline WhatsApp buttons
     try {
-      await sendTelegramAlert({
-        customerName, customerWhatsapp, poppoId, packageName,
-        quantity, amountRupees, utrNumber: data.utr,
-        orderId: order.id, layerUsed: data.verified_via, totalCoins,
+      await sendTelegramWithWhatsAppButtons({
+        customerName,
+        customerWhatsapp,
+        poppoId,
+        packageName,
+        quantity,
+        amountRupees,
+        orderId: order.id,
+        coins: totalCoins,
+        alertType: "payment_confirmed",
       });
     } catch (e) {
-      console.error("[confirmPayment notifications]", e);
+      console.error("[confirmPayment] telegram notify", e);
     }
 
     return { ok: true, order_id: order.id };
