@@ -25,6 +25,7 @@ const HERO_FIELDS = [
 const FIELDS = [
   { key: "upi_id", label: "UPI ID", placeholder: "yourname@upi" },
   { key: "upi_payee_name", label: "UPI Payee Name", placeholder: "Barbieverse" },
+  { key: "agency_id", label: "Agency ID (Poppo)", placeholder: "e.g. 2517496" },
   { key: "poppo_signup_link", label: "Poppo Signup Link", placeholder: "https://poppo.live/..." },
   { key: "admin_whatsapp", label: "Admin WhatsApp (for notifications)", placeholder: "+9198..." },
   { key: "interakt_webhook_url", label: "Interakt WhatsApp Webhook URL", placeholder: "https://..." },

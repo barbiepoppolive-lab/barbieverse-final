@@ -20,7 +20,7 @@ const PUBLIC_SETTING_KEYS = new Set([
   "hero_trust_badges", "vip_tiers", "vip_support_text", "vip_cta_text",
   "coin_package_1", "coin_package_2", "coin_package_3", "coin_package_4",
   "testimonials_json", "homepage_announcement",
-  "poppo_referral_url", "vone_referral_url",
+  "poppo_referral_url", "vone_referral_url", "agency_id",
   "creator_intent_option_1_label", "creator_intent_option_2_label",
   "creator_intent_option_3_label", "creator_intent_option_4_label",
   "upi_payee_name", "upi_id",
