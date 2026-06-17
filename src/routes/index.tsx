@@ -7,6 +7,7 @@ import founderPortrait from "@/assets/founder-portrait.jpg.asset.json";
 import { AutoCarousel } from "@/components/carousel/AutoCarousel";
 import { LiveCreatorCounter } from "@/components/LiveCreatorCounter";
 import { ParticleCanvas } from "@/components/ParticleCanvas";
+import { FireFlames } from "@/components/FireFlames";
 import { Reveal } from "@/components/Reveal";
 import { usePrefersReducedMotion, useIsLowPower } from "@/hooks/use-motion";
 import { useState } from "react";
@@ -170,22 +171,25 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
 
               {/* Floating Credentials Card — Bottom Right */}
               <div className="credentials-float absolute -bottom-4 -right-2 z-30 sm:-right-6 lg:-right-8">
-                <div className="real-fire relative rounded-2xl bg-gradient-to-br from-background/95 via-card/95 to-background/95 px-4 py-3 backdrop-blur-xl">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-black text-lg ring-1 ring-gold/30">
-                      👑
+                <div className="relative rounded-2xl bg-gradient-to-br from-background/95 via-card/95 to-background/95 px-4 py-3 backdrop-blur-xl">
+                  <FireFlames />
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-black text-lg ring-1 ring-gold/30">
+                        👑
+                      </div>
+                      <div>
+                        <div className="text-[9px] uppercase tracking-[0.2em] text-gold/80">Poppo ID</div>
+                        <div className="font-mono text-sm font-bold text-foreground">2517496</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-[9px] uppercase tracking-[0.2em] text-gold/80">Poppo ID</div>
-                      <div className="font-mono text-sm font-bold text-foreground">2517496</div>
-                    </div>
-                  </div>
-                  <div className="mt-2.5 border-t border-gold/20 pt-2.5">
-                    <div className="text-[9px] uppercase tracking-[0.2em] text-gold/80">Wealth Level</div>
-                    <div className="flex items-center gap-2">
-                      <span className="wealth-shimmer font-display text-2xl font-bold">154</span>
-                      <Gem className="h-4 w-4 fill-gold text-gold" />
-                      <span className="text-[10px] font-semibold text-gold leading-tight">HIGHEST<br/>WORLDWIDE</span>
+                    <div className="mt-2.5 border-t border-gold/20 pt-2.5">
+                      <div className="text-[9px] uppercase tracking-[0.2em] text-gold/80">Wealth Level</div>
+                      <div className="flex items-center gap-2">
+                        <span className="wealth-shimmer font-display text-2xl font-bold">154</span>
+                        <Gem className="h-4 w-4 fill-gold text-gold" />
+                        <span className="text-[10px] font-semibold text-gold leading-tight">HIGHEST<br/>WORLDWIDE</span>
+                      </div>
                     </div>
                   </div>
                 </div>
