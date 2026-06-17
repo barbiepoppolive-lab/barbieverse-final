@@ -270,39 +270,9 @@ export function SmartPaymentVerification({
       setOcrResult(null);
 
       try {
-        // Lazy load Tesseract.js ONLY on user action
-        const { createWorker } = await import("tesseract.js");
-        const worker = await createWorker("eng");
-        const { data } = await worker.recognize(file);
-        await worker.terminate();
-
-        const text = data.text;
-        // Try to extract UTR using regex patterns
-        const utrPatterns = [
-          /UTR[:\s#]*([A-Z0-9]{12,22})/i,
-          /UPI Ref[:\s#]*([A-Z0-9]{12,22})/i,
-          /Transaction ID[:\s#]*([A-Z0-9]{12,22})/i,
-          /Ref No[:\s#]*([A-Z0-9]{12,22})/i,
-          /([A-Z]{4}[0-9]{12})/,
-          /(\d{12})/,
-        ];
-
-        let extractedUtr: string | null = null;
-        for (const pattern of utrPatterns) {
-          const match = text.match(pattern);
-          if (match) {
-            extractedUtr = match[1] || match[0];
-            break;
-          }
-        }
-
-        if (extractedUtr) {
-          setOcrResult(extractedUtr);
-        } else {
-          setOcrError("Could not read automatically — try Layer 3 or enter manually");
-        }
+        setOcrError("Screenshot received. Please enter your UTR manually below.");
       } catch (err) {
-        setOcrError("OCR processing failed — try another method");
+        setOcrError("Could not process screenshot — enter UTR manually");
       } finally {
         setOcrLoading(false);
       }
