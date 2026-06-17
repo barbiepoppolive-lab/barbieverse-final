@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
-import { ArrowRight, Crown, ChevronDown, Diamond } from "lucide-react";
+import { ArrowRight, Crown, ChevronDown, Gem } from "lucide-react";
 import { getPublicSettings } from "@/lib/api/settings.functions";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import founderPortrait from "@/assets/founder-portrait.jpg.asset.json";
@@ -170,9 +170,9 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
 
               {/* Floating Credentials Card — Bottom Right */}
               <div className="credentials-float absolute -bottom-4 -right-2 z-30 sm:-right-6 lg:-right-8">
-                <div className="fire-border relative rounded-2xl border-2 border-orange-500/60 bg-gradient-to-br from-background/95 via-card/95 to-background/95 px-4 py-3 backdrop-blur-xl">
+                <div className="real-fire relative rounded-2xl bg-gradient-to-br from-background/95 via-card/95 to-background/95 px-4 py-3 backdrop-blur-xl">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-gold text-lg">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-black text-lg ring-1 ring-gold/30">
                       👑
                     </div>
                     <div>
@@ -184,7 +184,7 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
                     <div className="text-[9px] uppercase tracking-[0.2em] text-gold/80">Wealth Level</div>
                     <div className="flex items-center gap-2">
                       <span className="wealth-shimmer font-display text-2xl font-bold">154</span>
-                      <Diamond className="h-4 w-4 text-gold" />
+                      <Gem className="h-4 w-4 fill-gold text-gold" />
                       <span className="text-[10px] font-semibold text-gold leading-tight">HIGHEST<br/>WORLDWIDE</span>
                     </div>
                   </div>
