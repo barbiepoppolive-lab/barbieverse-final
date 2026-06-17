@@ -94,25 +94,29 @@ export const Route = createFileRoute("/api/public/upi-webhook")({
           return Response.json({ ok: false, matched: false });
         }
 
-        // Notify admin on WhatsApp with a one-tap "Mark Coins Sent" link.
+        // Notify admin via Telegram
         try {
-          const { sendInteraktNotification } = await import("@/lib/notifications.server");
-          const base =
-            process.env.PUBLIC_APP_URL ||
-            new URL(request.url).origin;
-          const link = `${base}/api/public/order-action?token=${order.action_token}&op=complete`;
-          await sendInteraktNotification({
-            message:
-              `✅ Payment received — ₹${(order.expected_amount_paise / 100).toFixed(2)}\n` +
-              `Customer: ${order.name}\n` +
-              `Poppo ID: ${order.poppo_id}\n` +
-              `Pack: ${order.package} (${order.coins} coins)\n` +
-              `WhatsApp: ${order.whatsapp}\n` +
-              `UTR: ${order.utr || "—"}\n\n` +
-              `👉 After sending coins in Poppo, tap to mark done & notify the customer:\n${link}`,
-          });
+          const botToken = process.env.TELEGRAM_BOT_TOKEN;
+          const chatId = process.env.TELEGRAM_CHAT_ID;
+          if (botToken && chatId) {
+            const msg =
+              `🎀 <b>AUTO-MATCHED PAYMENT</b>\n\n` +
+              `👤 Customer: ${order.name}\n` +
+              `📱 WhatsApp: ${order.whatsapp}\n` +
+              `🎮 Poppo ID: ${order.poppo_id}\n` +
+              `📦 ${order.coins} coins (${order.package})\n` +
+              `💰 Amount: ₹${(order.expected_amount_paise / 100).toFixed(2)}\n` +
+              `🔑 UTR: ${order.utr || "N/A"}\n` +
+              `📋 Order: #${order.id.slice(0, 8)}\n\n` +
+              `⚡ Send ${order.coins} coins now!`;
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: "HTML" }),
+            });
+          }
         } catch (e) {
-          console.error("[upi-webhook] admin notify failed", e);
+          console.error("[upi-webhook] telegram notify failed", e);
         }
 
         return Response.json({ ok: true, matched: true, order_id: order.id });

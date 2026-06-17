@@ -32,91 +32,66 @@ function UpiSetupPage() {
   const webhookUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/api/public/upi-webhook`
-      : "https://your-domain.lovable.app/api/public/upi-webhook";
+      : "https://barbieverse.org/api/public/upi-webhook";
 
   return (
     <div className="max-w-3xl space-y-8">
       <div>
-        <h1 className="font-display text-3xl font-bold">UPI Auto-Verify Setup</h1>
+        <h1 className="font-display text-3xl font-bold">Payment Flow Setup</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Configure your dedicated UPI phone with MacroDroid to forward every payment notification to Barbieverse. Once set up, customer payments are matched and confirmed automatically within seconds — no manual UTR checking.
+          How payments work on Barbieverse. Customers pay via UPI, then you verify and deliver coins from the admin panel.
         </p>
       </div>
 
       <section className="space-y-3">
-        <h2 className="font-display text-xl font-bold">1. Install MacroDroid</h2>
-        <p className="text-sm text-muted-foreground">
-          On your dedicated UPI Android phone, install <b>MacroDroid</b> from the Play Store. Grant it Notification access in Settings → Apps → MacroDroid → Notifications.
-        </p>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="font-display text-xl font-bold">2. Create the macro</h2>
+        <h2 className="font-display text-xl font-bold">How It Works</h2>
         <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
-          <li>Open MacroDroid → <b>Add Macro</b>.</li>
-          <li><b>Trigger:</b> Device Events → Notification → <i>Notification Received</i>. Select your UPI / banking app (PhonePe, GPay, HDFC, SBI, Paytm…). Filter text contains: <span className="font-mono text-foreground">credited</span> or <span className="font-mono text-foreground">received</span>.</li>
-          <li><b>Action:</b> Connectivity → HTTP Request.</li>
-          <li>Configure as shown below.</li>
-          <li><b>Constraint:</b> none (run always).</li>
+          <li>Customer picks a coin package on <b>/coins</b> page</li>
+          <li>Pays via UPI to <b>thestrongwingsofficial@okaxis</b></li>
+          <li>Enters their 12-digit UTR transaction ID</li>
+          <li>Order moves to <b>paid_pending_delivery</b> — you get a <b>Telegram alert</b></li>
+          <li>You verify payment in bank app, send coins via Poppo</li>
+          <li>Go to <b>Admin → Orders</b>, click WhatsApp button → send "Coins Credited" message</li>
+          <li>Change order status to <b>completed</b></li>
         </ol>
       </section>
 
       <section className="space-y-3">
-        <h2 className="font-display text-xl font-bold">3. HTTP Request settings</h2>
-        <div className="space-y-2 rounded-xl border border-border/60 bg-card/40 p-4 text-sm">
-          <div><span className="text-muted-foreground">Method:</span> <b>POST</b></div>
-          <div><span className="text-muted-foreground">URL:</span> <span className="font-mono break-all text-xs">{webhookUrl}</span></div>
-          <div><span className="text-muted-foreground">Content type:</span> <b>application/json</b></div>
-        </div>
-
-        <CodeBlock label="Custom Header">{`x-webhook-secret: <your UPI_WEBHOOK_SECRET>`}</CodeBlock>
-
-        <CodeBlock label="Request Body (JSON)">{`{
-  "amount_paise": [lv=amount_paise],
-  "utr": "[lv=utr]",
-  "payer_upi": "[lv=payer]",
-  "raw_payload": "[notification_text]"
-}`}</CodeBlock>
-        <p className="text-xs text-muted-foreground">
-          MacroDroid replaces <span className="font-mono">[notification_text]</span> with the SMS / notification body automatically. Set the other <span className="font-mono">lv=…</span> values using "Local Variables" + a regex parser in step 4.
-        </p>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="font-display text-xl font-bold">4. Parse amount and UTR (regex)</h2>
+        <h2 className="font-display text-xl font-bold">Telegram Alerts</h2>
         <p className="text-sm text-muted-foreground">
-          Before the HTTP action, add <b>Logic → Variables → Set String</b> actions using regex on <span className="font-mono">[notification_text]</span>. Common patterns:
+          You receive instant Telegram alerts for:
         </p>
-
-        <CodeBlock label="Amount in rupees (capture group → multiply by 100)">{`Rs\\.?\\s?([\\d,]+(?:\\.\\d{1,2})?)`}</CodeBlock>
-
-        <CodeBlock label="UTR / Reference number">{`(?:UTR|Ref(?:erence)?(?:\\s*No)?)[:\\s]*([A-Za-z0-9]{8,22})`}</CodeBlock>
-
-        <CodeBlock label="Sender UPI ID">{`from\\s+([\\w.\\-]+@[\\w.\\-]+)`}</CodeBlock>
-
-        <p className="text-xs text-muted-foreground">
-          Convert the amount to paise: take the captured value, strip commas/decimal, multiply by 100 (or parse <span className="font-mono">{"\\d+"}</span> and <span className="font-mono">{"\\d{1,2}"}</span> separately).
-        </p>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="font-display text-xl font-bold">5. Test it</h2>
-        <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
-          <li>Send yourself <b>₹1.00</b> on the dedicated UPI ID.</li>
-          <li>Within ~3 seconds, check <a href="/admin/orders" className="text-primary underline">Orders</a> — a matched payment switches to <span className="font-mono">paid_pending_delivery</span>.</li>
-          <li>If nothing matches (no order with ₹1.00), it appears in <a href="/admin/unmatched" className="text-primary underline">Unmatched Payments</a>. That confirms MacroDroid is reaching the server.</li>
-          <li>If neither: the secret header is wrong, or the regex didn't capture anything. Check MacroDroid → System Log.</li>
-        </ol>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="font-display text-xl font-bold">6. Security notes</h2>
         <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted-foreground">
-          <li>Use a dedicated SIM + bank account only for Barbieverse — easier to audit.</li>
-          <li>The webhook secret is shared between this app and MacroDroid. Rotate it any time in Settings.</li>
-          <li>Keep the phone connected to charger + Wi-Fi. Disable battery optimization for MacroDroid.</li>
-          <li>Optionally turn on MacroDroid's <i>Trigger Log</i> for the first week — it shows every payload sent.</li>
+          <li><b>New coin order</b> — when customer submits UTR</li>
+          <li><b>Order completed</b> — when you mark an order as delivered</li>
         </ul>
+        <p className="text-xs text-muted-foreground">
+          Bot token and chat ID are configured in Railway environment variables.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-display text-xl font-bold">Admin Panel — One-Click WhatsApp</h2>
+        <p className="text-sm text-muted-foreground">
+          Go to <b>Admin → Orders</b>. Hover over the WhatsApp icon next to any order to see quick message templates:
+        </p>
+        <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted-foreground">
+          <li><b>Payment Received</b> — send after verifying payment</li>
+          <li><b>Coins Credited</b> — send after delivering coins</li>
+          <li><b>Refund Processed</b> — send if order is rejected</li>
+          <li><b>Welcome Message</b> — send to new customers</li>
+        </ul>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-display text-xl font-bold">Optional: Auto-Verification (MacroDroid)</h2>
+        <p className="text-sm text-muted-foreground">
+          For automatic payment matching, you can set up <b>MacroDroid</b> on a dedicated Android phone with your UPI ID. It forwards payment notifications to:
+        </p>
+        <CodeBlock label="Webhook URL">{webhookUrl}</CodeBlock>
+        <p className="text-xs text-muted-foreground">
+          This is optional. Manual verification via the admin panel works without MacroDroid.
+        </p>
       </section>
     </div>
   );

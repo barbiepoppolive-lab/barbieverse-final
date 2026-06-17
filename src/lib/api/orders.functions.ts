@@ -75,14 +75,24 @@ export const submitOrder = createServerFn({ method: "POST" })
 
     if (data.payment_method !== "upi") {
       try {
-        const { sendInteraktNotification } = await import("../notifications.server");
-        await sendInteraktNotification({
-          message:
-            `💰 New ${data.payment_method.toUpperCase()} order\n` +
-            `Name: ${data.name}\nPoppo: ${data.poppo_id}\n` +
-            `Pack: ${data.package} (${data.coins})\nAmount: ₹${data.amount}\n` +
-            `Ref: ${data.utr}\nWA: ${data.whatsapp}`,
-        });
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        const chatId = process.env.TELEGRAM_CHAT_ID;
+        if (botToken && chatId) {
+          const msg =
+            `💰 <b>NEW ${data.payment_method.toUpperCase()} ORDER</b>\n\n` +
+            `👤 Customer: ${data.name}\n` +
+            `📱 WhatsApp: ${data.whatsapp}\n` +
+            `🎮 Poppo ID: ${data.poppo_id}\n` +
+            `📦 ${data.coins} coins (${data.package})\n` +
+            `💰 Amount: ₹${data.amount}\n` +
+            `🔑 Ref: ${data.utr || "N/A"}\n\n` +
+            `⚡ Verify & send coins!`;
+          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: "HTML" }),
+          });
+        }
       } catch (e) {
         console.error("[order notify]", e);
       }
@@ -134,35 +144,30 @@ export const submitUtr = createServerFn({ method: "POST" })
       [data.utr, data.order_id],
     );
 
-    // Notify admin with one-tap completion link + send customer acknowledgement
+    // Notify admin via Telegram
     try {
-      const { sendInteraktNotification } = await import("../notifications.server");
-      const base = process.env.PUBLIC_APP_URL || "https://barbieverse.org";
-      const link = `${base}/api/public/order-action?token=${order.action_token}&op=complete`;
-
-      await sendInteraktNotification({
-        message:
-          `📝 UTR submitted — ${order.payment_method.toUpperCase()}\n` +
-          `Customer: ${order.name}\n` +
-          `Poppo: ${order.poppo_id}\n` +
-          `Pack: ${order.package} (${order.coins} coins)\n` +
-          `Amount: ₹${order.amount}\n` +
-          `UTR/Ref: ${data.utr}\n` +
-          `WA: ${order.whatsapp}\n\n` +
-          `👉 Verify & mark done:\n${link}`,
-      });
-
-      const method = order.payment_method === "usdt" ? "USDT" : "Net Banking";
-      await sendInteraktNotification({
-        to: order.whatsapp.replace(/[^\d]/g, ""),
-        message:
-          `✅ Transaction reference received!\n` +
-          `Hi ${order.name}, we got your ${method} reference: ${data.utr}\n` +
-          `Our team will verify and credit ${order.coins} coins to Poppo ID ${order.poppo_id} shortly.\n` +
-          `Track your order: ${process.env.PUBLIC_APP_URL || "https://barbieverse.org"}/track?id=${data.order_id}`,
-      });
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      const chatId = process.env.TELEGRAM_CHAT_ID;
+      if (botToken && chatId) {
+        const method = order.payment_method === "usdt" ? "USDT" : "Net Banking";
+        const msg =
+          `📝 <b>UTR SUBMITTED — ${method.toUpperCase()}</b>\n\n` +
+          `👤 Customer: ${order.name}\n` +
+          `📱 WhatsApp: ${order.whatsapp}\n` +
+          `🎮 Poppo ID: ${order.poppo_id}\n` +
+          `📦 ${order.coins} coins (${order.package})\n` +
+          `💰 Amount: ₹${order.amount}\n` +
+          `🔑 UTR/Ref: ${data.utr}\n` +
+          `📋 Order: #${order.id.slice(0, 8)}\n\n` +
+          `⚡ Verify & send coins!`;
+        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: "HTML" }),
+        });
+      }
     } catch (e) {
-      console.error("[submitUtr customer notify]", e);
+      console.error("[submitUtr] telegram notify", e);
     }
 
     return { ok: true };
@@ -310,17 +315,27 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
     );
 
     if (data.status === "completed" && order.status !== "completed") {
+      // Telegram alert to admin
       try {
-        const { sendInteraktNotification } = await import("../notifications.server");
-        await sendInteraktNotification({
-          to: order.whatsapp.replace(/[^\d]/g, ""),
-          message:
-            `🎉 Coins credited!\n` +
-            `Hi ${order.name}, your ${order.coins} coins for Poppo ID ${order.poppo_id} have been delivered.\n` +
-            `Thank you for choosing Barbieverse 💖`,
-        });
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        const chatId = process.env.TELEGRAM_CHAT_ID;
+        if (botToken && chatId) {
+          const msg =
+            `✅ <b>ORDER COMPLETED</b>\n\n` +
+            `👤 Customer: ${order.name}\n` +
+            `📱 WhatsApp: ${order.whatsapp}\n` +
+            `🎮 Poppo ID: ${order.poppo_id}\n` +
+            `📦 ${order.coins} coins delivered\n` +
+            `💰 Amount: ₹${order.amount}\n` +
+            `📋 Order: #${order.id.slice(0, 8)}`;
+          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: "HTML" }),
+          });
+        }
       } catch (e) {
-        console.error("[customer notify]", e);
+        console.error("[order complete] telegram notify", e);
       }
     }
     return { ok: true };
@@ -390,28 +405,24 @@ export const updateRefundStatus = createServerFn({ method: "POST" })
       );
     }
 
-    // Notify customer when refund is approved or completed
+    // Notify admin via Telegram when refund is processed
     if (["approved", "completed"].includes(data.refund_status)) {
       try {
-        const { sendInteraktNotification } = await import("../notifications.server");
-        const { q: sq } = await import("../db.server");
-        const settings = await sq(
-          `SELECT key, value FROM settings WHERE key = 'refund_msg'`,
-          [],
-        );
-        const template =
-          settings[0]?.value ||
-          "Your refund of ₹{amount} for Order {order_id} has been {status}.";
-
-        const message = template
-          .replace("{amount}", String(order.amount))
-          .replace("{order_id}", order.id.slice(0, 8).toUpperCase())
-          .replace("{status}", data.refund_status === "approved" ? "approved and will be processed shortly" : "completed");
-
-        await sendInteraktNotification({
-          to: order.whatsapp.replace(/[^\d]/g, ""),
-          message,
-        });
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        const chatId = process.env.TELEGRAM_CHAT_ID;
+        if (botToken && chatId) {
+          const msg =
+            `💸 <b>REFUND ${data.refund_status.toUpperCase()}</b>\n\n` +
+            `👤 Customer: ${order.name}\n` +
+            `💰 Amount: ₹${order.amount}\n` +
+            `📋 Order: #${order.id.slice(0, 8)}\n` +
+            `📦 ${order.coins} coins (${order.package})`;
+          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: "HTML" }),
+          });
+        }
       } catch (e) {
         console.error("[refund notify]", e);
       }

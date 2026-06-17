@@ -69,6 +69,10 @@ function getWhatsAppMessage(order: any): string {
   const trackUrl = `${typeof window !== "undefined" ? window.location.origin : "https://barbieverse.org"}/track?id=${order.id}`;
 
   switch (order.status) {
+    case "awaiting_payment":
+      return `Hi ${name}! 👋\n\nYour Order #${orderId} is waiting for payment.\n🎮 Package: ${coins} coins\n💰 Amount: ₹${amount}\n🎮 Poppo ID: ${poppoId}\n\nPay ₹${amount} to UPI ID: thestrongwingsofficial@okaxis\nNote: BV-${orderId}\n\nTrack: ${trackUrl}`;
+    case "pending":
+      return `Hi ${name}! ✅\n\nPayment received for Order #${orderId}.\n💰 Amount: ₹${amount}\n🎮 Poppo ID: ${poppoId}\n📦 Coins: ${coins}\n\nYour coins will be credited within 30 minutes.\nTrack: ${trackUrl}`;
     case "paid_pending_delivery":
       return `Hi ${name}! ✅\n\nPayment received for Order #${orderId}.\n💰 Amount: ₹${amount}\n🎮 Poppo ID: ${poppoId}\n📦 Coins: ${coins}\n\nYour coins will be credited within 30 minutes.\nTrack: ${trackUrl}`;
     case "completed":
