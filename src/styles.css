@@ -259,72 +259,58 @@
   }
 }
 
-/* Fire burning edge effect — flickering fire around credentials card */
-.fire-edge {
+/* Fire burning border — flames flicker and move along edges */
+.fire-border {
   position: relative;
   z-index: 0;
+  animation: fireGlow 1.5s ease-in-out infinite alternate;
 }
-.fire-edge::before {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-  padding: 2px;
-  background: conic-gradient(
-    from var(--fire-angle, 0deg),
-    transparent 0%,
-    #ff3b8b 8%,
-    #ff6b35 16%,
-    #ffd700 24%,
-    #fff5cc 28%,
-    #ffd700 32%,
-    #ff6b35 40%,
-    #ff3b8b 48%,
-    transparent 56%,
-    transparent 100%
-  );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: fireRotate 2.5s linear infinite;
-  z-index: -1;
-}
-.fire-edge::after {
+.fire-border::before {
   content: '';
   position: absolute;
   inset: -4px;
   border-radius: inherit;
-  background: conic-gradient(
-    from var(--fire-angle, 0deg),
-    transparent 0%,
-    #ff3b8b 8%,
-    #ff6b35 16%,
-    #ffd700 24%,
-    #fff5cc 28%,
-    #ffd700 32%,
-    #ff6b35 40%,
-    #ff3b8b 48%,
-    transparent 56%,
-    transparent 100%
-  );
-  filter: blur(12px);
-  opacity: 0.6;
-  animation: fireRotate 2.5s linear infinite, fireFlicker 0.8s ease-in-out infinite alternate;
-  z-index: -2;
+  background: 
+    radial-gradient(ellipse at 0% 0%, #ff3b8b 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 0%, #ff6b35 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, #ffd700 0%, transparent 50%),
+    radial-gradient(ellipse at 0% 100%, #ff6b35 0%, transparent 50%);
+  background-size: 300% 300%;
+  background-position: 0% 0%;
+  filter: blur(8px);
+  opacity: 0.7;
+  animation: fireMove 2s ease-in-out infinite alternate;
+  z-index: -1;
 }
-@keyframes fireRotate {
-  from { --fire-angle: 0deg; }
-  to { --fire-angle: 360deg; }
+.fire-border::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: 
+    linear-gradient(90deg, transparent 0%, #ff3b8b 20%, #ff6b35 40%, #ffd700 50%, #ff6b35 60%, #ff3b8b 80%, transparent 100%),
+    linear-gradient(0deg, transparent 0%, #ff3b8b 20%, #ff6b35 40%, #ffd700 50%, #ff6b35 60%, #ff3b8b 80%, transparent 100%);
+  background-size: 200% 100%, 100% 200%;
+  animation: fireSweep 3s linear infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 2px;
+  z-index: -1;
 }
-@keyframes fireFlicker {
-  0% { opacity: 0.4; filter: blur(10px); }
-  50% { opacity: 0.7; filter: blur(14px); }
-  100% { opacity: 0.5; filter: blur(11px); }
+@keyframes fireMove {
+  0% { background-position: 0% 0%, 100% 0%, 100% 100%, 0% 100%; opacity: 0.5; }
+  50% { background-position: 100% 0%, 100% 100%, 0% 100%, 0% 0%; opacity: 0.8; }
+  100% { background-position: 100% 100%, 0% 100%, 0% 0%, 100% 0%; opacity: 0.6; }
 }
-@property --fire-angle {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
+@keyframes fireSweep {
+  0% { background-position: 0% 0%, 0% 0%; }
+  100% { background-position: 200% 0%, 0% 200%; }
+}
+@keyframes fireGlow {
+  0% { box-shadow: 0 0 8px #ff3b8b44, 0 0 16px #ff6b3533, 0 0 24px #ffd70022; }
+  50% { box-shadow: 0 0 12px #ff6b3566, 0 0 24px #ffd70044, 0 0 36px #ff3b8b33; }
+  100% { box-shadow: 0 0 6px #ffd70055, 0 0 14px #ff3b8b33, 0 0 22px #ff6b3522; }
 }
 
 /* Credentials card floating animation */

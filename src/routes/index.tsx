@@ -168,9 +168,9 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
                 </div>
               </div>
 
-              {/* Floating Credentials Card — Top of Photo */}
-              <div className="credentials-float absolute -top-4 left-1/2 -translate-x-1/2 z-30 w-[260px] sm:w-[280px]">
-                <div className="fire-edge relative rounded-2xl border border-gold/40 bg-gradient-to-br from-background/95 via-card/95 to-background/95 px-4 py-3 backdrop-blur-xl">
+              {/* Floating Credentials Card — Bottom Right */}
+              <div className="credentials-float absolute -bottom-4 -right-2 z-30 sm:-right-6 lg:-right-8">
+                <div className="fire-border relative rounded-2xl border-2 border-orange-500/60 bg-gradient-to-br from-background/95 via-card/95 to-background/95 px-4 py-3 backdrop-blur-xl">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-gold text-lg">
                       👑
