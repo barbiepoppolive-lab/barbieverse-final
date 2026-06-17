@@ -118,19 +118,13 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
           </Reveal>
 
           <Reveal variant="fade-up" delay={360}>
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-7">
               <Link
                 to={ctaPrimaryLink}
                 className="group inline-flex h-14 items-center justify-center gap-2 rounded-full bg-gradient-pink px-7 text-sm font-semibold tracking-wide text-primary-foreground glow-pink transition-all hover:scale-[1.02]"
               >
                 {ctaPrimaryText}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-              <Link
-                to={ctaSecondaryLink}
-                className="inline-flex h-14 items-center justify-center rounded-full border border-border bg-card/40 px-7 text-sm font-semibold backdrop-blur-md transition-all hover:border-gold/60 hover:bg-card/70"
-              >
-                {ctaSecondaryText}
               </Link>
             </div>
           </Reveal>
@@ -153,7 +147,8 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
         <div className="order-1 lg:order-2">
           <Reveal variant="fade-left" delay={100}>
             <div className="relative mx-auto max-w-md lg:max-w-none">
-              <div className="neon-pulse absolute -inset-1 rounded-[2rem] z-0" />
+              {/* Fire border animation around photo */}
+              <div className="fire-border absolute -inset-1 rounded-[2rem] z-0" />
 
               <div className="relative overflow-hidden rounded-[1.75rem] border-2 border-primary/30 bg-card shadow-luxe z-10">
                 <img
@@ -170,6 +165,28 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
                   <div>
                     <div className="text-[10px] uppercase tracking-[0.18em] text-gold">{heroEyebrow}</div>
                     <div className="font-display text-lg leading-tight">{heroName}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating Credentials Card */}
+              <div className="credentials-float absolute -right-2 top-8 z-30 sm:-right-6 lg:-right-8">
+                <div className="rounded-2xl border border-gold/40 bg-gradient-to-br from-background/90 via-card/95 to-background/90 px-4 py-3 backdrop-blur-xl shadow-luxe">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-gold text-lg">
+                      👑
+                    </div>
+                    <div>
+                      <div className="text-[9px] uppercase tracking-[0.2em] text-gold/80">Poppo ID</div>
+                      <div className="font-mono text-sm font-bold text-foreground">2517496</div>
+                    </div>
+                  </div>
+                  <div className="mt-2.5 border-t border-gold/20 pt-2.5">
+                    <div className="text-[9px] uppercase tracking-[0.2em] text-gold/80">Wealth Level</div>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="wealth-shimmer font-display text-2xl font-bold">154</span>
+                      <span className="text-[10px] font-semibold text-gold">HIGHEST WORLDWIDE</span>
+                    </div>
                   </div>
                 </div>
               </div>

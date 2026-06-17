@@ -259,6 +259,93 @@
   }
 }
 
+/* Fiery cracker border animation — rotating conic gradient around photo frame */
+.fire-border {
+  position: relative;
+  z-index: 0;
+}
+.fire-border::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  padding: 3px;
+  background: conic-gradient(
+    from var(--fire-angle, 0deg),
+    #ff3b8b,
+    #ff6b35,
+    #ffd700,
+    #ff3b8b,
+    #ff6b35,
+    #ffd700,
+    #ff3b8b
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: fireRotate 2s linear infinite;
+  z-index: -1;
+}
+.fire-border::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--fire-angle, 0deg),
+    #ff3b8b,
+    #ff6b35,
+    #ffd700,
+    #ff3b8b,
+    #ff6b35,
+    #ffd700,
+    #ff3b8b
+  );
+  filter: blur(16px);
+  opacity: 0.5;
+  animation: fireRotate 2s linear infinite;
+  z-index: -2;
+}
+@keyframes fireRotate {
+  from { --fire-angle: 0deg; }
+  to { --fire-angle: 360deg; }
+}
+@property --fire-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* Credentials card floating animation */
+.credentials-float {
+  animation: credentialsFloat 3s ease-in-out infinite;
+}
+@keyframes credentialsFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+/* Wealth level shimmer */
+.wealth-shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(0.82 0.13 75) 0%,
+    oklch(0.95 0.1 80) 25%,
+    oklch(0.82 0.13 75) 50%,
+    oklch(0.95 0.1 80) 75%,
+    oklch(0.82 0.13 75) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: wealthShimmer 2.5s ease-in-out infinite;
+}
+@keyframes wealthShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: oklch(0.09 0.02 350); }
 ::-webkit-scrollbar-thumb {
