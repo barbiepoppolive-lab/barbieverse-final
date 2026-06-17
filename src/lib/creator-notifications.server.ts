@@ -1,26 +1,33 @@
-// Real WhatsApp + Email confirmation for new creator leads.
-// Uses existing Interakt webhook + Brevo helpers via settings table.
+// Creator notifications — sends Telegram alerts to admin.
+// Customer-facing WhatsApp messages require an API (not configured).
 
 import { platformLabel, platformReferralUrl } from "./creator-config";
+
+async function sendTelegramAlert(text: string) {
+  try {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.TELEGRAM_CHAT_ID;
+    if (!botToken || !chatId) return;
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" }),
+    });
+  } catch (e) {
+    console.error("[telegram alert]", e);
+  }
+}
 
 export async function sendVerificationMessage(args: {
   to: string | null;
   application_id: string;
 }) {
-  try {
-    const { sendInteraktNotification } = await import("./notifications.server");
-    if (args.to) {
-      await sendInteraktNotification({
-        to: args.to,
-        message:
-          `✅ Story verified! Application ${args.application_id}\n\n` +
-          `Your ₹500 reward is pending admin approval. We will confirm payment within 24 hours.\n\n` +
-          `Track: barbieverse.org/track-application?id=${args.application_id}`,
-      });
-    }
-  } catch (e) {
-    console.error("[verification message]", e);
-  }
+  await sendTelegramAlert(
+    `✅ <b>STORY VERIFIED</b>\n\n` +
+    `Application: ${args.application_id}\n` +
+    `Mobile: ${args.to || "—"}\n` +
+    `Reward pending admin approval.`
+  );
 }
 
 export async function sendApprovalMessage(args: {
@@ -28,20 +35,12 @@ export async function sendApprovalMessage(args: {
   application_id: string;
   upi_id: string;
 }) {
-  try {
-    const { sendInteraktNotification } = await import("./notifications.server");
-    if (args.to) {
-      await sendInteraktNotification({
-        to: args.to,
-        message:
-          `🎉 Reward approved! Application ${args.application_id}\n\n` +
-          `₹500 will be sent to your UPI: ${args.upi_id}\n\n` +
-          `Check your UPI in 5-10 minutes. Thank you for joining BarbieVerse 💖`,
-      });
-    }
-  } catch (e) {
-    console.error("[approval message]", e);
-  }
+  await sendTelegramAlert(
+    `🎉 <b>REWARD APPROVED</b>\n\n` +
+    `Application: ${args.application_id}\n` +
+    `UPI: ${args.upi_id}\n` +
+    `Send ₹500 to complete.`
+  );
 }
 
 export async function sendCreatorWelcome(args: {
@@ -51,42 +50,15 @@ export async function sendCreatorWelcome(args: {
   intent?: string;
 }) {
   const label = platformLabel(args.platform);
-  const referral = platformReferralUrl(args.platform);
 
-  const intentUrl =
-    args.intent === "reward_only" || args.intent === "curious"
-      ? "https://barbieverse.org/verify"
-      : "https://barbieverse.org";
-
-  const waMessage =
-    `🌸 Welcome to BarbieVerse!\n\n` +
-    `Your Application ID: ${args.application_id}\n` +
-    `Platform: ${label}\n\n` +
-    `Your ₹500 creator bonus is reserved 💖\n\n` +
-    `Next step: Complete your ${label} signup here →\n${referral}\n\n` +
-    `Track your application: barbieverse.org/track-application`;
-
-  try {
-    const { sendInteraktNotification } = await import("./notifications.server");
-
-    // 1. Send confirmation to the creator
-    if (args.to) {
-      await sendInteraktNotification({ to: args.to, message: waMessage });
-    }
-
-    // 2. Notify admin about the new lead
-    await sendInteraktNotification({
-      message:
-        `🆕 New Creator Lead\n` +
-        `ID: ${args.application_id}\n` +
-        `Platform: ${label}\n` +
-        `Intent: ${args.intent || "—"}\n` +
-        `Mobile: ${args.to || "—"}\n` +
-        `→ /admin/creator-leads`,
-    });
-  } catch (e) {
-    console.error("[creator welcome notify]", e);
-  }
+  await sendTelegramAlert(
+    `🆕 <b>NEW CREATOR LEAD</b>\n\n` +
+    `ID: ${args.application_id}\n` +
+    `Platform: ${label}\n` +
+    `Intent: ${args.intent || "—"}\n` +
+    `Mobile: ${args.to || "—"}\n\n` +
+    `→ Admin → Creator Leads`
+  );
 
   try {
     const { q } = await import("./db.server");

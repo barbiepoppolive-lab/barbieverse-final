@@ -46,16 +46,27 @@ export const Route = createFileRoute("/api/public/order-action")({
         );
 
         try {
-          const { sendInteraktNotification } = await import("@/lib/notifications.server");
-          await sendInteraktNotification({
-            to: order.whatsapp.replace(/[^\d]/g, ""),
-            message:
-              `🎉 Your coins are credited!\n` +
-              `Hi ${order.name}, ${order.coins} coins have been added to Poppo ID ${order.poppo_id}.\n` +
-              `Open Poppo Live to check. Thank you for choosing Barbieverse 💖`,
-          });
+          const botToken = process.env.TELEGRAM_BOT_TOKEN;
+          const chatId = process.env.TELEGRAM_CHAT_ID;
+          if (botToken && chatId) {
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                chat_id: chatId,
+                text:
+                  `✅ <b>ORDER COMPLETED (via link)</b>\n\n` +
+                  `👤 Customer: ${order.name}\n` +
+                  `📱 WhatsApp: ${order.whatsapp}\n` +
+                  `🎮 Poppo ID: ${order.poppo_id}\n` +
+                  `📦 ${order.coins} coins (${order.package})\n` +
+                  `📋 Order: #${order.id.slice(0, 8)}`,
+                parse_mode: "HTML",
+              }),
+            });
+          }
         } catch (e) {
-          console.error("[order-action] customer notify failed", e);
+          console.error("[order-action] telegram notify failed", e);
         }
 
         return page(

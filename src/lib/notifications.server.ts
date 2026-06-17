@@ -43,34 +43,6 @@ export function getWhatsAppCoinsCreditedMessage(opts: {
   return `Hi ${opts.name}, your ${opts.coins} coins have been credited to Poppo ID ${opts.poppoId}! 🎉 Enjoy streaming! Thank you for choosing Barbieverse 💖`;
 }
 
-// ─── Legacy Interakt support (for users still on Interakt webhook) ──────────
-export async function sendInteraktNotification(opts: {
-  message: string;
-  to?: string;
-}) {
-  const s = await getSettings(["interakt_webhook", "admin_whatsapp"]);
-  const url = s.interakt_webhook;
-  if (!url) {
-    console.warn("[interakt] webhook URL not configured");
-    return { ok: false, skipped: true };
-  }
-  const to = opts.to || s.admin_whatsapp;
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phoneNumber: to, message: opts.message }),
-    });
-    if (!res.ok) {
-      console.error("[interakt] send failed", res.status, await res.text());
-      return { ok: false };
-    }
-    return { ok: true };
-  } catch (e) {
-    console.error("[interakt] error", e);
-    return { ok: false };
-  }
-}
 
 // ─── Email (Brevo) ──────────────────────────────────────────────────────────
 export async function sendBrevoEmail(opts: {

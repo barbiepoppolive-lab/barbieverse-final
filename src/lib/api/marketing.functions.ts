@@ -47,23 +47,10 @@ export const sendBulkPromo = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireAdmin } = await import("../admin-session.server");
     await requireAdmin();
-    const { sendInteraktNotification } = await import("../notifications.server");
 
-    // Interakt safe send-rate ≈ 80 messages/min → ~750ms between sends.
-    const DELAY_MS = 800;
-    const results: { to: string; ok: boolean }[] = [];
-    let sent = 0;
-    let failed = 0;
-    for (let i = 0; i < data.numbers.length; i++) {
-      const to = data.numbers[i];
-      const r = await sendInteraktNotification({ to, message: data.message });
-      const ok = !!r.ok;
-      results.push({ to, ok });
-      if (ok) sent++;
-      else failed++;
-      if (i < data.numbers.length - 1) {
-        await new Promise((res) => setTimeout(res, DELAY_MS));
-      }
-    }
-    return { ok: true, sent, failed, results };
+    // WhatsApp bulk messaging requires an API (Interakt/Meta/AiSensy) — not configured.
+    // Messages are logged but not sent. Use manual WhatsApp from admin panel instead.
+    console.warn("[marketing] bulk WhatsApp not configured — messages logged only");
+    const results = data.numbers.map((to) => ({ to, ok: false, skipped: true }));
+    return { ok: true, sent: 0, failed: data.numbers.length, results };
   });

@@ -22,7 +22,7 @@ export const submitLead = createServerFn({ method: "POST" })
     );
     // Fire-and-forget automations (don't block response on slow APIs)
     try {
-      const { sendBrevoEmail, sendInteraktNotification, welcomeEmailHtml } = await import(
+      const { sendBrevoEmail, welcomeEmailHtml } = await import(
         "../notifications.server"
       );
       await Promise.allSettled([
@@ -32,9 +32,27 @@ export const submitLead = createServerFn({ method: "POST" })
           subject: "Welcome to Barbieverse 💖 Your ₹500 bonus is waiting",
           htmlContent: welcomeEmailHtml(data.name),
         }),
-        sendInteraktNotification({
-          message: `🆕 New ${data.source.toUpperCase()} lead\nName: ${data.name}\nWhatsApp: ${data.whatsapp}\nInstagram: ${data.instagram || "—"}\nCity: ${data.city || "—"}\nFollowers: ${data.follower_count}`,
-        }),
+        // Telegram alert to admin about new lead
+        (async () => {
+          const botToken = process.env.TELEGRAM_BOT_TOKEN;
+          const chatId = process.env.TELEGRAM_CHAT_ID;
+          if (!botToken || !chatId) return;
+          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text:
+                `🆕 <b>NEW ${data.source.toUpperCase()} LEAD</b>\n\n` +
+                `👤 ${data.name}\n` +
+                `📱 WhatsApp: ${data.whatsapp}\n` +
+                `📸 Instagram: ${data.instagram || "—"}\n` +
+                `🏙️ City: ${data.city || "—"}\n` +
+                `👥 Followers: ${data.follower_count}`,
+              parse_mode: "HTML",
+            }),
+          });
+        })(),
       ]);
     } catch (e) {
       console.error("[lead automations]", e);
