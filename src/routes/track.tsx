@@ -36,7 +36,7 @@ function fmt(d: string) {
 
 export function TrackPage() {
   const search = useSearch({ from: "/track" });
-  const [orderId, setOrderId] = useState(search.id || "");
+  const [orderId, setOrderId] = useState((search as any).id || "");
   const [whatsapp, setWhatsapp] = useState("");
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");

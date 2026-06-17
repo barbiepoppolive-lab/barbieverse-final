@@ -226,6 +226,6 @@ export const getWhatsAppMessage = createServerFn({ method: "GET" })
       "rejected": "whatsapp_msg_rejected",
     };
     
-    const result = await getSetting(keyMap[data]);
+    const result = await getSetting({ data: keyMap[data] });
     return result || "";
   });

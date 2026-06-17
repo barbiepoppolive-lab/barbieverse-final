@@ -8,8 +8,9 @@ export function FireFlames({ className = "" }: { className?: string }) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const raw = canvas.getContext("2d");
+    if (!raw) return;
+    const ctx: CanvasRenderingContext2D = raw;
 
     let animId: number;
     let W = 300;
@@ -50,7 +51,7 @@ export function FireFlames({ className = "" }: { className?: string }) {
       }
 
       flames.push({
-        x: x,
+        x,
         y: baseY,
         size: 3 + Math.random() * 8,
         speed: 0.6 + Math.random() * 1.2,
@@ -58,7 +59,7 @@ export function FireFlames({ className = "" }: { className?: string }) {
         maxLife: 15 + Math.random() * 25,
         hue: 10 + Math.random() * 40,
         drift: (Math.random() - 0.5) * 1.5,
-        edge: edge,
+        edge,
       });
     }
 

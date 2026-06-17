@@ -31,8 +31,9 @@ export function ParticleCanvas({ count = 55, className = "" }: Props) {
 
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const raw = canvas.getContext("2d");
+    if (!raw) return;
+    const ctx: CanvasRenderingContext2D = raw;
 
     let raf = 0;
     let W = 0, H = 0;

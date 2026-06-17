@@ -59,8 +59,8 @@ export const Route = createFileRoute("/api/public/upi-webhook")({
         }
 
         // Check if auto-match is enabled
-        const { q: qFn } = await import("@/lib/db.server");
-        const settingsRows = await qFn<{ value: string }>(
+        const { q } = await import("@/lib/db.server");
+        const settingsRows = await q<{ value: string }>(
           `SELECT value FROM settings WHERE key = 'auto_match_enabled'`,
           []
         );
@@ -81,7 +81,7 @@ export const Route = createFileRoute("/api/public/upi-webhook")({
           return Response.json({ ok: false, matched: false, reason: "auto_match_disabled" });
         }
 
-        const { q, q1 } = await import("@/lib/db.server");
+        const { q1 } = await import("@/lib/db.server");
 
         // Atomic claim: match the most-recent awaiting_payment order by exact paise within 24h
         const order = await q1<any>(

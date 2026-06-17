@@ -40,6 +40,8 @@ import { Route as AdminCreatorLeadsRouteImport } from './routes/admin.creator-le
 import { Route as ApiPublicUpiWebhookRouteImport } from './routes/api/public/upi-webhook'
 import { Route as ApiPublicOrderActionRouteImport } from './routes/api/public/order-action'
 import { Route as ApiPublicInteraktActionRouteImport } from './routes/api/public/interakt-action'
+import { Route as TrackRouteImport } from './routes/track'
+import { Route as VerifyRouteImport } from './routes/verify'
 
 const TrackApplicationRoute = TrackApplicationRouteImport.update({
   id: '/track-application',
@@ -196,6 +198,16 @@ const ApiPublicInteraktActionRoute = ApiPublicInteraktActionRouteImport.update({
   path: '/api/public/interakt-action',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TrackRoute = TrackRouteImport.update({
+  id: '/track',
+  path: '/track',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyRoute = VerifyRouteImport.update({
+  id: '/verify',
+  path: '/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -209,7 +221,9 @@ export interface FileRoutesByFullPath {
   '/recharge-policy': typeof RechargePolicyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/track': typeof TrackRoute
   '/track-application': typeof TrackApplicationRoute
+  '/verify': typeof VerifyRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -242,7 +256,9 @@ export interface FileRoutesByTo {
   '/recharge-policy': typeof RechargePolicyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/track': typeof TrackRoute
   '/track-application': typeof TrackApplicationRoute
+  '/verify': typeof VerifyRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -277,7 +293,9 @@ export interface FileRoutesById {
   '/recharge-policy': typeof RechargePolicyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/track': typeof TrackRoute
   '/track-application': typeof TrackApplicationRoute
+  '/verify': typeof VerifyRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -313,7 +331,9 @@ export interface FileRouteTypes {
     | '/recharge-policy'
     | '/sitemap.xml'
     | '/terms-and-conditions'
+    | '/track'
     | '/track-application'
+    | '/verify'
     | '/admin/creator-leads'
     | '/admin/homepage'
     | '/admin/leads'
@@ -345,7 +365,9 @@ export interface FileRouteTypes {
     | '/recharge-policy'
     | '/sitemap.xml'
     | '/terms-and-conditions'
+    | '/track'
     | '/track-application'
+    | '/verify'
     | '/admin/creator-leads'
     | '/admin/homepage'
     | '/admin/leads'
@@ -378,7 +400,9 @@ export interface FileRouteTypes {
     | '/recharge-policy'
     | '/sitemap.xml'
     | '/terms-and-conditions'
+    | '/track'
     | '/track-application'
+    | '/verify'
     | '/admin/creator-leads'
     | '/admin/homepage'
     | '/admin/leads'
@@ -412,7 +436,9 @@ export interface RootRouteChildren {
   RechargePolicyRoute: typeof RechargePolicyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsAndConditionsRoute: typeof TermsAndConditionsRoute
+  TrackRoute: typeof TrackRoute
   TrackApplicationRoute: typeof TrackApplicationRoute
+  VerifyRoute: typeof VerifyRoute
   ApiPublicInteraktActionRoute: typeof ApiPublicInteraktActionRoute
   ApiPublicOrderActionRoute: typeof ApiPublicOrderActionRoute
   ApiPublicUpiWebhookRoute: typeof ApiPublicUpiWebhookRoute
@@ -432,6 +458,20 @@ declare module '@tanstack/react-router' {
       path: '/terms-and-conditions'
       fullPath: '/terms-and-conditions'
       preLoaderRoute: typeof TermsAndConditionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/track': {
+      id: '/track'
+      path: '/track'
+      fullPath: '/track'
+      preLoaderRoute: typeof TrackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify': {
+      id: '/verify'
+      path: '/verify'
+      fullPath: '/verify'
+      preLoaderRoute: typeof VerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -708,7 +748,9 @@ const rootRouteChildren: RootRouteChildren = {
   RechargePolicyRoute: RechargePolicyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsAndConditionsRoute: TermsAndConditionsRoute,
+  TrackRoute: TrackRoute,
   TrackApplicationRoute: TrackApplicationRoute,
+  VerifyRoute: VerifyRoute,
   ApiPublicInteraktActionRoute: ApiPublicInteraktActionRoute,
   ApiPublicOrderActionRoute: ApiPublicOrderActionRoute,
   ApiPublicUpiWebhookRoute: ApiPublicUpiWebhookRoute,

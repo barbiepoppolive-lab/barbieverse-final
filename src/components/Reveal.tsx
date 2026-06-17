@@ -4,7 +4,7 @@
 // Respects prefers-reduced-motion.
 
 import { usePrefersReducedMotion, useScrollReveal } from "@/hooks/use-motion";
-import type { ReactNode, CSSProperties } from "react";
+import type { ReactNode, CSSProperties, JSX } from "react";
 
 type Variant = "fade-up" | "fade-in" | "fade-left" | "fade-right" | "scale-up";
 

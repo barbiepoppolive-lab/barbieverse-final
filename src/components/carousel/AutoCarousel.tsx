@@ -3,9 +3,18 @@ import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import type { CarouselSlide } from "@/lib/api/carousel.functions";
 
-export function AutoCarousel({ slides }: { slides: CarouselSlide[] }) {
+export interface SimpleSlide {
+  id?: string;
+  title?: string | null;
+  subtitle?: string | null;
+  description?: string | null;
+  image_url?: string | null;
+  button_text?: string | null;
+  button_link?: string | null;
+}
+
+export function AutoCarousel({ slides }: { slides: SimpleSlide[] }) {
   const [emblaRef, embla] = useEmblaCarousel(
     { loop: true, align: "start" },
     [Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true })],
@@ -26,8 +35,8 @@ export function AutoCarousel({ slides }: { slides: CarouselSlide[] }) {
     <div className="relative">
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex">
-          {slides.map((s) => (
-            <div key={s.id} className="min-w-0 shrink-0 grow-0 basis-full px-2 sm:basis-[85%] sm:px-3 lg:basis-[60%]">
+          {slides.map((s, i) => (
+            <div key={s.id ?? i} className="min-w-0 shrink-0 grow-0 basis-full px-2 sm:basis-[85%] sm:px-3 lg:basis-[60%]">
               <SlideCard slide={s} />
             </div>
           ))}
@@ -46,7 +55,7 @@ export function AutoCarousel({ slides }: { slides: CarouselSlide[] }) {
         <div className="flex items-center gap-1.5">
           {slides.map((s, i) => (
             <button
-              key={s.id}
+              key={s.id ?? i}
               aria-label={`Go to slide ${i + 1}`}
               onClick={() => embla?.scrollTo(i)}
               className={`h-1.5 rounded-full transition-all ${
@@ -67,7 +76,7 @@ export function AutoCarousel({ slides }: { slides: CarouselSlide[] }) {
   );
 }
 
-function SlideCard({ slide }: { slide: CarouselSlide }) {
+function SlideCard({ slide }: { slide: SimpleSlide }) {
   return (
     <div className="group relative h-full overflow-hidden rounded-3xl border border-gold/20 bg-gradient-to-br from-card/80 via-card/40 to-card/20 p-6 backdrop-blur-xl shadow-luxe sm:p-8">
       <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
