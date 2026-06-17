@@ -127,13 +127,19 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
           </Reveal>
 
           <Reveal variant="fade-up" delay={360}>
-            <div className="mt-7">
+            <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
               <Link
                 to={ctaPrimaryLink}
                 className="group inline-flex h-14 items-center justify-center gap-2 rounded-full bg-gradient-pink px-7 text-sm font-semibold tracking-wide text-primary-foreground glow-pink transition-all hover:scale-[1.02]"
               >
                 {ctaPrimaryText}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <Link
+                to={"/earnings" as any}
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-full border border-border bg-card/40 px-7 text-sm font-semibold backdrop-blur-md transition-all hover:border-gold/60 hover:bg-card/70"
+              >
+                {ctaSecondaryText}
               </Link>
             </div>
           </Reveal>
@@ -356,7 +362,7 @@ function HomePage() {
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link
-                to="/coins"
+                to={"/earnings" as any}
                 className="inline-flex h-14 items-center justify-center rounded-full border border-border bg-card/40 px-8 text-sm font-semibold backdrop-blur-md transition-all hover:border-gold/60 hover:bg-card/70"
               >
                 {t("hero.cta.secondary")}

@@ -42,6 +42,7 @@ import { Route as ApiPublicOrderActionRouteImport } from './routes/api/public/or
 import { Route as ApiPublicInteraktActionRouteImport } from './routes/api/public/interakt-action'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as VerifyRouteImport } from './routes/verify'
+import { Route as EarningsRouteImport } from './routes/earnings'
 
 const TrackApplicationRoute = TrackApplicationRouteImport.update({
   id: '/track-application',
@@ -208,6 +209,11 @@ const VerifyRoute = VerifyRouteImport.update({
   path: '/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EarningsRoute = EarningsRouteImport.update({
+  id: '/earnings',
+  path: '/earnings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -216,6 +222,7 @@ export interface FileRoutesByFullPath {
   '/coins': typeof CoinsRoute
   '/contact': typeof ContactRoute
   '/creator-reward-policy': typeof CreatorRewardPolicyRoute
+  '/earnings': typeof EarningsRoute
   '/join': typeof JoinRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/recharge-policy': typeof RechargePolicyRoute
@@ -251,6 +258,7 @@ export interface FileRoutesByTo {
   '/coins': typeof CoinsRoute
   '/contact': typeof ContactRoute
   '/creator-reward-policy': typeof CreatorRewardPolicyRoute
+  '/earnings': typeof EarningsRoute
   '/join': typeof JoinRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/recharge-policy': typeof RechargePolicyRoute
@@ -288,6 +296,7 @@ export interface FileRoutesById {
   '/coins': typeof CoinsRoute
   '/contact': typeof ContactRoute
   '/creator-reward-policy': typeof CreatorRewardPolicyRoute
+  '/earnings': typeof EarningsRoute
   '/join': typeof JoinRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/recharge-policy': typeof RechargePolicyRoute
@@ -431,6 +440,7 @@ export interface RootRouteChildren {
   CoinsRoute: typeof CoinsRoute
   ContactRoute: typeof ContactRoute
   CreatorRewardPolicyRoute: typeof CreatorRewardPolicyRoute
+  EarningsRoute: typeof EarningsRoute
   JoinRoute: typeof JoinRouteWithChildren
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   RechargePolicyRoute: typeof RechargePolicyRoute
@@ -507,6 +517,13 @@ declare module '@tanstack/react-router' {
       path: '/creator-reward-policy'
       fullPath: '/creator-reward-policy'
       preLoaderRoute: typeof CreatorRewardPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/earnings': {
+      id: '/earnings'
+      path: '/earnings'
+      fullPath: '/earnings'
+      preLoaderRoute: typeof EarningsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -743,6 +760,7 @@ const rootRouteChildren: RootRouteChildren = {
   CoinsRoute: CoinsRoute,
   ContactRoute: ContactRoute,
   CreatorRewardPolicyRoute: CreatorRewardPolicyRoute,
+  EarningsRoute: EarningsRoute,
   JoinRoute: JoinRouteWithChildren,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   RechargePolicyRoute: RechargePolicyRoute,
