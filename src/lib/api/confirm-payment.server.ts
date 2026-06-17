@@ -92,11 +92,41 @@ export const confirmPayment = createServerFn({ method: "POST" })
 
     if (!order) return { ok: false, error: "Order not found" };
 
-    if (!["pending", "awaiting_payment"].includes(order.status)) {
-      return { ok: false, error: "This order is no longer awaiting payment" };
+    // If already completed or rejected, reject
+    if (["completed", "rejected"].includes(order.status)) {
+      return { ok: false, error: "This order is already finalized" };
     }
 
-    // Update order with UTR and status
+    // If webhook already matched (paid_pending_delivery), just save UTR and send alert
+    if (order.status === "paid_pending_delivery") {
+      await q1(
+        `UPDATE orders SET utr = $1, utr_submitted_at = now(), verified_via = $2, updated_at = now() WHERE id = $3`,
+        [data.utr, data.verified_via, data.order_id]
+      );
+
+      // Send Telegram alert with UTR info
+      const customerName = data.customer_name || order.name;
+      const customerWhatsapp = data.customer_whatsapp || order.whatsapp;
+      const poppoId = data.poppo_id || order.poppo_id;
+      const packageName = data.package_name || order.package;
+      const quantity = data.quantity || order.quantity || 1;
+      const amountRupees = data.amount_rupees || String(order.amount);
+      const totalCoins = data.total_coins || order.coins;
+
+      try {
+        await sendTelegramAlert({
+          customerName, customerWhatsapp, poppoId, packageName,
+          quantity, amountRupees, utrNumber: data.utr,
+          orderId: order.id, layerUsed: data.verified_via, totalCoins,
+        });
+      } catch (e) {
+        console.error("[confirmPayment notifications]", e);
+      }
+
+      return { ok: true, order_id: order.id };
+    }
+
+    // Normal flow: pending or awaiting_payment — update status and send alert
     await q1(
       `UPDATE orders
        SET utr = $1,
@@ -108,8 +138,6 @@ export const confirmPayment = createServerFn({ method: "POST" })
       [data.utr, data.verified_via, data.order_id]
     );
 
-    // Fire-and-forget: Telegram alert to admin
-    // Customer notification: admin sends manually via WhatsApp button in admin panel
     const customerName = data.customer_name || order.name;
     const customerWhatsapp = data.customer_whatsapp || order.whatsapp;
     const poppoId = data.poppo_id || order.poppo_id;
@@ -120,16 +148,9 @@ export const confirmPayment = createServerFn({ method: "POST" })
 
     try {
       await sendTelegramAlert({
-        customerName,
-        customerWhatsapp,
-        poppoId,
-        packageName,
-        quantity,
-        amountRupees,
-        utrNumber: data.utr,
-        orderId: order.id,
-        layerUsed: data.verified_via,
-        totalCoins,
+        customerName, customerWhatsapp, poppoId, packageName,
+        quantity, amountRupees, utrNumber: data.utr,
+        orderId: order.id, layerUsed: data.verified_via, totalCoins,
       });
     } catch (e) {
       console.error("[confirmPayment notifications]", e);

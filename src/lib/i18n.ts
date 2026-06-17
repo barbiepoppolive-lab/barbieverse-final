@@ -14,8 +14,8 @@ const DICT = {
     "nav.blog": "Journal",
     "nav.track": "Track Status",
     "nav.contact": "Contact",
-    "cta.get500": "Get ₹500",
-    "cta.get500short": "Get ₹500",
+    "cta.get500": "Join Now",
+    "cta.get500short": "Join Now",
 
     // ===== COUNTER =====
     "counter.label": "joined in the last 24h",
@@ -61,7 +61,7 @@ const DICT = {
     // ===== JOIN MODAL =====
     "modal.join.heading": "Join the Agency",
     "modal.join.title": "Apply in 60 seconds",
-    "modal.join.subtitle": "Reserve your ₹500 creator bonus. Eligible after successful onboarding.",
+    "modal.join.subtitle": "Apply now and start earning with Poppo Live.",
     "modal.join.mobile": "Mobile Number",
     "modal.join.mobile.placeholder": "10-digit mobile",
     "modal.join.whatsapp": "WhatsApp Number (optional)",
@@ -69,7 +69,7 @@ const DICT = {
     "modal.join.whatsapp.help": "Used to send your application confirmation.",
     "modal.join.upi": "UPI ID",
     "modal.join.upi.placeholder": "yourname@bank",
-    "modal.join.upi.help": "Where your ₹500 bonus will be sent on eligibility.",
+    "modal.join.upi.help": "Your UPI ID for future payouts.",
     "modal.join.platform": "Platform",
     "modal.join.policy.agree": "I have read and agree to the",
     "modal.join.policy.link": "Creator Reward Policy",
@@ -83,8 +83,8 @@ const DICT = {
     // ===== JOIN MODAL SUCCESS =====
     "modal.success.title": "Application Submitted Successfully",
     "modal.success.id": "Your Application ID",
-    "modal.success.bonus": "₹500 creator bonus",
-    "modal.success.reserved": "has been reserved pending successful onboarding and verification.",
+    "modal.success.bonus": "Creator onboarding",
+    "modal.success.reserved": "is in progress. Our team will reach out shortly.",
     "modal.success.track": "Track My Application",
     "modal.success.continue": "Continue To",
 
@@ -160,13 +160,13 @@ const DICT = {
     "section.testimonials.heading": "Loved by BarbieVerse creators",
 
     // ===== JOIN PAGE =====
-    "join.page.title": "Join Poppo Live — Earn ₹500 Instantly",
+    "join.page.title": "Join Poppo Live — Start Earning",
     "join.page.sub": "India's fastest growing live streaming app",
-    "join.page.badge": "Limited Time Offer",
-    "join.benefit1.title": "₹500 instant bonus",
-    "join.benefit1.desc": "Credited within 24 hours of signup",
+    "join.page.badge": "Official Agency",
+    "join.benefit1.title": "Earn in your first week",
+    "join.benefit1.desc": "Start streaming and earn from day one",
     "join.benefit2.title": "Earn while you stream",
-    "join.benefit2.desc": "Hosts earn ₹500–₹2,000 per session",
+    "join.benefit2.desc": "Hosts earn rewards per session",
     "join.benefit3.title": "Dedicated host support",
     "join.benefit3.desc": "WhatsApp support in Hindi & English",
 
@@ -300,11 +300,11 @@ const DICT = {
     "trackapp.status.rejected": "Rejected",
 
     // ===== VERIFY PAGE =====
-    "verify.page.title": "Verify Your Story — Claim ₹500",
+    "verify.page.title": "Verify Your Story",
     "verify.badge": "Verification Required",
     "verify.heading": "Verify Your Story",
-    "verify.sub1": "Complete one final step to claim your",
-    "verify.sub2": "₹500 reward",
+    "verify.sub1": "Complete one final step to",
+    "verify.sub2": "verify your account",
     "verify.instructions": "Instructions",
     "verify.step1": "Post an Instagram story showing the Poppo Live or Vone Live app",
     "verify.step2": "Tag @barbieverse in your story",
@@ -329,9 +329,9 @@ const DICT = {
     // ===== VERIFY SUCCESS =====
     "verify.success.heading": "Screenshot Verified! ✅",
     "verify.success.next": "What happens next?",
-    "verify.success.step1": "Your reward is pending admin verification",
+    "verify.success.step1": "Your application is pending admin verification",
     "verify.success.step2": "You'll receive WhatsApp confirmation when approved",
-    "verify.success.step3": "₹500 will be sent to your UPI ID",
+    "verify.success.step3": "You'll be contacted for next steps",
     "verify.success.home": "Return to Home",
 
     // ===== VERIFY FAILED =====
@@ -384,7 +384,7 @@ const DICT = {
     "footer.copyright": "© {year} Barbieverse · Crafted with love",
 
     // ===== LEAD FORM =====
-    "lead.title": "Claim your ₹500 bonus",
+    "lead.title": "Join as a Creator",
     "lead.name": "Full Name",
     "lead.name.placeholder": "Priya Sharma",
     "lead.instagram": "Instagram Handle",
@@ -404,11 +404,11 @@ const DICT = {
     "lead.submitting": "Submitting...",
     "lead.agree": "By submitting, you agree to be contacted by Barbieverse on WhatsApp & email.",
     "lead.success.title": "You're in! 🎉",
-    "lead.success.desc": "We received your details. Our team will reach out on WhatsApp within 24 hours with your Poppo Live signup link and your ₹500 bonus instructions.",
+    "lead.success.desc": "We received your details. Our team will reach out on WhatsApp within 24 hours with your Poppo Live signup link and instructions.",
     "lead.success.next": "Next steps:",
     "lead.success.step1": "Check your email for the welcome message",
     "lead.success.step2": "Our team will WhatsApp you with the Poppo signup link",
-    "lead.success.step3": "Sign up & go live once — receive ₹500 instantly",
+    "lead.success.step3": "Sign up & go live to start earning",
     "lead.error": "Something went wrong. Please try again.",
     "lead.error.submit": "Submission failed",
 
@@ -451,8 +451,8 @@ const DICT = {
     "nav.blog": "जर्नल",
     "nav.track": "स्टेटस देखें",
     "nav.contact": "संपर्क",
-    "cta.get500": "₹500 पाएँ",
-    "cta.get500short": "₹500 पाएँ",
+    "cta.get500": "अभी जॉइन करें",
+    "cta.get500short": "अभी जॉइन करें",
 
     // ===== COUNTER =====
     "counter.label": "ने पिछले 24 घंटों में जॉइन किया",
@@ -498,7 +498,7 @@ const DICT = {
     // ===== JOIN MODAL =====
     "modal.join.heading": "एजेंसी जॉइन करें",
     "modal.join.title": "60 सेकंड में अप्लाई करें",
-    "modal.join.subtitle": "₹500 क्रिएटर बोनस रिज़र्व करें। सफल ऑनबोर्डिंग पर मिलेगा।",
+    "modal.join.subtitle": "अभी अप्लाई करें और Poppo Live से कमाना शुरू करें।",
     "modal.join.mobile": "मोबाइल नंबर",
     "modal.join.mobile.placeholder": "10 अंकों का मोबाइल",
     "modal.join.whatsapp": "व्हाट्सऐप नंबर (वैकल्पिक)",
@@ -506,7 +506,7 @@ const DICT = {
     "modal.join.whatsapp.help": "आपके अप्लिकेशन कन्फ़र्मेशन के लिए।",
     "modal.join.upi": "UPI ID",
     "modal.join.upi.placeholder": "आपकानाम@bank",
-    "modal.join.upi.help": "आपका ₹500 बोनस यहाँ भेजा जाएगा।",
+    "modal.join.upi.help": "भविष्य में पेमेंट के लिए आपका UPI ID।",
     "modal.join.platform": "प्लेटफ़ॉर्म",
     "modal.join.policy.agree": "मैंने पढ़ लिया है और इससे सहमत हूँ",
     "modal.join.policy.link": "क्रिएटर रिवॉर्ड पॉलिसी",
@@ -520,8 +520,8 @@ const DICT = {
     // ===== JOIN MODAL SUCCESS =====
     "modal.success.title": "अप्लिकेशन सफलतापूर्वक जमा हो गया",
     "modal.success.id": "आपकी अप्लिकेशन ID",
-    "modal.success.bonus": "₹500 क्रिएटर बोनस",
-    "modal.success.reserved": "सफल ऑनबोर्डिंग और वेरिफ़िकेशन के बाद रिज़र्व है।",
+    "modal.success.bonus": "क्रिएटर ऑनबोर्डिंग",
+    "modal.success.reserved": "प्रगति में है। हमारी टीम जल्द ही संपर्क करेगी।",
     "modal.success.track": "अपनी अप्लिकेशन ट्रैक करें",
     "modal.success.continue": "जारी रखें",
 
@@ -597,13 +597,13 @@ const DICT = {
     "section.testimonials.heading": "BarbieVerse क्रिएटर्स को पसंद आया",
 
     // ===== JOIN PAGE =====
-    "join.page.title": "Poppo Live जॉइन करें — ₹500 तुरंत पाएँ",
+    "join.page.title": "Poppo Live जॉइन करें — कमाना शुरू करें",
     "join.page.sub": "भारत का सबसे तेज़ी से बढ़ने वाला लाइव स्ट्रीमिंग ऐप",
-    "join.page.badge": "लिमिटेड टाइम ऑफ़र",
-    "join.benefit1.title": "₹500 तुरंत बोनस",
-    "join.benefit1.desc": "साइनअप के 24 घंटे में क्रेडिट",
+    "join.page.badge": "ऑफ़िशियल एजेंसी",
+    "join.benefit1.title": "पहले हफ्ते में कमाएँ",
+    "join.benefit1.desc": "स्ट्रीमिंग शुरू करें और पहले दिन से कमाएँ",
     "join.benefit2.title": "स्ट्रीम करते हुए कमाएँ",
-    "join.benefit2.desc": "होस्ट ₹500–₹2,000 प्रति सेशन कमाते हैं",
+    "join.benefit2.desc": "होस्ट प्रति सेशन रिवॉर्ड कमाते हैं",
     "join.benefit3.title": "समर्पित होस्ट सपोर्ट",
     "join.benefit3.desc": "हिंदी और अंग्रेज़ी में WhatsApp सपोर्ट",
 
@@ -737,11 +737,11 @@ const DICT = {
     "trackapp.status.rejected": "रिजेक्ट",
 
     // ===== VERIFY PAGE =====
-    "verify.page.title": "अपनी स्टोरी वेरिफ़ाई करें — ₹500 क्लेम करें",
+    "verify.page.title": "अपनी स्टोरी वेरिफ़ाई करें",
     "verify.badge": "वेरिफ़िकेशन ज़रूरी",
     "verify.heading": "अपनी स्टोरी वेरिफ़ाई करें",
     "verify.sub1": "अपना",
-    "verify.sub2": "₹500 रिवॉर्ड क्लेम करने के लिए आख़िरी स्टेप पूरा करें",
+    "verify.sub2": "अकाउंट वेरिफ़ाई करने के लिए आख़िरी स्टेप पूरा करें",
     "verify.instructions": "निर्देश",
     "verify.step1": "Poppo Live या Vone Live ऐप दिखाने वाली Instagram स्टोरी पोस्ट करें",
     "verify.step2": "अपनी स्टोरी में @barbieverse को टैग करें",
@@ -766,9 +766,9 @@ const DICT = {
     // ===== VERIFY SUCCESS =====
     "verify.success.heading": "स्क्रीनशॉट वेरिफ़ाइड! ✅",
     "verify.success.next": "अब क्या होगा?",
-    "verify.success.step1": "आपका रिवॉर्ड एडमिन वेरिफ़िकेशन की प्रतीक्षा में है",
+    "verify.success.step1": "आपकी अप्लिकेशन एडमिन वेरिफ़िकेशन की प्रतीक्षा में है",
     "verify.success.step2": "अप्रूवल मिलने पर WhatsApp कन्फ़र्मेशन मिलेगा",
-    "verify.success.step3": "₹500 आपकी UPI ID पर भेजा जाएगा",
+    "verify.success.step3": "आपसे अगले स्टेप्स के लिए संपर्क किया जाएगा",
     "verify.success.home": "होम पर वापस जाएँ",
 
     // ===== VERIFY FAILED =====
@@ -821,7 +821,7 @@ const DICT = {
     "footer.copyright": "© {year} Barbieverse · प्यार से बनाया गया",
 
     // ===== LEAD FORM =====
-    "lead.title": "अपना ₹500 बोनस क्लेम करें",
+    "lead.title": "क्रिएटर के रूप में जॉइन करें",
     "lead.name": "पूरा नाम",
     "lead.name.placeholder": "प्रिया शर्मा",
     "lead.instagram": "Instagram हैंडल",
@@ -841,11 +841,11 @@ const DICT = {
     "lead.submitting": "भेजा जा रहा है...",
     "lead.agree": "जमा करके, आप Barbieverse द्वारा WhatsApp और ईमेल पर संपर्क करने के लिए सहमत हैं।",
     "lead.success.title": "आप जुड़ गए! 🎉",
-    "lead.success.desc": "हमें आपकी डिटेल्स मिल गईं। हमारी टीम 24 घंटे में WhatsApp पर आपसे संपर्क करेगी और Poppo Live साइनअप लिंक और ₹500 बोनस निर्देश देगी।",
+    "lead.success.desc": "हमें आपकी डिटेल्स मिल गईं। हमारी टीम 24 घंटे में WhatsApp पर आपसे संपर्क करेगी और Poppo Live साइनअप लिंक और निर्देश देगी।",
     "lead.success.next": "अगले स्टेप्स:",
     "lead.success.step1": "वेलकम मैसेज के लिए अपना ईमेल चेक करें",
     "lead.success.step2": "हमारी टीम WhatsApp पर Poppo साइनअप लिंक भेजेगी",
-    "lead.success.step3": "साइनअप करें और एक बार लाइव जाएँ — ₹500 तुरंत पाएँ",
+    "lead.success.step3": "साइनअप करें और लाइव जाएँ — कमाना शुरू करें",
     "lead.error": "कुछ गड़बड़ हो गई। कृपया दोबारा कोशिश करें।",
     "lead.error.submit": "जमा नहीं हो सका",
 

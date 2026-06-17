@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
-import { ArrowRight, Crown, ChevronDown, CheckCircle } from "lucide-react";
+import { ArrowRight, Crown, ChevronDown } from "lucide-react";
 import { getPublicSettings } from "@/lib/api/settings.functions";
-import { getCarouselSlides } from "@/lib/api/carousel.functions";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import founderPortrait from "@/assets/founder-portrait.jpg.asset.json";
 import { AutoCarousel } from "@/components/carousel/AutoCarousel";
@@ -14,7 +13,6 @@ import { useState } from "react";
 import { useLang } from "@/lib/i18n";
 
 const settingsQO = queryOptions({ queryKey: ["public-settings"], queryFn: () => getPublicSettings() });
-const whyQO = queryOptions({ queryKey: ["carousel", "why_barbieverse"], queryFn: () => getCarouselSlides({ data: { type: "why_barbieverse" } }) });
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -28,7 +26,6 @@ export const Route = createFileRoute("/")({
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(settingsQO),
-      context.queryClient.ensureQueryData(whyQO),
     ]),
   component: HomePage,
   errorComponent: ({ error }) => <div className="p-8">Error: {error.message}</div>,
@@ -190,10 +187,16 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
 
 function HomePage() {
   const { data: settings } = useSuspenseQuery(settingsQO);
-  const { data: whySlides } = useSuspenseQuery(whyQO);
   const { t } = useLang();
 
   const announcement = settings.homepage_announcement?.trim();
+
+  const whySlides = [
+    { title: t("carousel.slide1.title"), description: t("carousel.slide1.desc"), button_text: t("carousel.slide1.cta"), button_link: "/join" },
+    { title: t("carousel.slide2.title"), description: t("carousel.slide2.desc"), button_text: t("carousel.slide2.cta"), button_link: "/join" },
+    { title: t("carousel.slide3.title"), description: t("carousel.slide3.desc"), button_text: t("carousel.slide3.cta"), button_link: "/join" },
+    { title: t("carousel.slide4.title"), description: t("carousel.slide4.desc"), button_text: t("carousel.slide4.cta"), button_link: "/join" },
+  ];
 
   const faqs = [
     { q: t("faq.q1"), a: t("faq.a1") },

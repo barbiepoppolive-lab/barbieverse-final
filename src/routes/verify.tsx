@@ -1,6 +1,3 @@
-// src/routes/verify.tsx
-// UGC Screenshot Verification Page — Currently disabled
-
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { AlertCircle, ArrowLeft } from "lucide-react";
@@ -8,10 +5,10 @@ import { AlertCircle, ArrowLeft } from "lucide-react";
 export const Route = createFileRoute("/verify")({
   head: () => ({
     meta: [
-      { title: "Verify Your Story — Claim ₹500 | BarbieVerse" },
+      { title: "Verification Paused | BarbieVerse" },
       {
         name: "description",
-        content: "Upload your Instagram story screenshot showing Poppo/Vone app and tag @barbieverse to verify your ₹500 reward.",
+        content: "Screenshot verification is currently paused. Please contact support on WhatsApp for assistance.",
       },
     ],
   }),
@@ -26,7 +23,7 @@ function VerifyPage() {
           <AlertCircle className="mx-auto h-14 w-14 text-muted-foreground" />
           <h1 className="mt-4 font-display text-2xl font-bold">Verification Paused</h1>
           <p className="mt-3 text-muted-foreground">
-            Screenshot verification is currently paused. Please contact support on WhatsApp for assistance with your ₹500 reward claim.
+            Screenshot verification is currently paused. Please contact support on WhatsApp for assistance.
           </p>
           <Link
             to="/"

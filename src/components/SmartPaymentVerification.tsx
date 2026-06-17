@@ -260,19 +260,17 @@ export function SmartPaymentVerification({
   );
   };
 
-  // ── LAYER 2: Screenshot OCR ──
+  // ── LAYER 2: Screenshot upload + manual UTR entry ──
   const ScreenshotOcrLayer = () => {
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
       setOcrLoading(true);
-      setOcrError(null);
-      setOcrResult(null);
-
       try {
-        setOcrError("Screenshot received. Please enter your UTR manually below.");
-      } catch (err) {
-        setOcrError("Could not process screenshot — enter UTR manually");
+        // Screenshot saved for reference — go straight to manual UTR entry
+        setLayer(3);
+      } catch {
+        setLayer(3);
       } finally {
         setOcrLoading(false);
       }
@@ -282,17 +280,16 @@ export function SmartPaymentVerification({
       <div className="space-y-5">
         <div className="text-center">
           <h3 className="font-display text-xl font-bold">Upload your payment screenshot</h3>
-          <p className="mt-1 text-sm text-muted-foreground">We will automatically read your transaction ID</p>
+          <p className="mt-1 text-sm text-muted-foreground">Upload for reference, then enter your UTR number</p>
         </div>
 
-        {/* Upload box */}
         <div
           onClick={() => fileInputRef.current?.click()}
           className="flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed border-border p-8 transition-colors hover:border-primary"
         >
           <Camera className="h-10 w-10 text-muted-foreground" />
           <div className="text-sm font-semibold text-muted-foreground">
-            {ocrLoading ? "Reading your screenshot..." : "Tap to upload screenshot"}
+            {ocrLoading ? "Uploading..." : "Tap to upload screenshot"}
           </div>
           {ocrLoading && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
         </div>
@@ -300,7 +297,6 @@ export function SmartPaymentVerification({
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           onChange={handleUpload}
           className="hidden"
         />

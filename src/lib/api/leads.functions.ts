@@ -29,7 +29,7 @@ export const submitLead = createServerFn({ method: "POST" })
         sendBrevoEmail({
           to: data.email,
           toName: data.name,
-          subject: "Welcome to Barbieverse 💖 Your ₹500 bonus is waiting",
+          subject: "Welcome to Barbieverse 💖 Your creator journey starts now",
           htmlContent: welcomeEmailHtml(data.name),
         }),
         // Telegram alert to admin about new lead

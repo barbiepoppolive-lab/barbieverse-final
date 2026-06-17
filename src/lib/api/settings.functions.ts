@@ -195,7 +195,7 @@ export const getIntentOptions = createServerFn({ method: "GET" })
     rows.forEach((r) => (map[r.key] = r.value));
     
     return [
-      { label: map.creator_intent_option_1_label || "I want to claim the ₹500 reward only", value: "reward_only" },
+      { label: map.creator_intent_option_1_label || "I want to claim the reward only", value: "reward_only" },
       { label: map.creator_intent_option_2_label || "I want to start streaming seriously", value: "serious" },
       { label: map.creator_intent_option_3_label || "I am already streaming, need agency support", value: "existing" },
       { label: map.creator_intent_option_4_label || "Just curious, exploring options", value: "curious" },

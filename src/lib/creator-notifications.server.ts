@@ -39,7 +39,7 @@ export async function sendApprovalMessage(args: {
     `🎉 <b>REWARD APPROVED</b>\n\n` +
     `Application: ${args.application_id}\n` +
     `UPI: ${args.upi_id}\n` +
-    `Send ₹500 to complete.`
+    `Action: Mark as completed in admin panel.`
   );
 }
 

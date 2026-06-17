@@ -92,8 +92,8 @@ export function welcomeEmailHtml(name: string) {
       <div style="max-width:560px;margin:0 auto;background:#141414;border-radius:16px;padding:32px;border:1px solid #2a2a2a;">
         <h1 style="color:#ff3b8b;margin:0 0 8px 0;font-size:28px;">Welcome to Barbieverse, ${name}! 💖</h1>
         <p style="color:#d0d0d0;line-height:1.6;">
-          Thank you for joining our influencer family. You're eligible for our
-          <b style="color:#ff3b8b;">₹500 joining bonus</b> on the Poppo Live app.
+          Thank you for joining our influencer family. You're now part of the
+          <b style="color:#ff3b8b;">Barbieverse creator ecosystem</b> on Poppo Live.
         </p>
         <p style="color:#d0d0d0;line-height:1.6;">
           Our team will reach out on WhatsApp shortly with your next steps and exclusive perks.
