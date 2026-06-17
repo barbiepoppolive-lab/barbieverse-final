@@ -11,7 +11,7 @@ import { FireFlames } from "@/components/FireFlames";
 import { Reveal } from "@/components/Reveal";
 import { usePrefersReducedMotion, useIsLowPower } from "@/hooks/use-motion";
 import { useState } from "react";
-import { useLang } from "@/lib/i18n";
+import { useLang, type Lang } from "@/lib/i18n";
 
 const settingsQO = queryOptions({ queryKey: ["public-settings"], queryFn: () => getPublicSettings() });
 
@@ -55,26 +55,34 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 function HeroSection({ settings }: { settings: Record<string, string> }) {
   const reduced = usePrefersReducedMotion();
   const lowPower = useIsLowPower();
-  const { t } = useLang();
+  const { lang, t } = useLang();
+  const hi = lang === "hi";
 
   const heroPhoto = settings.hero_photo_url?.trim() || founderPortrait.url;
-  const heroEyebrow = settings.hero_eyebrow || t("hero.eyebrow");
-  const heroName = settings.hero_name || t("hero.name");
-  const heroTitle = settings.hero_title || t("hero.title");
-  const heroSubtitle = settings.hero_subtitle || t("hero.subtitle");
-  const heroIntro = settings.hero_intro || t("hero.intro");
-  const heroSignature = settings.hero_signature || t("hero.signature");
-  const ctaPrimaryText = settings.hero_cta_primary_text || t("hero.cta.primary");
+  const heroEyebrow = hi ? t("hero.eyebrow") : (settings.hero_eyebrow || t("hero.eyebrow"));
+  const heroName = hi ? t("hero.name") : (settings.hero_name || t("hero.name"));
+  const heroTitle = hi ? t("hero.title") : (settings.hero_title || t("hero.title"));
+  const heroSubtitle = hi ? t("hero.subtitle") : (settings.hero_subtitle || t("hero.subtitle"));
+  const heroIntro = hi ? t("hero.intro") : (settings.hero_intro || t("hero.intro"));
+  const heroSignature = hi ? t("hero.signature") : (settings.hero_signature || t("hero.signature"));
+  const ctaPrimaryText = hi ? t("hero.cta.primary") : (settings.hero_cta_primary_text || t("hero.cta.primary"));
   const ctaPrimaryLink = settings.hero_cta_primary_link || "/join";
-  const ctaSecondaryText = settings.hero_cta_secondary_text || t("hero.cta.secondary");
+  const ctaSecondaryText = hi ? t("hero.cta.secondary") : (settings.hero_cta_secondary_text || t("hero.cta.secondary"));
   const ctaSecondaryLink = settings.hero_cta_secondary_link || "/join";
 
-  const badges: Badge[] = safeParse(settings.hero_trust_badges, [
-    { icon: "🏆", label: t("hero.badge.wealth") },
-    { icon: "💎", label: t("hero.badge.agency") },
-    { icon: "⚡", label: t("hero.badge.recharge") },
-    { icon: "🌸", label: t("hero.badge.community") },
-  ]);
+  const badges: Badge[] = hi
+    ? [
+        { icon: "🏆", label: t("hero.badge.wealth") },
+        { icon: "💎", label: t("hero.badge.agency") },
+        { icon: "⚡", label: t("hero.badge.recharge") },
+        { icon: "🌸", label: t("hero.badge.community") },
+      ]
+    : safeParse(settings.hero_trust_badges, [
+        { icon: "🏆", label: t("hero.badge.wealth") },
+        { icon: "💎", label: t("hero.badge.agency") },
+        { icon: "⚡", label: t("hero.badge.recharge") },
+        { icon: "🌸", label: t("hero.badge.community") },
+      ]);
 
   return (
     <section className="relative overflow-hidden" aria-label="Hero">
@@ -183,11 +191,11 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
                         <div className="font-mono text-sm font-bold text-foreground">2517496</div>
                       </div>
                     </div>
-                    <div className="mt-2.5 border-t border-gold/20 pt-2.5">
+                      <div className="mt-2.5 border-t border-gold/20 pt-2.5">
                       <div className="text-[9px] uppercase tracking-[0.2em] text-gold/80">Wealth Level</div>
                       <div className="flex items-center gap-2">
                         <span className="wealth-shimmer font-display text-2xl font-bold">154</span>
-                        <Gem className="h-4 w-4 fill-gold text-gold" />
+                        <span className="diamond-sparkle inline-block"><Gem className="h-4 w-4 fill-sky-400 text-sky-400 drop-shadow-[0_0_6px_rgba(56,189,248,0.7)]" /></span>
                         <span className="text-[10px] font-semibold text-gold leading-tight">HIGHEST<br/>WORLDWIDE</span>
                       </div>
                     </div>
@@ -283,35 +291,35 @@ function HomePage() {
 
       <section className="container mx-auto px-4 py-14 sm:py-20">
         <Reveal variant="fade-up" className="mx-auto mb-10 max-w-2xl text-center">
-          <div className="text-[11px] uppercase tracking-[0.22em] text-gold">What You Actually Earn</div>
+          <div className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("earnings.eyebrow")}</div>
           <h2 className="mt-3 font-display text-3xl font-medium sm:text-4xl">
-            Real numbers. <span className="italic text-gradient-pink">No hype.</span>
+            {t("earnings.heading1")} <span className="italic text-gradient-pink">{t("earnings.heading2")}</span>
           </h2>
         </Reveal>
         <Reveal variant="fade-up" delay={120}>
           <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3">
             <div className="rounded-2xl border border-primary/20 bg-card/40 p-6 text-center backdrop-blur-xl transition-all duration-200 hover:border-primary/40 hover:bg-card/60">
               <div className="text-4xl">🎯</div>
-              <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">First Week Guaranteed</div>
-              <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">₹1,150 <span className="text-sm text-muted-foreground">(female)</span></div>
-              <div className="font-display text-lg font-bold text-foreground/80">₹575 <span className="text-xs text-muted-foreground">(male)</span></div>
-              <p className="mt-3 text-xs text-muted-foreground">Stream 2 hours daily for 7 days. Poppo pays you directly. No audience needed.</p>
+              <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">{t("earnings.week.title")}</div>
+              <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">{t("earnings.week.female")}</div>
+              <div className="font-display text-lg font-bold text-foreground/80">{t("earnings.week.male")}</div>
+              <p className="mt-3 text-xs text-muted-foreground">{t("earnings.week.desc")}</p>
             </div>
             <div className="rounded-2xl border border-gold/20 bg-card/40 p-6 text-center backdrop-blur-xl transition-all duration-200 hover:border-gold/40 hover:bg-card/60">
               <div className="text-4xl">📈</div>
-              <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">Month One Realistic</div>
-              <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">₹4,000 – ₹15,000</div>
-              <p className="mt-3 text-xs text-muted-foreground">Daily task rewards + viewer gifts + PK battles. Results vary by activity.</p>
+              <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">{t("earnings.month.title")}</div>
+              <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">{t("earnings.month.range")}</div>
+              <p className="mt-3 text-xs text-muted-foreground">{t("earnings.month.desc")}</p>
             </div>
             <div className="rounded-2xl border border-accent/20 bg-card/40 p-6 text-center backdrop-blur-xl transition-all duration-200 hover:border-accent/40 hover:bg-card/60">
               <div className="text-4xl">💎</div>
-              <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">Consistent Streamers</div>
-              <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">₹15,000 – ₹80,000/mo</div>
-              <p className="mt-3 text-xs text-muted-foreground">Top creators with daily 4-6 hour streams and strong audiences.</p>
+              <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">{t("earnings.consistent.title")}</div>
+              <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">{t("earnings.consistent.range")}</div>
+              <p className="mt-3 text-xs text-muted-foreground">{t("earnings.consistent.desc")}</p>
             </div>
           </div>
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            All earnings paid directly by Poppo Live to your bank account. BarbieVerse provides agency support and guidance.
+            {t("earnings.footer")}
           </p>
         </Reveal>
       </section>
@@ -336,9 +344,9 @@ function HomePage() {
         <div className="container mx-auto px-4 py-14 text-center sm:py-20">
           <Reveal variant="fade-up">
             <h2 className="font-display text-3xl font-medium sm:text-4xl">
-              Ready to start <span className="italic text-gradient-pink">earning?</span>
+              {t("cta.ready")} <span className="italic text-gradient-pink">{t("cta.earning")}</span>
             </h2>
-            <p className="mt-3 text-sm text-muted-foreground">Join hundreds of creators already growing with BarbieVerse.</p>
+            <p className="mt-3 text-sm text-muted-foreground">{t("cta.join")}</p>
             <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <Link
                 to="/join"

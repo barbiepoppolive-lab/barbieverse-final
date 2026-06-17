@@ -159,6 +159,27 @@ const DICT = {
     "section.testimonials.eyebrow": "Real Creators · Real Earnings",
     "section.testimonials.heading": "Loved by BarbieVerse creators",
 
+    // ===== EARNINGS SECTION =====
+    "earnings.eyebrow": "What You Actually Earn",
+    "earnings.heading1": "Real numbers.",
+    "earnings.heading2": "No hype.",
+    "earnings.week.title": "First Week Guaranteed",
+    "earnings.week.female": "₹1,150 (female)",
+    "earnings.week.male": "₹575 (male)",
+    "earnings.week.desc": "Stream 2 hours daily for 7 days. Poppo pays you directly. No audience needed.",
+    "earnings.month.title": "Month One Realistic",
+    "earnings.month.range": "₹4,000 – ₹15,000",
+    "earnings.month.desc": "Daily task rewards + viewer gifts + PK battles. Results vary by activity.",
+    "earnings.consistent.title": "Consistent Streamers",
+    "earnings.consistent.range": "₹15,000 – ₹80,000/mo",
+    "earnings.consistent.desc": "Top creators with daily 4-6 hour streams and strong audiences.",
+    "earnings.footer": "All earnings paid directly by Poppo Live to your bank account. BarbieVerse provides agency support and guidance.",
+
+    // ===== CTA SECTION =====
+    "cta.earning": "earning?",
+    "cta.ready": "Ready to start",
+    "cta.join": "Join hundreds of creators already growing with BarbieVerse.",
+
     // ===== JOIN PAGE =====
     "join.page.title": "Join Poppo Live — Start Earning",
     "join.page.sub": "India's fastest growing live streaming app",
@@ -595,6 +616,27 @@ const DICT = {
 
     "section.testimonials.eyebrow": "असली क्रिएटर्स · असली कमाई",
     "section.testimonials.heading": "BarbieVerse क्रिएटर्स को पसंद आया",
+
+    // ===== EARNINGS SECTION =====
+    "earnings.eyebrow": "असल में कितना कमा सकते हैं",
+    "earnings.heading1": "असली नंबर।",
+    "earnings.heading2": "बिना बढ़ा-चढ़ाकर।",
+    "earnings.week.title": "पहले हफ्ते की गारंटी",
+    "earnings.week.female": "₹1,150 (फीमेल)",
+    "earnings.week.male": "₹575 (मेल)",
+    "earnings.week.desc": "7 दिन रोज़ 2 घंटे स्ट्रीम करें। Poppo सीधे आपको भुगतान करता है। ऑडियंस की ज़रूरत नहीं।",
+    "earnings.month.title": "पहले महीने की असली कमाई",
+    "earnings.month.range": "₹4,000 – ₹15,000",
+    "earnings.month.desc": "डेली टास्क रिवॉर्ड + व्यूअर गिफ्ट्स + PK बैटल्स। एक्टिविटी के हिसाब से बदलता है।",
+    "earnings.consistent.title": "लगातार स्ट्रीम करने वाले",
+    "earnings.consistent.range": "₹15,000 – ₹80,000/महीना",
+    "earnings.consistent.desc": "रोज़ 4-6 घंटे स्ट्रीम करने वाले और मज़बूत ऑडियंस वाले टॉप क्रिएटर्स।",
+    "earnings.footer": "सारी कमाई सीधे Poppo Live द्वारा आपके बैंक अकाउंट में भेजी जाती है। BarbieVerse एजेंसी सपोर्ट और गाइडेंस देता है।",
+
+    // ===== CTA SECTION =====
+    "cta.earning": "कमाना?",
+    "cta.ready": "शुरू करने के लिए तैयार",
+    "cta.join": "BarbieVerse के साथ पहले से जुड़े सैकड़ों क्रिएटर्स से जुड़ें।",
 
     // ===== JOIN PAGE =====
     "join.page.title": "Poppo Live जॉइन करें — कमाना शुरू करें",
