@@ -3,7 +3,7 @@ import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-
 import { getAllSettings, updateSetting } from "@/lib/api/settings.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Save } from "lucide-react";
+import { Save, ToggleLeft, ToggleRight } from "lucide-react";
 
 const settingsQO = queryOptions({ queryKey: ["admin", "settings"], queryFn: () => getAllSettings() });
 
@@ -85,6 +85,27 @@ function SettingsPage() {
       </section>
 
       <section className="mt-10 space-y-4">
+        <h2 className="font-display text-lg font-bold">Toggles</h2>
+        <p className="text-xs text-muted-foreground">Enable or disable features on the site.</p>
+        <ToggleRow
+          label="Coin Sales"
+          description="Show the coin recharge page and packages"
+          value={draft.coins_enabled !== "false"}
+          onChange={(v) => setDraft({ ...draft, coins_enabled: v ? "true" : "false" })}
+          onSave={() => save("coins_enabled")}
+          saving={saving === "coins_enabled"}
+        />
+        <ToggleRow
+          label="Auto-Match UPI Payments"
+          description="Automatically match UPI payments via webhook (requires MacroDroid on phone)"
+          value={draft.auto_match_enabled !== "false"}
+          onChange={(v) => setDraft({ ...draft, auto_match_enabled: v ? "true" : "false" })}
+          onSave={() => save("auto_match_enabled")}
+          saving={saving === "auto_match_enabled"}
+        />
+      </section>
+
+      <section className="mt-10 space-y-4">
         <h2 className="font-display text-lg font-bold">General</h2>
         {FIELDS.map((f) => (
           <Row key={f.key} field={f} value={draft[f.key]} onChange={(v) => setDraft({ ...draft, [f.key]: v })} onSave={() => save(f.key)} saving={saving === f.key} />
@@ -140,6 +161,37 @@ function Row({
           <Save className="h-3.5 w-3.5" /> {saving ? "Saving..." : "Save"}
         </button>
       </div>
+    </div>
+  );
+}
+
+function ToggleRow({
+  label, description, value, onChange, onSave, saving,
+}: {
+  label: string;
+  description: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+  onSave: () => void;
+  saving: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-border/60 bg-card/40 p-4">
+      <div>
+        <div className="text-sm font-medium">{label}</div>
+        <div className="text-xs text-muted-foreground">{description}</div>
+      </div>
+      <button
+        onClick={() => { onChange(!value); setTimeout(onSave, 100); }}
+        disabled={saving}
+        className="shrink-0"
+      >
+        {value ? (
+          <ToggleRight className="h-10 w-10 text-primary" />
+        ) : (
+          <ToggleLeft className="h-10 w-10 text-muted-foreground" />
+        )}
+      </button>
     </div>
   );
 }

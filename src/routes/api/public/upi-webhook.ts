@@ -58,6 +58,29 @@ export const Route = createFileRoute("/api/public/upi-webhook")({
           }
         }
 
+        // Check if auto-match is enabled
+        const { q: qFn } = await import("@/lib/db.server");
+        const settingsRows = await qFn<{ value: string }>(
+          `SELECT value FROM settings WHERE key = 'auto_match_enabled'`,
+          []
+        );
+        const autoMatchEnabled = settingsRows.length === 0 || settingsRows[0].value !== "false";
+        if (!autoMatchEnabled) {
+          // Store as unmatched since auto-match is paused
+          await q(
+            `INSERT INTO unmatched_payments (amount_paise, utr, payer_upi, raw_payload, reason)
+             VALUES ($1,$2,$3,$4,$5)`,
+            [
+              parsed.amount_paise,
+              parsed.utr ?? null,
+              parsed.payer_upi ?? null,
+              parsed.raw_payload ?? null,
+              "auto_match_disabled",
+            ],
+          );
+          return Response.json({ ok: false, matched: false, reason: "auto_match_disabled" });
+        }
+
         const { q, q1 } = await import("@/lib/db.server");
 
         // Atomic claim: match the most-recent awaiting_payment order by exact paise within 24h

@@ -28,7 +28,7 @@ const PUBLIC_SETTING_KEYS = new Set([
   "contact_recharge_label", "contact_recharge_value", "contact_business_label", "contact_business_value",
   "contact_response_time",
   "policy_privacy", "policy_terms", "policy_creator_reward", "policy_recharge",
-  "coins_enabled",
+  "coins_enabled", "auto_match_enabled",
 ]);
 
 // Admin-only keys (sensitive)

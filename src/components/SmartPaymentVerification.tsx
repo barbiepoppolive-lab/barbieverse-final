@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { confirmPayment } from "@/lib/api/confirm-payment.server";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -11,6 +11,10 @@ import {
   Smartphone,
   CreditCard,
   Wallet,
+  Camera,
+  ChevronDown,
+  ChevronUp,
+  Image,
 } from "lucide-react";
 
 interface SmartPaymentVerificationProps {
@@ -47,10 +51,14 @@ export function SmartPaymentVerification({
 }: SmartPaymentVerificationProps) {
   const [utr, setUtr] = useState("");
   const [guide, setGuide] = useState<"gpay" | "phonepe" | "paytm" | null>(null);
+  const [showScreenshot, setShowScreenshot] = useState(false);
+  const [screenshot, setScreenshot] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const confirmFn = useServerFn(confirmPayment);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${amountRupees}&cu=INR&tn=BV-${orderShortId}`;
 
@@ -68,6 +76,15 @@ export function SmartPaymentVerification({
 
   const openUPI = () => {
     window.location.href = upiLink;
+  };
+
+  const handleScreenshot = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScreenshot(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setScreenshotPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
   };
 
   const handleConfirm = useCallback(async () => {
@@ -222,6 +239,85 @@ export function SmartPaymentVerification({
                   <li>Tap it → find "UPI Transaction ID"</li>
                   <li>Copy the 12-digit number</li>
                 </ol>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Screenshot Upload Section */}
+        <div>
+          <button
+            onClick={() => setShowScreenshot(!showScreenshot)}
+            className="flex w-full items-center justify-between rounded-xl border border-border/60 bg-card/40 p-3 text-xs font-semibold text-muted-foreground hover:border-primary/40"
+          >
+            <span className="flex items-center gap-2">
+              <Camera className="h-4 w-4" />
+              Upload payment screenshot (optional, helps us verify faster)
+            </span>
+            {showScreenshot ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+          
+          {showScreenshot && (
+            <div className="mt-3 space-y-3 rounded-xl border border-border/60 bg-secondary/40 p-4">
+              {/* Reference Image Guide */}
+              <div className="rounded-lg bg-background/60 p-3">
+                <div className="mb-2 text-xs font-semibold text-foreground">What your screenshot should show:</div>
+                <div className="flex gap-3">
+                  {/* GPay Reference */}
+                  <div className="flex-1 rounded-lg border border-border/60 bg-card/40 p-2">
+                    <div className="text-[10px] font-bold text-primary mb-1">GPay Example</div>
+                    <div className="space-y-0.5 text-[9px] text-muted-foreground">
+                      <div className="rounded bg-secondary/60 px-1.5 py-0.5">✓ Payment sent to <span className="font-mono text-foreground">{payeeName}</span></div>
+                      <div className="rounded bg-secondary/60 px-1.5 py-0.5">✓ Amount: <span className="font-mono text-foreground">₹{amountRupees}</span></div>
+                      <div className="rounded bg-primary/20 px-1.5 py-0.5 font-semibold text-primary">★ UPI Ref No: XXXXXXXXXXXX</div>
+                      <div className="rounded bg-secondary/60 px-1.5 py-0.5">✓ Date & Time visible</div>
+                    </div>
+                  </div>
+                  {/* PhonePe Reference */}
+                  <div className="flex-1 rounded-lg border border-border/60 bg-card/40 p-2">
+                    <div className="text-[10px] font-bold text-primary mb-1">PhonePe Example</div>
+                    <div className="space-y-0.5 text-[9px] text-muted-foreground">
+                      <div className="rounded bg-secondary/60 px-1.5 py-0.5">✓ Sent to <span className="font-mono text-foreground">{payeeName}</span></div>
+                      <div className="rounded bg-secondary/60 px-1.5 py-0.5">✓ <span className="font-mono text-foreground">₹{amountRupees}</span></div>
+                      <div className="rounded bg-primary/20 px-1.5 py-0.5 font-semibold text-primary">★ Transaction ID: XXXXXXXXXXXX</div>
+                      <div className="rounded bg-secondary/60 px-1.5 py-0.5">✓ UPI Ref No visible</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-muted-foreground">
+                <span className="font-semibold text-foreground">Important:</span> Screenshot must show the <span className="text-primary font-semibold">recipient name</span>, <span className="text-primary font-semibold">amount</span>, and <span className="text-primary font-semibold">UTR/Transaction ID</span> clearly.
+              </div>
+
+              {/* Upload Area */}
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border p-4 transition-colors hover:border-primary"
+              >
+                {screenshotPreview ? (
+                  <img src={screenshotPreview} alt="Screenshot preview" className="max-h-32 rounded-lg" />
+                ) : (
+                  <>
+                    <Image className="h-8 w-8 text-muted-foreground" />
+                    <div className="text-xs font-semibold text-muted-foreground">
+                      Tap to upload screenshot
+                    </div>
+                  </>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleScreenshot}
+                className="hidden"
+              />
+              {screenshot && (
+                <div className="flex items-center gap-2 text-xs text-primary">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Screenshot attached: {screenshot.name}
+                </div>
               )}
             </div>
           )}
