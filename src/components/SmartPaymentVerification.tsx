@@ -69,8 +69,14 @@ export function SmartPaymentVerification({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const confirmFn = useServerFn(confirmPayment);
 
-  // UPI deep link
-  const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amountRupees}&cu=INR&tn=${encodeURIComponent("BV-" + orderShortId)}`;
+  // UPI deep link — do NOT encode @ in VPA, UPI apps need raw @
+  const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${amountRupees}&cu=INR&tn=BV-${orderShortId}`;
+
+  // Device detection: UPI deep links only work on mobile
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    setIsMobile(/Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent));
+  }, []);
 
   // WhatsApp link
   const whatsappMessage = encodeURIComponent(
@@ -97,6 +103,25 @@ export function SmartPaymentVerification({
     navigator.clipboard.writeText(v);
     setCopied(k);
     setTimeout(() => setCopied(null), 1500);
+  };
+
+  // Try to open UPI app — works better than <a href> on mobile
+  const openUPI = () => {
+    window.location.href = upiLink;
+    // Reset timer
+    setCountdownDone(false);
+    setCountdown(60);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          setCountdownDone(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   const handleConfirm = useCallback(
@@ -129,76 +154,111 @@ export function SmartPaymentVerification({
   );
 
   // ── LAYER 1: UPI Deep Link ──
-  const DeepLinkLayer = () => (
+  const DeepLinkLayer = () => {
+    const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiLink)}`;
+    return (
     <div className="space-y-5">
       <div className="text-center">
         <h3 className="font-display text-xl font-bold">Pay ₹{amountRupees} via UPI</h3>
-        <p className="mt-1 text-sm text-muted-foreground">Tap below to open your UPI app with amount pre-filled</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {isMobile ? "Tap below to open your UPI app with amount pre-filled" : "Scan QR code or copy UPI ID to pay"}
+        </p>
       </div>
 
-      {/* Countdown timer */}
-      <div className="flex items-center justify-center gap-3 rounded-xl border border-border/60 bg-secondary/40 p-4">
-        <Clock className="h-5 w-5 text-primary" />
-        <div className="text-center">
-          <div className="font-mono text-2xl font-bold text-primary">{countdown}s</div>
-          <div className="text-xs text-muted-foreground">
-            {countdownDone ? "No response detected — try another method below" : "Waiting for payment confirmation..."}
+      {/* Desktop: QR Code + Copy Details */}
+      {!isMobile && (
+        <div className="space-y-4">
+          <div className="flex flex-col items-center gap-4 rounded-xl border border-border/60 bg-background/40 p-6">
+            <img src={qrSrc} alt="UPI QR Code" className="h-64 w-64 rounded-xl bg-white p-2" />
+            <div className="text-center text-xs text-muted-foreground">Scan with any UPI app</div>
           </div>
-        </div>
-      </div>
-
-      {/* Primary CTA */}
-      <a
-        href={upiLink}
-        onClick={() => {
-          // Reset timer if user taps again
-          setCountdownDone(false);
-          setCountdown(60);
-          if (timerRef.current) clearInterval(timerRef.current);
-          timerRef.current = setInterval(() => {
-            setCountdown((prev) => {
-              if (prev <= 1) {
-                if (timerRef.current) clearInterval(timerRef.current);
-                setCountdownDone(true);
-                return 0;
-              }
-              return prev - 1;
-            });
-          }, 1000);
-        }}
-        className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-gradient-pink text-base font-bold text-primary-foreground glow-pink transition-transform hover:scale-[1.02]"
-      >
-        <Smartphone className="h-5 w-5" />
-        Pay ₹{amountRupees} via UPI
-      </a>
-
-      {/* Copy UPI details */}
-      <div className="space-y-2 rounded-xl border border-border/60 bg-background/40 p-4">
-        <CopyRow label="UPI ID" value={upiId} k="upi" copied={copied} onCopy={copy} />
-        <CopyRow label="Amount" value={`₹${amountRupees}`} k="amt" copied={copied} onCopy={copy} />
-      </div>
-
-      {/* Status message */}
-      {!countdownDone && (
-        <div className="flex items-start gap-2 rounded-lg bg-primary/10 p-3 text-xs text-muted-foreground">
-          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          Paid? Wait a moment while we check. Don't close this page.
+          <div className="space-y-2 rounded-xl border border-border/60 bg-background/40 p-4">
+            <CopyRow label="UPI ID" value={upiId} k="upi" copied={copied} onCopy={copy} />
+            <CopyRow label="Amount" value={`₹${amountRupees}`} k="amt" copied={copied} onCopy={copy} />
+            <CopyRow label="Note" value={`BV-${orderShortId}`} k="note" copied={copied} onCopy={copy} />
+          </div>
+          <div className="flex items-start gap-2 rounded-lg bg-primary/10 p-3 text-xs text-muted-foreground">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            After paying, enter your 12-digit UTR below to confirm.
+          </div>
+          <button
+            onClick={openUPI}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-border bg-card text-sm font-semibold hover:border-primary"
+          >
+            <Smartphone className="h-4 w-4" />
+            Try Open UPI App
+          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveLayer("manual_entry")}
+              className="flex-1 flex h-12 items-center justify-center gap-2 rounded-full bg-gradient-pink text-sm font-bold text-primary-foreground glow-pink"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              I've Paid — Enter UTR
+            </button>
+            <button
+              onClick={() => setActiveLayer("screenshot_ocr")}
+              className="flex h-12 items-center justify-center gap-2 rounded-full border border-border bg-card px-5 text-sm font-semibold hover:border-primary"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Progress to Layer 2 */}
-      {countdownDone && (
-        <button
-          onClick={() => setActiveLayer("screenshot_ocr")}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-border bg-card text-sm font-semibold hover:border-primary"
-        >
-          <Camera className="h-4 w-4" />
-          Next: Upload Payment Screenshot
-          <ChevronDown className="h-4 w-4" />
-        </button>
+      {/* Mobile: Deep Link Button */}
+      {isMobile && (
+        <>
+          {/* Countdown timer */}
+          <div className="flex items-center justify-center gap-3 rounded-xl border border-border/60 bg-secondary/40 p-4">
+            <Clock className="h-5 w-5 text-primary" />
+            <div className="text-center">
+              <div className="font-mono text-2xl font-bold text-primary">{countdown}s</div>
+              <div className="text-xs text-muted-foreground">
+                {countdownDone ? "No response detected — try another method below" : "Waiting for payment confirmation..."}
+              </div>
+            </div>
+          </div>
+
+          {/* Primary CTA */}
+          <button
+            onClick={openUPI}
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-gradient-pink text-base font-bold text-primary-foreground glow-pink transition-transform hover:scale-[1.02]"
+          >
+            <Smartphone className="h-5 w-5" />
+            Pay ₹{amountRupees} via UPI
+          </button>
+
+          {/* Copy UPI details */}
+          <div className="space-y-2 rounded-xl border border-border/60 bg-background/40 p-4">
+            <CopyRow label="UPI ID" value={upiId} k="upi" copied={copied} onCopy={copy} />
+            <CopyRow label="Amount" value={`₹${amountRupees}`} k="amt" copied={copied} onCopy={copy} />
+          </div>
+
+          {/* Status message */}
+          {!countdownDone && (
+            <div className="flex items-start gap-2 rounded-lg bg-primary/10 p-3 text-xs text-muted-foreground">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              Paid? Wait a moment while we check. Don't close this page.
+            </div>
+          )}
+
+          {/* Progress to Layer 2 */}
+          {countdownDone && (
+            <button
+              onClick={() => setActiveLayer("screenshot_ocr")}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-border bg-card text-sm font-semibold hover:border-primary"
+            >
+              <Camera className="h-4 w-4" />
+              Next: Upload Payment Screenshot
+              <ChevronDown className="h-4 w-4" />
+            </button>
+          )}
+        </>
       )}
     </div>
   );
+  };
 
   // ── LAYER 2: Screenshot OCR ──
   const ScreenshotOcrLayer = () => {

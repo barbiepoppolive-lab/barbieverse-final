@@ -39,6 +39,7 @@ export const submitOrder = createServerFn({ method: "POST" })
         package: z.string().trim().min(1).max(60),
         coins: z.number().int().positive(),
         amount: z.number().int().positive(),
+        quantity: z.number().int().min(1).max(10).default(1),
         payment_method: z.enum(["upi", "usdt", "netbanking"]).default("upi"),
         utr: z.string().trim().max(80).optional().default(""),
       })
@@ -52,9 +53,9 @@ export const submitOrder = createServerFn({ method: "POST" })
 
     const row = await q1<{ id: string }>(
       `INSERT INTO orders
-         (name, whatsapp, poppo_id, package, coins, amount, utr, payment_method,
+         (name, whatsapp, poppo_id, package, coins, amount, quantity, utr, payment_method,
           expected_amount_paise, action_token, status, expires_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, now() + INTERVAL '24 hours')
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, now() + INTERVAL '24 hours')
        RETURNING id`,
       [
         data.name,
@@ -63,6 +64,7 @@ export const submitOrder = createServerFn({ method: "POST" })
         data.package,
         data.coins,
         data.amount,
+        data.quantity,
         data.utr || null,
         data.payment_method,
         expected,

@@ -169,13 +169,7 @@ function CoinsPage() {
                 setOrderResult({ id: res.id, expected_amount_rupees: res.expected_amount_rupees, name: form.name, whatsapp: form.whatsapp, poppo_id: form.poppo_id });
 
                 if (method === "upi") {
-                  // Auto-open UPI app with the unique amount (paise-precise match)
-                  const upiId = settings.upi_id || "thestrongwingsofficial@okaxis";
-                  const payee = settings.upi_payee_name || "Barbie";
-                  const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payee)}&am=${res.expected_amount_rupees}&cu=INR&tn=${encodeURIComponent("BV-" + (res.id || "").slice(0, 8))}`;
                   setStep("pay");
-                  // Slight delay so the new screen mounts before we navigate
-                  setTimeout(() => { window.location.href = upiLink; }, 200);
                 } else {
                   setStep("pay");
                 }
