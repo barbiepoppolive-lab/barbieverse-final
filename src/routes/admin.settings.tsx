@@ -60,6 +60,7 @@ function SettingsPage() {
   const upd = useServerFn(updateSetting);
   const [draft, setDraft] = useState<Record<string, string>>(data);
   const [saving, setSaving] = useState<string | null>(null);
+  const [togglesDirty, setTogglesDirty] = useState(false);
 
   const save = async (key: string) => {
     setSaving(key);
@@ -67,6 +68,19 @@ function SettingsPage() {
       await upd({ data: { key, value: draft[key] || "" } });
       qc.invalidateQueries({ queryKey: ["admin", "settings"] });
       qc.invalidateQueries({ queryKey: ["public-settings"] });
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const saveToggles = async () => {
+    setSaving("toggles");
+    try {
+      await upd({ data: { key: "coins_enabled", value: draft.coins_enabled || "true" } });
+      await upd({ data: { key: "auto_match_enabled", value: draft.auto_match_enabled || "true" } });
+      qc.invalidateQueries({ queryKey: ["admin", "settings"] });
+      qc.invalidateQueries({ queryKey: ["public-settings"] });
+      setTogglesDirty(false);
     } finally {
       setSaving(null);
     }
@@ -92,18 +106,21 @@ function SettingsPage() {
           label="Coin Sales"
           description="Show the coin recharge page and packages"
           value={draft.coins_enabled !== "false"}
-          onChange={(v) => setDraft({ ...draft, coins_enabled: v ? "true" : "false" })}
-          onSave={() => save("coins_enabled")}
-          saving={saving === "coins_enabled"}
+          onChange={(v) => { setDraft({ ...draft, coins_enabled: v ? "true" : "false" }); setTogglesDirty(true); }}
         />
         <ToggleRow
           label="Auto-Match UPI Payments"
           description="Automatically match UPI payments via webhook (requires MacroDroid on phone)"
           value={draft.auto_match_enabled !== "false"}
-          onChange={(v) => setDraft({ ...draft, auto_match_enabled: v ? "true" : "false" })}
-          onSave={() => save("auto_match_enabled")}
-          saving={saving === "auto_match_enabled"}
+          onChange={(v) => { setDraft({ ...draft, auto_match_enabled: v ? "true" : "false" }); setTogglesDirty(true); }}
         />
+        <button
+          onClick={saveToggles}
+          disabled={saving === "toggles" || !togglesDirty}
+          className="inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-pink px-5 text-sm font-bold text-primary-foreground disabled:opacity-40 transition-opacity"
+        >
+          <Save className="h-4 w-4" /> {saving === "toggles" ? "Saving..." : togglesDirty ? "Save Changes" : "No Changes"}
+        </button>
       </section>
 
       <section className="mt-10 space-y-4">
@@ -167,14 +184,12 @@ function Row({
 }
 
 function ToggleRow({
-  label, description, value, onChange, onSave, saving,
+  label, description, value, onChange,
 }: {
   label: string;
   description: string;
   value: boolean;
   onChange: (v: boolean) => void;
-  onSave: () => void;
-  saving: boolean;
 }) {
   return (
     <div className="flex items-center justify-between rounded-xl border border-border/60 bg-card/40 p-4">
@@ -182,11 +197,7 @@ function ToggleRow({
         <div className="text-sm font-medium">{label}</div>
         <div className="text-xs text-muted-foreground">{description}</div>
       </div>
-      <button
-        onClick={() => { onChange(!value); setTimeout(onSave, 100); }}
-        disabled={saving}
-        className="shrink-0"
-      >
+      <button onClick={() => onChange(!value)} className="shrink-0">
         {value ? (
           <ToggleRight className="h-10 w-10 text-primary" />
         ) : (

@@ -105,7 +105,7 @@ function CoinsPage() {
         </div>
 
         {step === "pick" && (
-          <div className="mx-auto mt-12 grid max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mx-auto mt-8 grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {packages.map((p, i) => (
               <PackageCard
                 key={i}
@@ -120,9 +120,9 @@ function CoinsPage() {
 
         {/* How It Works */}
         {step === "pick" && (
-          <div className="mx-auto mt-16 max-w-3xl">
+          <div className="mx-auto mt-10 max-w-3xl">
             <h2 className="text-center font-display text-2xl font-bold">How It Works</h2>
-            <div className="mt-8 grid gap-6 sm:grid-cols-3">
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
               <div className="text-center card-lift rounded-2xl p-6">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-pink text-lg font-bold text-primary-foreground">1</div>
                 <p className="mt-3 text-sm text-muted-foreground">Select your coin package and quantity</p>
@@ -261,21 +261,34 @@ function CoinsPage() {
 
 function PackageCard({ pkg, index, onSelect, isPopular }: { pkg: Pkg; index: number; onSelect: () => void; isPopular: boolean }) {
   const { t } = useLang();
+  const colors = [
+    { border: "border-sky-500/50", bg: "from-sky-500/10 to-sky-500/5", accent: "text-sky-400", badge: "bg-sky-500" },
+    { border: "border-yellow-400/60", bg: "from-yellow-400/15 to-yellow-400/5", accent: "text-yellow-400", badge: "bg-yellow-400" },
+    { border: "border-blue-500/50", bg: "from-blue-500/10 to-blue-500/5", accent: "text-blue-400", badge: "bg-blue-500" },
+    { border: "border-yellow-300/50", bg: "from-yellow-300/10 to-yellow-300/5", accent: "text-yellow-300", badge: "bg-yellow-300" },
+  ];
+  const c = colors[index % colors.length];
+
   return (
     <button
       onClick={onSelect}
-      className={`group relative rounded-2xl border bg-card/60 p-6 text-left backdrop-blur-md transition-all card-lift card-glow ${isPopular ? "border-primary glow-pink" : "border-border/60"}`}
+      className={`group relative rounded-xl border-2 ${c.border} bg-gradient-to-br ${c.bg} p-4 text-left backdrop-blur-md transition-all duration-200 hover:scale-[1.03] hover:shadow-lg`}
     >
-      {isPopular && <span className="absolute -top-3 right-4 rounded-full bg-gradient-pink px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">{t("coins.mostpopular")}</span>}
-      <div className="text-sm text-muted-foreground">{pkg.name}</div>
-      <div className="mt-3 flex items-baseline gap-2">
-        <Coins className="h-6 w-6 text-primary" />
-        <span className="font-display text-3xl font-bold">{pkg.coins}</span>
-        <span className="text-xs text-muted-foreground">{t("coins.coins")}</span>
+      {isPopular && (
+        <span className={`absolute -top-2.5 right-3 rounded-full ${c.badge} px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-black`}>
+          {t("coins.mostpopular")}
+        </span>
+      )}
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{pkg.name}</div>
+      <div className="mt-2 flex items-baseline gap-1.5">
+        <span className={`font-display text-2xl font-bold ${c.accent}`}>{pkg.coins}</span>
+        <span className="text-[10px] text-muted-foreground">{t("coins.coins")}</span>
       </div>
-      <div className="mt-4 font-display text-2xl font-bold text-gradient-pink">₹{pkg.price}</div>
-      <div className="mt-4 text-xs text-muted-foreground">≈ ₹{(pkg.price / pkg.coins).toFixed(2)}{t("coins.percoin")}</div>
-      <div className="mt-5 inline-flex items-center text-sm font-semibold text-primary">{t("section.packages.select")}</div>
+      <div className="mt-2 font-display text-lg font-bold text-foreground">₹{pkg.price}</div>
+      <div className="mt-1 text-[10px] text-muted-foreground">≈ ₹{(pkg.price / pkg.coins).toFixed(2)}{t("coins.percoin")}</div>
+      <div className={`mt-3 inline-flex items-center text-xs font-bold ${c.accent}`}>
+        {t("section.packages.select")}
+      </div>
     </button>
   );
 }
