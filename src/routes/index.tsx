@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
-import { ArrowRight, Crown, ChevronDown } from "lucide-react";
+import { ArrowRight, Crown, ChevronDown, Diamond } from "lucide-react";
 import { getPublicSettings } from "@/lib/api/settings.functions";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import founderPortrait from "@/assets/founder-portrait.jpg.asset.json";
@@ -147,8 +147,7 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
         <div className="order-1 lg:order-2">
           <Reveal variant="fade-left" delay={100}>
             <div className="relative mx-auto max-w-md lg:max-w-none">
-              {/* Fire border animation around photo */}
-              <div className="fire-border absolute -inset-1 rounded-[2rem] z-0" />
+              <div className="neon-pulse absolute -inset-1 rounded-[2rem] z-0" />
 
               <div className="relative overflow-hidden rounded-[1.75rem] border-2 border-primary/30 bg-card shadow-luxe z-10">
                 <img
@@ -169,9 +168,9 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
                 </div>
               </div>
 
-              {/* Floating Credentials Card */}
-              <div className="credentials-float absolute -right-2 top-8 z-30 sm:-right-6 lg:-right-8">
-                <div className="rounded-2xl border border-gold/40 bg-gradient-to-br from-background/90 via-card/95 to-background/90 px-4 py-3 backdrop-blur-xl shadow-luxe">
+              {/* Floating Credentials Card — Top of Photo */}
+              <div className="credentials-float absolute -top-4 left-1/2 -translate-x-1/2 z-30 w-[260px] sm:w-[280px]">
+                <div className="fire-edge relative rounded-2xl border border-gold/40 bg-gradient-to-br from-background/95 via-card/95 to-background/95 px-4 py-3 backdrop-blur-xl">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-gold text-lg">
                       👑
@@ -183,9 +182,10 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
                   </div>
                   <div className="mt-2.5 border-t border-gold/20 pt-2.5">
                     <div className="text-[9px] uppercase tracking-[0.2em] text-gold/80">Wealth Level</div>
-                    <div className="flex items-baseline gap-1.5">
+                    <div className="flex items-center gap-2">
                       <span className="wealth-shimmer font-display text-2xl font-bold">154</span>
-                      <span className="text-[10px] font-semibold text-gold">HIGHEST WORLDWIDE</span>
+                      <Diamond className="h-4 w-4 text-gold" />
+                      <span className="text-[10px] font-semibold text-gold leading-tight">HIGHEST<br/>WORLDWIDE</span>
                     </div>
                   </div>
                 </div>
