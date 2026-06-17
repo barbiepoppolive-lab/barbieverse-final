@@ -38,10 +38,7 @@ function Page() {
 
   return (
     <SiteLayout>
-      <div className="relative overflow-hidden">
-        <div className="pointer-events-none absolute -top-32 left-1/2 -z-10 h-[420px] w-[820px] -translate-x-1/2 rounded-full bg-primary/20 blur-[160px]" />
-
-        <section className="container mx-auto px-4 pt-16 pb-10 sm:pt-24">
+      <section className="container mx-auto px-4 pt-16 pb-10 sm:pt-24">
           <div className="mx-auto max-w-2xl text-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-card/40 px-4 py-1.5 text-[11px] uppercase tracking-[0.22em] text-gold backdrop-blur-md">
               <Sparkles className="h-3.5 w-3.5" /> We're Here To Help
@@ -62,9 +59,8 @@ function Page() {
               return (
                 <div
                   key={c.tag}
-                  className="group relative overflow-hidden rounded-3xl border border-gold/20 bg-gradient-to-br from-card/80 via-card/40 to-card/10 p-6 backdrop-blur-xl shadow-luxe transition-transform hover:-translate-y-0.5 sm:p-8"
+                  className="group rounded-3xl border border-border/60 bg-card/40 p-6 backdrop-blur-xl transition-all duration-200 hover:border-primary/40 hover:bg-card/60 sm:p-8"
                 >
-                  <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary/15 blur-3xl" />
                   <div className="flex items-center gap-3">
                     <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-gold/30 bg-gradient-pink/15">
                       <Icon className="h-5 w-5 text-gold" />
@@ -90,7 +86,6 @@ function Page() {
             <Link to="/terms-and-conditions" className="font-semibold text-gold hover:underline">Terms & Conditions</Link>.
           </div>
         </section>
-      </div>
     </SiteLayout>
   );
 }

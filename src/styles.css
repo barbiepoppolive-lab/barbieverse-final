@@ -137,12 +137,7 @@
 @utility hairline-gold {
   border: 1px solid color-mix(in oklab, var(--gold) 35%, transparent);
 }
-/* ============================================================
-   PREMIUM UI ADDITIONS — append to end of src/styles.css
-   All new rules. Nothing from above is removed or changed.
-   ============================================================ */
 
-/* ── Glassmorphism utility ───────────────────────────────── */
 @utility glass {
   background: oklch(0.13 0.025 350 / 0.55);
   border: 1px solid oklch(0.72 0.25 350 / 0.12);
@@ -150,14 +145,6 @@
   -webkit-backdrop-filter: blur(20px) saturate(160%);
 }
 
-@utility glass-gold {
-  background: oklch(0.13 0.025 350 / 0.45);
-  border: 1px solid oklch(0.82 0.13 75 / 0.20);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-}
-
-/* ── Neon glow utilities ─────────────────────────────────── */
 @utility glow-sm {
   box-shadow: 0 0 24px -4px oklch(0.72 0.27 350 / 0.35);
 }
@@ -173,7 +160,6 @@
     0 0 24px -8px oklch(0.72 0.25 350 / 0.25);
 }
 
-/* ── Depth shadow ────────────────────────────────────────── */
 @utility shadow-depth {
   box-shadow:
     0 2px 4px -1px oklch(0 0 0 / 0.4),
@@ -181,40 +167,6 @@
     0 0 0 1px oklch(0.72 0.25 350 / 0.06);
 }
 
-/* ── Button micro-interactions ───────────────────────────── */
-@utility btn-magnetic {
-  position: relative;
-  transition:
-    transform 0.35s cubic-bezier(.22,1,.36,1),
-    box-shadow 0.35s cubic-bezier(.22,1,.36,1);
-}
-.btn-magnetic:hover {
-  transform: translateY(-2px) scale(1.025);
-}
-.btn-magnetic:active {
-  transform: translateY(0) scale(0.98);
-}
-
-/* ── Gradient text shimmer ───────────────────────────────── */
-@utility text-shimmer {
-  background: linear-gradient(
-    110deg,
-    oklch(0.74 0.28 350) 0%,
-    oklch(0.88 0.13 80) 35%,
-    oklch(0.74 0.28 350) 70%,
-    oklch(0.62 0.26 330) 100%
-  );
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: shimmer 5s linear infinite;
-}
-@keyframes shimmer {
-  to { background-position: 200% center; }
-}
-
-/* ── Section divider gradient ────────────────────────────── */
 @utility divider-glow {
   height: 1px;
   background: linear-gradient(90deg,
@@ -226,53 +178,6 @@
   );
 }
 
-/* ── Floating animation for decorative elements ──────────── */
-@utility float-slow {
-  animation: floatSlow 7s ease-in-out infinite alternate;
-}
-@utility float-medium {
-  animation: floatMedium 5s ease-in-out infinite alternate;
-}
-@keyframes floatSlow {
-  from { transform: translateY(0); }
-  to   { transform: translateY(-14px); }
-}
-@keyframes floatMedium {
-  from { transform: translateY(0) rotate(-1deg); }
-  to   { transform: translateY(-10px) rotate(1deg); }
-}
-
-/* ── Gradient animated background ───────────────────────── */
-@utility bg-animated-mesh {
-  background:
-    radial-gradient(ellipse at 20% 10%,  oklch(0.4 0.22 345 / 0.22) 0%, transparent 55%),
-    radial-gradient(ellipse at 80% 15%,  oklch(0.4 0.18 60 / 0.14)  0%, transparent 50%),
-    radial-gradient(ellipse at 50% 85%,  oklch(0.3 0.18 330 / 0.16) 0%, transparent 55%),
-    radial-gradient(ellipse at 10% 70%,  oklch(0.35 0.2 350 / 0.12) 0%, transparent 50%),
-    oklch(0.09 0.02 350);
-  animation: meshShift 20s ease-in-out infinite alternate;
-}
-@keyframes meshShift {
-  0%   { background-position: 0% 0%; }
-  100% { background-position: 5% 5%; }
-}
-
-/* ── Scroll progress indicator ───────────────────────────── */
-#scroll-progress {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 2px;
-  background: var(--gradient-pink);
-  box-shadow: 0 0 8px oklch(0.72 0.27 350 / 0.7);
-  transform-origin: left;
-  transform: scaleX(0);
-  z-index: 9999;
-  transition: transform 0.1s linear;
-  will-change: transform;
-}
-
-/* ── Stagger children ────────────────────────────────────── */
 .stagger-children > * {
   --stagger-delay: 0ms;
   animation: staggerIn 0.6s cubic-bezier(.22,1,.36,1) both;
@@ -289,7 +194,6 @@
   to   { opacity: 1; transform: none; }
 }
 
-/* ── Glass card ──────────────────────────────────────────── */
 .glass-card {
   background: oklch(0.13 0.025 350 / 0.5);
   border: 1px solid oklch(0.72 0.25 350 / 0.12);
@@ -300,37 +204,6 @@
     0 12px 40px -12px oklch(0 0 0 / 0.5);
 }
 
-/* ── Reduce motion overrides ─────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  .float-slow, .float-medium, .text-shimmer,
-  .bg-animated-mesh, .stagger-children > *,
-  [style*="animation"], [style*="transition"] {
-    animation: none !important;
-    transition: none !important;
-  }
-  #scroll-progress { display: none; }
-}
-
-/* ── Premium scrollbar ───────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: oklch(0.09 0.02 350); }
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, oklch(0.72 0.25 350 / 0.5), oklch(0.62 0.26 330 / 0.5));
-  border-radius: 99px;
-}
-
-/* ── Selection color ─────────────────────────────────────── */
-::selection {
-  background: oklch(0.72 0.25 350 / 0.3);
-  color: oklch(0.97 0.01 340);
-}
-
-/* ============================================================
-   PREMIUM UI — Quiet Luxury
-   Subtle, GPU-composited, zero layout thrash.
-   ============================================================ */
-
-/* ── Card micro-lift ─────────────────────────────────────── */
 @utility card-lift {
   transition:
     transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
@@ -344,7 +217,6 @@
     0 0 0 1px oklch(0.72 0.25 350 / 0.1);
 }
 
-/* ── Card glow border ────────────────────────────────────── */
 @utility card-glow {
   border: 1px solid oklch(0.72 0.25 350 / 0.08);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
@@ -354,31 +226,6 @@
   box-shadow: 0 0 30px -10px oklch(0.72 0.25 350 / 0.12);
 }
 
-/* ── Button glow ─────────────────────────────────────────── */
-@utility btn-glow {
-  position: relative;
-  transition:
-    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.btn-glow:hover {
-  transform: scale(1.02);
-  box-shadow: 0 8px 30px -8px oklch(0.72 0.27 350 / 0.4);
-}
-.btn-glow:active {
-  transform: scale(0.98);
-}
-
-/* ── Gentle drift (decorative halos only) ────────────────── */
-@utility drift {
-  animation: drift 5s ease-in-out infinite alternate;
-}
-@keyframes drift {
-  0%   { transform: translateY(0); }
-  100% { transform: translateY(-4px); }
-}
-
-/* ── Pulse subtle (trust badges, CTA glow) ──────────────── */
 @utility pulse-subtle {
   animation: pulseSubtle 3s ease-in-out infinite;
 }
@@ -387,104 +234,58 @@
   50%      { opacity: 1; }
 }
 
-/* ── Glass surface ───────────────────────────────────────── */
-@utility glass-surface {
-  background: oklch(0.13 0.025 350 / 0.45);
-  border: 1px solid oklch(0.72 0.25 350 / 0.12);
-  backdrop-filter: blur(16px) saturate(150%);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
+@utility neon-pulse {
+  animation: neonPulse 3s ease-in-out infinite;
   box-shadow:
-    0 0 0 1px oklch(0.72 0.25 350 / 0.04) inset,
-    0 8px 32px -12px oklch(0 0 0 / 0.4);
+    0 0 20px oklch(0.72 0.25 350 / 0.4),
+    0 0 60px oklch(0.72 0.25 350 / 0.15),
+    inset 0 0 20px oklch(0.72 0.25 350 / 0.05);
+  border: 2px solid oklch(0.72 0.25 350 / 0.3);
+}
+@keyframes neonPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 20px oklch(0.72 0.25 350 / 0.4),
+      0 0 60px oklch(0.72 0.25 350 / 0.15),
+      inset 0 0 20px oklch(0.72 0.25 350 / 0.05);
+    border-color: oklch(0.72 0.25 350 / 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 25px oklch(0.82 0.13 75 / 0.45),
+      0 0 80px oklch(0.82 0.13 75 / 0.2),
+      inset 0 0 25px oklch(0.82 0.13 75 / 0.08);
+    border-color: oklch(0.82 0.13 75 / 0.35);
+  }
 }
 
-/* ── Fade in up (page section entrance) ──────────────────── */
-@utility fade-in-up {
-  opacity: 0;
-  transform: translateY(8px);
-  transition:
-    opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.fade-in-up.visible {
-  opacity: 1;
-  transform: translateY(0);
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: oklch(0.09 0.02 350); }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, oklch(0.72 0.25 350 / 0.5), oklch(0.62 0.26 330 / 0.5));
+  border-radius: 99px;
 }
 
-/* ── Animated border glow (hero only) ────────────────────── */
-@utility border-glow {
-  position: relative;
-  overflow: hidden;
-}
-.border-glow::after {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: conic-gradient(
-    from 0deg,
-    oklch(0.72 0.25 350 / 0.15),
-    oklch(0.82 0.13 75 / 0.2),
-    oklch(0.62 0.26 330 / 0.15),
-    oklch(0.72 0.25 350 / 0.15)
-  );
-  z-index: -1;
-  animation: borderGlow 6s linear infinite;
-  opacity: 0.6;
-}
-@keyframes borderGlow {
-  to { transform: rotate(360deg); }
+::selection {
+  background: oklch(0.72 0.25 350 / 0.3);
+  color: oklch(0.97 0.01 340);
 }
 
-/* ── Spotlight (mouse-tracking glow, JS sets --sx, --sy) ─── */
-@utility spotlight {
-  position: relative;
-  overflow: hidden;
-}
-.spotlight::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(
-    350px circle at var(--sx, 50%) var(--sy, 50%),
-    oklch(0.72 0.25 350 / 0.1),
-    transparent 70%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-  z-index: 1;
-}
-.spotlight:hover::before {
-  opacity: 1;
-}
-
-/* ── Reduce motion overrides ─────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .drift,
-  .pulse-subtle,
-  .border-glow::after,
-  .text-shimmer,
-  .bg-animated-mesh,
-  .stagger-children > * {
+  .stagger-children > *,
+  .neon-pulse,
+  .pulse-subtle {
     animation: none !important;
   }
   .card-lift:hover,
-  .card-glow:hover,
-  .btn-glow:hover {
+  .card-glow:hover {
     transform: none !important;
   }
 }
 
-/* ── Mobile: disable hover effects on touch ──────────────── */
 @media (hover: none) and (pointer: coarse) {
   .card-lift:hover,
-  .card-glow:hover,
-  .btn-glow:hover {
+  .card-glow:hover {
     transform: none !important;
-  }
-  .spotlight::before {
-    display: none;
   }
 }

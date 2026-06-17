@@ -1,37 +1,20 @@
-// src/routes/index.tsx
-// UPDATED: Premium 3D experience — same data, same routes, same logic.
-// Only visual layer changed. All business logic untouched.
-
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
-import { ArrowRight, Crown, Sparkles, Heart } from "lucide-react";
-import { listPosts } from "@/lib/api/posts.functions";
+import { ArrowRight, Crown, ChevronDown, CheckCircle } from "lucide-react";
 import { getPublicSettings } from "@/lib/api/settings.functions";
 import { getCarouselSlides } from "@/lib/api/carousel.functions";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import founderPortrait from "@/assets/founder-portrait.jpg.asset.json";
 import { AutoCarousel } from "@/components/carousel/AutoCarousel";
-import { TimelineCarousel } from "@/components/carousel/TimelineCarousel";
-import { FeatureCardsCarousel } from "@/components/carousel/FeatureCardsCarousel";
-import { VipStrip } from "@/components/VipStrip";
-import { RechargePackages, type Pkg } from "@/components/RechargePackages";
-import { CreatorAcquisitionSection } from "@/components/CreatorAcquisitionSection";
-import { TestimonialsCarousel, type Testimonial } from "@/components/TestimonialsCarousel";
 import { LiveCreatorCounter } from "@/components/LiveCreatorCounter";
 import { ParticleCanvas } from "@/components/ParticleCanvas";
-import { FloatingOrbs, Sparkles as SparklesDots } from "@/components/FloatingOrbs";
 import { Reveal } from "@/components/Reveal";
-import { TiltCard } from "@/components/TiltCard";
-import { useGlobalMouse, usePrefersReducedMotion, useIsLowPower } from "@/hooks/use-motion";
-import { useEffect, useRef } from "react";
+import { usePrefersReducedMotion, useIsLowPower } from "@/hooks/use-motion";
+import { useState } from "react";
 import { useLang } from "@/lib/i18n";
 
-// ── Data query options (unchanged) ───────────────────────────────────────────
-const postsQO   = queryOptions({ queryKey: ["posts", "home"],             queryFn: () => listPosts({ data: {} }) });
-const settingsQO = queryOptions({ queryKey: ["public-settings"],          queryFn: () => getPublicSettings() });
-const whyQO     = queryOptions({ queryKey: ["carousel", "why_barbieverse"], queryFn: () => getCarouselSlides({ data: { type: "why_barbieverse" } }) });
-const howQO     = queryOptions({ queryKey: ["carousel", "how_success"],   queryFn: () => getCarouselSlides({ data: { type: "how_success" } }) });
-const chooseQO  = queryOptions({ queryKey: ["carousel", "why_choose"],    queryFn: () => getCarouselSlides({ data: { type: "why_choose" } }) });
+const settingsQO = queryOptions({ queryKey: ["public-settings"], queryFn: () => getPublicSettings() });
+const whyQO = queryOptions({ queryKey: ["carousel", "why_barbieverse"], queryFn: () => getCarouselSlides({ data: { type: "why_barbieverse" } }) });
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -44,59 +27,47 @@ export const Route = createFileRoute("/")({
   }),
   loader: ({ context }) =>
     Promise.all([
-      context.queryClient.ensureQueryData(postsQO),
       context.queryClient.ensureQueryData(settingsQO),
       context.queryClient.ensureQueryData(whyQO),
-      context.queryClient.ensureQueryData(howQO),
-      context.queryClient.ensureQueryData(chooseQO),
     ]),
   component: HomePage,
   errorComponent: ({ error }) => <div className="p-8">Error: {error.message}</div>,
 });
 
 type Badge = { icon: string; label: string };
-type Tier  = { icon: string; name: string };
 
 function safeParse<T>(v: string | undefined, fallback: T): T {
   if (!v) return fallback;
   try { return JSON.parse(v) as T; } catch { return fallback; }
 }
-function parsePkg(v: string | undefined, fallback: Pkg): Pkg {
-  return safeParse<Pkg>(v, fallback);
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-md overflow-hidden">
+      <button onClick={() => setOpen(!open)} className="flex w-full items-center justify-between px-5 py-4 text-left text-sm font-medium text-foreground">
+        {q}
+        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && <div className="px-5 pb-4 text-sm text-muted-foreground leading-relaxed">{a}</div>}
+    </div>
+  );
 }
 
-// ── Scroll progress bar ───────────────────────────────────────────────────────
-function ScrollProgress() {
-  const barRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const bar = barRef.current;
-    if (!bar) return;
-    const onScroll = () => {
-      const prog = window.scrollY / (document.body.scrollHeight - window.innerHeight);
-      bar.style.transform = `scaleX(${Math.min(prog, 1)})`;
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-  return <div ref={barRef} id="scroll-progress" aria-hidden="true" />;
-}
-
-// ── Hero section ──────────────────────────────────────────────────────────────
 function HeroSection({ settings }: { settings: Record<string, string> }) {
-  const mouse = useGlobalMouse();
   const reduced = usePrefersReducedMotion();
   const lowPower = useIsLowPower();
   const { t } = useLang();
 
-  const heroPhoto     = settings.hero_photo_url?.trim() || founderPortrait.url;
-  const heroEyebrow   = settings.hero_eyebrow   || t("hero.eyebrow");
-  const heroName      = settings.hero_name      || t("hero.name");
-  const heroTitle     = settings.hero_title     || t("hero.title");
-  const heroSubtitle  = settings.hero_subtitle  || t("hero.subtitle");
-  const heroIntro     = settings.hero_intro     || t("hero.intro");
+  const heroPhoto = settings.hero_photo_url?.trim() || founderPortrait.url;
+  const heroEyebrow = settings.hero_eyebrow || t("hero.eyebrow");
+  const heroName = settings.hero_name || t("hero.name");
+  const heroTitle = settings.hero_title || t("hero.title");
+  const heroSubtitle = settings.hero_subtitle || t("hero.subtitle");
+  const heroIntro = settings.hero_intro || t("hero.intro");
   const heroSignature = settings.hero_signature || t("hero.signature");
-  const ctaPrimaryText   = settings.hero_cta_primary_text   || t("hero.cta.primary");
-  const ctaPrimaryLink   = settings.hero_cta_primary_link   || "/join";
+  const ctaPrimaryText = settings.hero_cta_primary_text || t("hero.cta.primary");
+  const ctaPrimaryLink = settings.hero_cta_primary_link || "/join";
   const ctaSecondaryText = settings.hero_cta_secondary_text || t("hero.cta.secondary");
   const ctaSecondaryLink = settings.hero_cta_secondary_link || "/join";
 
@@ -107,46 +78,19 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
     { icon: "🌸", label: t("hero.badge.community") },
   ]);
 
-  // Parallax translate values — disabled for reduced-motion / low-power
-  const px = reduced || lowPower ? 0 : (mouse.x - 0.5) * 22;
-  const py = reduced || lowPower ? 0 : (mouse.y - 0.5) * 14;
-  const pxSlow = reduced || lowPower ? 0 : (mouse.x - 0.5) * 10;
-  const pySlow = reduced || lowPower ? 0 : (mouse.y - 0.5) * 8;
-
   return (
     <section className="relative overflow-hidden" aria-label="Hero">
-      {/* ── Particle canvas layer ── */}
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <ParticleCanvas count={50} />
-      </div>
+      {!reduced && !lowPower && (
+        <div className="pointer-events-none absolute inset-0 -z-10">
+          <ParticleCanvas count={30} />
+        </div>
+      )}
 
-      {/* ── Floating orbs ── */}
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <FloatingOrbs count={5} />
-      </div>
-
-      {/* ── Static glow blobs (always visible) ── */}
-      <div
-        className="pointer-events-none absolute -top-20 right-0 -z-10 h-[520px] w-[520px] rounded-full bg-primary/25 blur-[140px]"
-        style={reduced || lowPower ? {} : { transform: `translate(${px * 0.6}px, ${py * 0.4}px)`, transition: "transform 0.8s cubic-bezier(.22,1,.36,1)" }}
-      />
-      <div
-        className="pointer-events-none absolute bottom-0 left-0 -z-10 h-[380px] w-[380px] rounded-full bg-accent/15 blur-[120px] drift"
-        style={reduced || lowPower ? {} : { transform: `translate(${-px * 0.4}px, ${-py * 0.3}px)`, transition: "transform 0.9s cubic-bezier(.22,1,.36,1)" }}
-      />
-      <div
-        className="pointer-events-none absolute top-1/2 left-1/3 -z-10 h-[280px] w-[280px] rounded-full bg-primary/10 blur-[100px]"
-        style={reduced || lowPower ? {} : { transform: `translate(${px * 0.3}px, ${py * 0.5}px)`, transition: "transform 1s cubic-bezier(.22,1,.36,1)" }}
-      />
-
-      {/* ── Sparkle dots ── */}
-      <SparklesDots />
+      <div className="pointer-events-none absolute -top-20 right-0 -z-10 h-[400px] w-[400px] rounded-full bg-primary/15 blur-[120px]" />
+      <div className="pointer-events-none absolute bottom-0 left-0 -z-10 h-[300px] w-[300px] rounded-full bg-accent/10 blur-[100px]" />
 
       <div className="container mx-auto grid gap-10 px-4 pt-10 pb-14 sm:pt-16 sm:pb-20 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pt-20">
-
-        {/* ── Left column ── */}
         <div className="order-2 flex flex-col justify-center lg:order-1">
-
           <Reveal variant="fade-up" delay={0}>
             <div className="inline-flex w-fit items-center gap-2 rounded-full hairline-gold bg-card/40 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-gold backdrop-blur-md">
               <Crown className="h-3 w-3" /> {heroEyebrow}
@@ -155,7 +99,7 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
 
           <Reveal variant="fade-up" delay={80}>
             <h1 className="mt-5 font-display text-[2.4rem] font-medium leading-[1.04] tracking-tight sm:text-5xl lg:text-[3.8rem]">
-              <span className="text-shimmer">{heroTitle}</span>
+              {heroTitle}
             </h1>
           </Reveal>
 
@@ -180,14 +124,14 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link
                 to={ctaPrimaryLink}
-                className="group inline-flex h-14 items-center justify-center gap-2 rounded-full bg-gradient-pink px-7 text-sm font-semibold tracking-wide text-primary-foreground glow-pink btn-magnetic transition-all"
+                className="group inline-flex h-14 items-center justify-center gap-2 rounded-full bg-gradient-pink px-7 text-sm font-semibold tracking-wide text-primary-foreground glow-pink transition-all hover:scale-[1.02]"
               >
                 {ctaPrimaryText}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link
                 to={ctaSecondaryLink}
-                className="inline-flex h-14 items-center justify-center rounded-full border border-border bg-card/40 px-7 text-sm font-semibold backdrop-blur-md btn-magnetic transition-all hover:border-gold/60 hover:bg-card/70 hover:glow-gold-sm"
+                className="inline-flex h-14 items-center justify-center rounded-full border border-border bg-card/40 px-7 text-sm font-semibold backdrop-blur-md transition-all hover:border-gold/60 hover:bg-card/70"
               >
                 {ctaSecondaryText}
               </Link>
@@ -195,36 +139,26 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
           </Reveal>
 
           <Reveal variant="fade-up" delay={440}>
-            <div className="mt-8 grid grid-cols-2 gap-2 sm:max-w-lg sm:grid-cols-2 stagger-children">
+            <div className="mt-8 grid grid-cols-2 gap-2 sm:max-w-lg stagger-children">
               {badges.map((b) => (
-                <TiltCard
+                <div
                   key={b.label}
-                  intensity={4}
-                  glare={false}
-                  className="flex items-center gap-2 rounded-xl border border-border/60 bg-card/30 px-3 py-2.5 backdrop-blur-md card-lift cursor-default"
+                  className="flex items-center gap-2 rounded-xl border border-border/60 bg-card/30 px-3 py-2.5 backdrop-blur-md transition-all duration-200 hover:border-primary/40 hover:bg-card/50"
                 >
                   <span className="text-base">{b.icon}</span>
                   <span className="text-[11px] font-medium text-muted-foreground sm:text-xs">{b.label}</span>
-                </TiltCard>
+                </div>
               ))}
             </div>
           </Reveal>
         </div>
 
-        {/* ── Right column — portrait ── */}
         <div className="order-1 lg:order-2">
           <Reveal variant="fade-left" delay={100}>
-            <div
-              className="relative mx-auto max-w-md lg:max-w-none"
-              style={reduced || lowPower ? {} : {
-                transform: `translate(${-pxSlow}px, ${-pySlow}px)`,
-                transition: "transform 0.7s cubic-bezier(.22,1,.36,1)",
-              }}
-            >
-              {/* Halo glow */}
-              <div className="absolute -inset-4 -z-10 rounded-[2.5rem] bg-gradient-gold opacity-35 blur-3xl float-slow" />
+            <div className="relative mx-auto max-w-md lg:max-w-none">
+              <div className="neon-pulse absolute -inset-1 rounded-[2rem] z-0" />
 
-              <TiltCard intensity={6} glare className="relative overflow-hidden rounded-[1.75rem] border border-gold/30 bg-card shadow-luxe shadow-depth">
+              <div className="relative overflow-hidden rounded-[1.75rem] border-2 border-primary/30 bg-card shadow-luxe z-10">
                 <img
                   src={heroPhoto}
                   alt={`${heroName}, founder of Barbieverse`}
@@ -235,42 +169,11 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
                   decoding="async"
                 />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/85 via-background/10 to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between rounded-2xl border border-gold/25 bg-background/70 px-4 py-3 backdrop-blur-xl glass">
+                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between rounded-2xl border border-gold/25 bg-background/70 px-4 py-3 backdrop-blur-xl glass z-20">
                   <div>
                     <div className="text-[10px] uppercase tracking-[0.18em] text-gold">{heroEyebrow}</div>
                     <div className="font-display text-lg leading-tight">{heroName}</div>
                   </div>
-                  <div className="flex items-center gap-1 rounded-full bg-gold/15 px-3 py-1 text-[11px] font-semibold text-gold glow-gold-sm">
-                    <Sparkles className="h-3 w-3" /> {t("hero.portrait.badge")}
-                  </div>
-                </div>
-              </TiltCard>
-
-              {/* Floating quote card */}
-              <div
-                className="absolute -left-4 top-6 hidden rotate-[-4deg] rounded-2xl border border-border/60 bg-card/85 px-4 py-3 backdrop-blur-xl shadow-luxe sm:block lg:-left-10 float-medium glass"
-                style={reduced || lowPower ? {} : {
-                  transform: `rotate(-4deg) translate(${px * 0.2}px, ${py * 0.15}px)`,
-                  transition: "transform 0.6s cubic-bezier(.22,1,.36,1)",
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  <Heart className="h-4 w-4 fill-primary text-primary" />
-                  <div className="font-display text-sm italic">"{t("hero.quote")}"</div>
-                </div>
-              </div>
-
-              {/* Floating stat badge */}
-              <div
-                className="absolute -right-3 top-1/3 hidden rounded-2xl border border-primary/20 bg-card/80 px-3 py-2.5 backdrop-blur-xl shadow-depth sm:block glass"
-                style={reduced || lowPower ? {} : {
-                  transform: `translate(${px * 0.25}px, ${py * 0.2}px)`,
-                  transition: "transform 0.65s cubic-bezier(.22,1,.36,1)",
-                }}
-              >
-                <div className="text-center">
-                  <div className="text-gradient-pink font-display text-xl font-medium">₹500</div>
-                  <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{t("hero.stat.reward")}</div>
                 </div>
               </div>
             </div>
@@ -278,7 +181,6 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
         </div>
       </div>
 
-      {/* Gradient divider */}
       <div className="container mx-auto px-4">
         <div className="divider-glow" />
       </div>
@@ -286,41 +188,23 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
 function HomePage() {
-  const { data: posts }       = useSuspenseQuery(postsQO);
-  const { data: settings }    = useSuspenseQuery(settingsQO);
-  const { data: whySlides }   = useSuspenseQuery(whyQO);
-  const { data: howSlides }   = useSuspenseQuery(howQO);
-  const { data: chooseSlides } = useSuspenseQuery(chooseQO);
+  const { data: settings } = useSuspenseQuery(settingsQO);
+  const { data: whySlides } = useSuspenseQuery(whyQO);
   const { t } = useLang();
 
-  const vipTiers: Tier[] = safeParse(settings.vip_tiers, [
-    { icon: "🌸", name: t("section.vip.tier1") },
-    { icon: "✨", name: t("section.vip.tier2") },
-    { icon: "💎", name: t("section.vip.tier3") },
-    { icon: "👑", name: t("section.vip.tier4") },
-    { icon: "🌌", name: t("section.vip.tier5") },
-  ]);
-  const vipSupportText = settings.vip_support_text || t("section.vip.support");
-  const vipCtaText     = settings.vip_cta_text     || t("section.vip.cta");
-
-  const packages: Pkg[] = [
-    parsePkg(settings.coin_package_1, { name: t("section.packages.starter"), coins: 100,  price: 99 }),
-    parsePkg(settings.coin_package_2, { name: t("section.packages.popular"), coins: 500,  price: 449 }),
-    parsePkg(settings.coin_package_3, { name: t("section.packages.value"),   coins: 1000, price: 849 }),
-    parsePkg(settings.coin_package_4, { name: t("section.packages.mega"),    coins: 5000, price: 3999 }),
-  ];
-
-  const testimonials = safeParse<Testimonial[]>(settings.testimonials_json, []);
   const announcement = settings.homepage_announcement?.trim();
+
+  const faqs = [
+    { q: t("faq.q1"), a: t("faq.a1") },
+    { q: t("faq.q2"), a: t("faq.a2") },
+    { q: t("faq.q3"), a: t("faq.a3") },
+    { q: t("faq.q4"), a: t("faq.a4") },
+    { q: t("faq.q5"), a: t("faq.a5") },
+  ];
 
   return (
     <SiteLayout>
-      {/* Scroll progress bar */}
-      <ScrollProgress />
-
-      {/* Announcement banner */}
       {announcement && (
         <div className="border-b border-gold/20 bg-gradient-pink/10 backdrop-blur-md">
           <div className="container mx-auto px-4 py-2 text-center text-xs font-medium text-gold">
@@ -329,15 +213,8 @@ function HomePage() {
         </div>
       )}
 
-      {/* ═══════════════ HERO ═══════════════ */}
       <HeroSection settings={settings} />
 
-      {/* ═══════════════ CREATOR ACQUISITION ═══════════════ */}
-      <Reveal variant="fade-up" delay={0} className="w-full">
-        <CreatorAcquisitionSection />
-      </Reveal>
-
-      {/* ═══════════════ WHY BARBIEVERSE ═══════════════ */}
       <section className="container mx-auto px-4 py-14 sm:py-20">
         <Reveal variant="fade-up" className="mx-auto mb-10 max-w-2xl text-center">
           <div className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("section.why.eyebrow")}</div>
@@ -350,29 +227,36 @@ function HomePage() {
         </Reveal>
       </section>
 
-      {/* ═══════════════ HOW SUCCESS HAPPENS ═══════════════ */}
       <section className="relative border-y border-border/40 overflow-hidden">
-        {/* Subtle mesh bg */}
         <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-noir opacity-80" />
-        <div className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-primary/8 blur-[80px]" />
-          <div className="absolute left-0 bottom-0 h-64 w-64 rounded-full bg-accent/8 blur-[80px]" />
-        </div>
         <div className="container mx-auto px-4 py-14 sm:py-20">
           <Reveal variant="fade-up" className="mx-auto mb-10 max-w-2xl text-center">
-            <div className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("section.journey.eyebrow")}</div>
+            <div className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("section.how.eyebrow")}</div>
             <h2 className="mt-3 font-display text-3xl font-medium sm:text-4xl">
-              {t("section.journey.heading")}
+              {t("section.how.heading")}
             </h2>
-            <p className="mt-3 text-sm text-muted-foreground">{t("section.journey.sub")}</p>
           </Reveal>
           <Reveal variant="fade-up" delay={120}>
-            <TimelineCarousel slides={howSlides} />
+            <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3">
+              {[
+                { step: "1", icon: "📱", title: t("section.how.step1.title"), desc: t("section.how.step1.desc") },
+                { step: "2", icon: "💳", title: t("section.how.step2.title"), desc: t("section.how.step2.desc") },
+                { step: "3", icon: "🪙", title: t("section.how.step3.title"), desc: t("section.how.step3.desc") },
+              ].map((s) => (
+                <div key={s.step} className="relative rounded-2xl border border-border/60 bg-card/40 p-6 text-center backdrop-blur-md transition-all duration-200 hover:border-primary/40 hover:bg-card/60">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-pink text-[11px] font-bold text-primary-foreground">
+                    {s.step}
+                  </div>
+                  <div className="mt-4 text-4xl">{s.icon}</div>
+                  <h3 className="mt-4 font-display text-lg font-medium">{s.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">{s.desc}</p>
+                </div>
+              ))}
+            </div>
           </Reveal>
         </div>
       </section>
 
-      {/* ═══════════════ WHAT YOU ACTUALLY EARN ═══════════════ */}
       <section className="container mx-auto px-4 py-14 sm:py-20">
         <Reveal variant="fade-up" className="mx-auto mb-10 max-w-2xl text-center">
           <div className="text-[11px] uppercase tracking-[0.22em] text-gold">What You Actually Earn</div>
@@ -382,23 +266,20 @@ function HomePage() {
         </Reveal>
         <Reveal variant="fade-up" delay={120}>
           <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3">
-            {/* Week 1 */}
-            <div className="rounded-2xl border border-primary/20 bg-card/40 p-6 text-center backdrop-blur-xl card-lift card-glow">
+            <div className="rounded-2xl border border-primary/20 bg-card/40 p-6 text-center backdrop-blur-xl transition-all duration-200 hover:border-primary/40 hover:bg-card/60">
               <div className="text-4xl">🎯</div>
               <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">First Week Guaranteed</div>
               <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">₹1,150 <span className="text-sm text-muted-foreground">(female)</span></div>
               <div className="font-display text-lg font-bold text-foreground/80">₹575 <span className="text-xs text-muted-foreground">(male)</span></div>
               <p className="mt-3 text-xs text-muted-foreground">Stream 2 hours daily for 7 days. Poppo pays you directly. No audience needed.</p>
             </div>
-            {/* Month 1 */}
-            <div className="rounded-2xl border border-gold/20 bg-card/40 p-6 text-center backdrop-blur-xl card-lift card-glow">
+            <div className="rounded-2xl border border-gold/20 bg-card/40 p-6 text-center backdrop-blur-xl transition-all duration-200 hover:border-gold/40 hover:bg-card/60">
               <div className="text-4xl">📈</div>
               <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">Month One Realistic</div>
               <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">₹4,000 – ₹15,000</div>
               <p className="mt-3 text-xs text-muted-foreground">Daily task rewards + viewer gifts + PK battles. Results vary by activity.</p>
             </div>
-            {/* Ongoing */}
-            <div className="rounded-2xl border border-accent/20 bg-card/40 p-6 text-center backdrop-blur-xl card-lift card-glow">
+            <div className="rounded-2xl border border-accent/20 bg-card/40 p-6 text-center backdrop-blur-xl transition-all duration-200 hover:border-accent/40 hover:bg-card/60">
               <div className="text-4xl">💎</div>
               <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">Consistent Streamers</div>
               <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">₹15,000 – ₹80,000/mo</div>
@@ -411,74 +292,47 @@ function HomePage() {
         </Reveal>
       </section>
 
-      {/* ═══════════════ WHY STREAMERS CHOOSE ═══════════════ */}
       <section className="container mx-auto px-4 py-14 sm:py-20">
         <Reveal variant="fade-up" className="mx-auto mb-10 max-w-2xl text-center">
-          <div className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("section.why2.eyebrow")}</div>
+          <div className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("section.faq.eyebrow")}</div>
           <h2 className="mt-3 font-display text-3xl font-medium sm:text-4xl">
-            {t("section.why2.heading")}
+            {t("section.faq.heading")}
           </h2>
         </Reveal>
         <Reveal variant="fade-up" delay={120}>
-          <FeatureCardsCarousel slides={chooseSlides} />
+          <div className="mx-auto max-w-2xl space-y-3">
+            {faqs.map((f, i) => (
+              <FaqItem key={i} q={f.q} a={f.a} />
+            ))}
+          </div>
         </Reveal>
       </section>
 
-      {/* ═══════════════ TESTIMONIALS ═══════════════ */}
-      <Reveal variant="fade-up" className="w-full">
-        <TestimonialsCarousel items={testimonials} />
-      </Reveal>
-
-      {/* ═══════════════ VIP STRIP ═══════════════ */}
-      <Reveal variant="fade-up" className="w-full">
-        <VipStrip tiers={vipTiers} supportText={vipSupportText} ctaText={vipCtaText} />
-      </Reveal>
-
-      {/* ═══════════════ RECHARGE PACKAGES ═══════════════ */}
-      <Reveal variant="fade-up" className="w-full">
-        <RechargePackages packages={packages} />
-      </Reveal>
-
-      {/* ═══════════════ JOURNAL ═══════════════ */}
-      {posts.length > 0 && (
-        <section className="container mx-auto px-4 py-14 sm:py-20">
-          <Reveal variant="fade-up" className="flex items-end justify-between gap-4">
-            <div>
-              <div className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("section.blog.eyebrow")}</div>
-              <h2 className="mt-3 font-display text-3xl font-medium sm:text-4xl">
-                {t("section.blog.heading")}
-              </h2>
+      <section className="border-t border-border/40 bg-gradient-noir">
+        <div className="container mx-auto px-4 py-14 text-center sm:py-20">
+          <Reveal variant="fade-up">
+            <h2 className="font-display text-3xl font-medium sm:text-4xl">
+              Ready to start <span className="italic text-gradient-pink">earning?</span>
+            </h2>
+            <p className="mt-3 text-sm text-muted-foreground">Join hundreds of creators already growing with BarbieVerse.</p>
+            <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+              <Link
+                to="/join"
+                className="group inline-flex h-14 items-center justify-center gap-2 rounded-full bg-gradient-pink px-8 text-sm font-semibold tracking-wide text-primary-foreground glow-pink transition-all hover:scale-[1.02]"
+              >
+                {t("hero.cta.primary")}
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <Link
+                to="/coins"
+                className="inline-flex h-14 items-center justify-center rounded-full border border-border bg-card/40 px-8 text-sm font-semibold backdrop-blur-md transition-all hover:border-gold/60 hover:bg-card/70"
+              >
+                {t("hero.cta.secondary")}
+              </Link>
             </div>
-            <Link to="/blog" className="hidden text-sm font-medium text-gold hover:underline sm:inline-flex">
-              {t("section.blog.viewall")}
-            </Link>
           </Reveal>
-
-          <div className="mt-8 grid gap-6 md:grid-cols-3">
-            {posts.slice(0, 3).map((p: any, i: number) => (
-              <Reveal key={p.id} variant="scale-up" delay={i * 80}>
-                <TiltCard intensity={5} className="h-full">
-                  <Link
-                    to="/blog/$slug"
-                    params={{ slug: p.slug }}
-                    className="group flex h-full flex-col rounded-3xl border border-border/60 bg-card/40 p-6 backdrop-blur-md card-lift glass-card"
-                  >
-                    {p.category && (
-                      <span className="inline-block w-fit rounded-full hairline-gold px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-gold">
-                        {p.category}
-                      </span>
-                    )}
-                    <h3 className="mt-4 font-display text-2xl font-medium leading-tight transition-colors group-hover:text-primary">
-                      {p.title}
-                    </h3>
-                    <p className="mt-3 line-clamp-3 text-sm text-muted-foreground">{p.excerpt}</p>
-                  </Link>
-                </TiltCard>
-              </Reveal>
-            ))}
-          </div>
-        </section>
-      )}
+        </div>
+      </section>
     </SiteLayout>
   );
 }

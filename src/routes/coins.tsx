@@ -87,11 +87,10 @@ function CoinsPage() {
   return (
     <SiteLayout>
       <section className="container mx-auto px-4 py-12 lg:py-16 relative">
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 mx-auto h-[200px] max-w-2xl rounded-full bg-primary/10 blur-[120px] drift" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 mx-auto h-[200px] max-w-2xl rounded-full bg-primary/10 blur-[120px]" />
         {/* Trust bar */}
-        <div className="mx-auto mb-8 flex max-w-3xl flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground glass-surface rounded-2xl px-6 py-4">
+        <div className="mx-auto mb-8 flex max-w-3xl flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground glass rounded-2xl px-6 py-4">
           <span>🔒 Your UID only — never your password</span>
-          <span>⚡️ Coins credited within 30 minutes</span>
           <span>💬 WhatsApp support available</span>
           <span>🇮🇳 UPI payment — zero extra charges</span>
         </div>
@@ -134,7 +133,7 @@ function CoinsPage() {
               </div>
               <div className="text-center card-lift rounded-2xl p-6">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-pink text-lg font-bold text-primary-foreground">3</div>
-                <p className="mt-3 text-sm text-muted-foreground">Coins credited to your Poppo account within 30 minutes</p>
+                <p className="mt-3 text-sm text-muted-foreground">Coins credited to your Poppo account after verification</p>
               </div>
             </div>
           </div>

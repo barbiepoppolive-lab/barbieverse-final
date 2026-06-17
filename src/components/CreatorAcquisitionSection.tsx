@@ -40,7 +40,7 @@ export function CreatorAcquisitionSection() {
 
   return (
     <section className="relative border-b border-gold/15 bg-gradient-to-b from-background via-card/20 to-background">
-      <div className="pointer-events-none absolute -top-10 right-0 -z-10 h-[320px] w-[320px] rounded-full bg-primary/15 blur-[120px] drift" />
+      <div className="pointer-events-none absolute -top-10 right-0 -z-10 h-[320px] w-[320px] rounded-full bg-primary/15 blur-[120px]" />
       <div className="container mx-auto px-4 py-14 sm:py-20">
         <div className="mx-auto mb-10 max-w-2xl text-center">
           <div className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("creator.eyebrow")}</div>

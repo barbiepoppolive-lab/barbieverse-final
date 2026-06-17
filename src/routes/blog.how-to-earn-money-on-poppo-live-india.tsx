@@ -182,7 +182,7 @@ export function HowToEarnBlogPost() {
             </div>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link to="/join" className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-gradient-pink px-6 text-sm font-bold text-primary-foreground glow-pink btn-magnetic">
+              <Link to="/join" className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-gradient-pink px-6 text-sm font-bold text-primary-foreground glow-pink ">
                 <Rocket /> Get Started
               </Link>
               <a href="#beginner-checklist" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-border bg-card/40 px-6 text-sm font-semibold backdrop-blur-md hover:border-gold/60">
@@ -537,7 +537,7 @@ export function HowToEarnBlogPost() {
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <Link
                 to="/join"
-                className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-gradient-pink px-8 text-sm font-bold text-primary-foreground glow-pink btn-magnetic"
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-gradient-pink px-8 text-sm font-bold text-primary-foreground glow-pink "
               >
                 🚀 Get Started
               </Link>
