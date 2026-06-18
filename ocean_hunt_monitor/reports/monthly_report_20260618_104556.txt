@@ -1,0 +1,17 @@
+======================================================================
+OCEAN HUNT MAX HIT MONITOR - MONTHLY REPORT
+Generated: 2026-06-18 10:45 IST
+Period: Last 30 days
+======================================================================
+
+## SUMMARY
+Total Max Hit events: 0
+Total Big Win overlays: 0
+Total Needs Review: 0
+
+## BUSINESS RECOMMENDATION
+  Insufficient data for recommendations (need >= 5 Max Hit events)
+
+======================================================================
+END OF REPORT
+======================================================================

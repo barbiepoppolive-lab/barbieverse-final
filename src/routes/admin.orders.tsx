@@ -70,13 +70,13 @@ function getWhatsAppMessage(order: any): string {
 
   switch (order.status) {
     case "awaiting_payment":
-      return `Hi ${name}! 👋\n\nYour Order #${orderId} is waiting for payment.\n🎮 Package: ${coins} coins\n💰 Amount: ₹${amount}\n🎮 Poppo ID: ${poppoId}\n\nPay ₹${amount} to UPI ID: thestrongwingsofficial@okaxis\nNote: BV-${orderId}\n\nTrack: ${trackUrl}`;
+      return `Hi ${name}! 👋\n\nYour Order #${orderId} is waiting for payment.\n🎮 Package: ${coins} coins\n💰 Amount: ₹${amount}\n🎮 Poppo/Vone ID: ${poppoId}\n\nPay ₹${amount} to UPI ID: thestrongwingsofficial@okaxis\nNote: BV-${orderId}\n\nTrack: ${trackUrl}`;
     case "pending":
-      return `Hi ${name}! ✅\n\nPayment received for Order #${orderId}.\n💰 Amount: ₹${amount}\n🎮 Poppo ID: ${poppoId}\n📦 Coins: ${coins}\n\nYour coins will be credited within 30 minutes.\nTrack: ${trackUrl}`;
+      return `Hi ${name}! ✅\n\nPayment received for Order #${orderId}.\n💰 Amount: ₹${amount}\n🎮 Poppo/Vone ID: ${poppoId}\n📦 Coins: ${coins}\n\nYour coins will be credited within 30 minutes.\nTrack: ${trackUrl}`;
     case "paid_pending_delivery":
-      return `Hi ${name}! ✅\n\nPayment received for Order #${orderId}.\n💰 Amount: ₹${amount}\n🎮 Poppo ID: ${poppoId}\n📦 Coins: ${coins}\n\nYour coins will be credited within 30 minutes.\nTrack: ${trackUrl}`;
+      return `Hi ${name}! ✅\n\nPayment received for Order #${orderId}.\n💰 Amount: ₹${amount}\n🎮 Poppo/Vone ID: ${poppoId}\n📦 Coins: ${coins}\n\nYour coins will be credited within 30 minutes.\nTrack: ${trackUrl}`;
     case "completed":
-      return `Hi ${name}! 🎉\n\nOrder #${orderId} is complete!\n📦 ${coins} coins credited to Poppo ID ${poppoId}\n\nEnjoy streaming! Thank you for choosing Barbieverse 💖\nTrack: ${trackUrl}`;
+      return `Hi ${name}! 🎉\n\nOrder #${orderId} is complete!\n📦 ${coins} coins credited to Poppo/Vone ID ${poppoId}\n\nEnjoy streaming! Thank you for choosing Barbieverse 💖\nTrack: ${trackUrl}`;
     case "rejected":
       return `Hi ${name},\n\nOrder #${orderId} could not be processed.\n💰 Refund of ₹${amount} will be credited within 3-5 business days.\n\nContact us for questions.`;
     default:
@@ -147,7 +147,7 @@ function OrderRow({ o, onRefresh }: { o: any; onRefresh: () => void }) {
           {refundBadge(o.refund_status)}
         </td>
 
-        {/* Poppo ID */}
+        {/* Poppo/Vone ID */}
         <td className="px-4 py-3 font-mono text-xs">{o.poppo_id}</td>
 
         {/* Package */}
@@ -212,7 +212,7 @@ function OrderRow({ o, onRefresh }: { o: any; onRefresh: () => void }) {
                 <div className="rounded-lg border border-border bg-card shadow-lg p-2 space-y-1">
                   <div className="text-[10px] text-muted-foreground uppercase tracking-wider px-2 py-1">Quick Messages</div>
                   <a
-                    href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hi ${o.name}! ✅\n\nPayment received for Order #${o.id.slice(0,8)}.\n💰 Amount: ₹${o.amount}\n🎮 Poppo ID: ${o.poppo_id}\n📦 Coins: ${o.coins}\n\nYour coins will be credited within 30 minutes.\nTrack: ${window.location.origin}/track?id=${o.id}`)}`}
+                    href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hi ${o.name}! ✅\n\nPayment received for Order #${o.id.slice(0,8)}.\n💰 Amount: ₹${o.amount}\n🎮 Poppo/Vone ID: ${o.poppo_id}\n📦 Coins: ${o.coins}\n\nYour coins will be credited within 30 minutes.\nTrack: ${window.location.origin}/track?id=${o.id}`)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="block px-2 py-1.5 text-xs rounded hover:bg-green-500/10 text-green-400"
@@ -220,7 +220,7 @@ function OrderRow({ o, onRefresh }: { o: any; onRefresh: () => void }) {
                     ✅ Payment Received
                   </a>
                   <a
-                    href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hi ${o.name}! 🎉\n\nOrder #${o.id.slice(0,8)} is complete!\n📦 ${o.coins} coins credited to Poppo ID ${o.poppo_id}\n\nEnjoy streaming! Thank you for choosing Barbieverse 💖\nTrack: ${window.location.origin}/track?id=${o.id}`)}`}
+                    href={`https://wa.me/${o.whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hi ${o.name}! 🎉\n\nOrder #${o.id.slice(0,8)} is complete!\n📦 ${o.coins} coins credited to Poppo/Vone ID ${o.poppo_id}\n\nEnjoy streaming! Thank you for choosing Barbieverse 💖\nTrack: ${window.location.origin}/track?id=${o.id}`)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="block px-2 py-1.5 text-xs rounded hover:bg-green-500/10 text-green-400"
@@ -358,7 +358,7 @@ function OrdersPage() {
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin", "orders"] });
 
   const exportCsv = () => {
-    const headers = ["Name", "WhatsApp", "Poppo ID", "Package", "Coins", "Amount", "Method", "UTR", "Status", "Refund", "Notes", "Date"];
+    const headers = ["Name", "WhatsApp", "Poppo/Vone ID", "Package", "Coins", "Amount", "Method", "UTR", "Status", "Refund", "Notes", "Date"];
     const rows = orders.map((o: any) =>
       [o.name, o.whatsapp, o.poppo_id, o.package, o.coins, o.amount,
         o.payment_method || "upi", o.utr, o.status, o.refund_status, o.admin_notes,
@@ -437,7 +437,7 @@ function OrdersPage() {
           <thead className="bg-secondary/40 text-left text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-4 py-3">Customer</th>
-              <th className="px-4 py-3">Poppo ID</th>
+              <th className="px-4 py-3">Poppo/Vone ID</th>
               <th className="px-4 py-3">Package</th>
               <th className="px-4 py-3">Amount</th>
               <th className="px-4 py-3">Method</th>

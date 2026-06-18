@@ -12,7 +12,7 @@ export const Route = createFileRoute("/track")({
   head: () => ({
     meta: [
       { title: "Track Your Order | Barbieverse" },
-      { name: "description", content: "Check the status of your Poppo Live coin recharge order." },
+      { name: "description", content: "Check the status of your Poppo/Vone Live coin recharge order." },
     ],
   }),
   validateSearch: (s: Record<string, unknown>) => ({
@@ -26,7 +26,7 @@ const STATUS_META: Record<string, { label: string; color: string; icon: typeof C
   pending:              { label: "Pending",             color: "text-yellow-400",  icon: Clock,        desc: "Your order is pending payment verification." },
   paid_pending_delivery:{ label: "Payment Received ✓", color: "text-blue-400",    icon: Clock,        desc: "Payment confirmed. Our team is sending your coins now." },
   verified:             { label: "Verified",            color: "text-purple-400",  icon: CheckCircle2, desc: "Payment verified. Coins being credited." },
-  completed:            { label: "Coins Credited ✓",   color: "text-emerald-400", icon: CheckCircle2, desc: "Your coins have been credited to your Poppo account." },
+  completed:            { label: "Coins Credited ✓",   color: "text-emerald-400", icon: CheckCircle2, desc: "Your coins have been credited to your Poppo/Vone account." },
   rejected:             { label: "Rejected",            color: "text-red-400",     icon: XCircle,      desc: "This order was rejected. Please contact support." },
 };
 
@@ -182,7 +182,7 @@ export function TrackPage() {
                 <div className="mt-5 space-y-2 rounded-xl bg-secondary/40 p-4 text-sm">
                   <Row label="Package" value={`${order.package} — ${order.coins} coins`} />
                   <Row label="Amount" value={`₹${order.amount}`} />
-                  <Row label="Poppo ID" value={order.poppo_id} mono />
+                  <Row label="Poppo/Vone ID" value={order.poppo_id} mono />
                   <Row label="Payment" value={order.payment_method.toUpperCase()} />
                   <Row label="Placed" value={fmt(order.created_at)} />
                   {order.paid_at && <Row label="Paid" value={fmt(order.paid_at)} />}

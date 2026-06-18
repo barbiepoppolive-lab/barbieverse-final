@@ -47,7 +47,7 @@ export async function sendTelegramWithWhatsAppButtons(opts: {
   let msg = `${titles[opts.alertType] || "📦 ORDER UPDATE"}\n\n` +
     `👤 Customer: ${opts.customerName}\n` +
     `📱 WhatsApp: ${opts.customerWhatsapp}\n` +
-    `🎮 Poppo ID: ${opts.poppoId}\n` +
+    `🎮 Poppo/Vone ID: ${opts.poppoId}\n` +
     `📦 ${opts.coins} coins (${opts.packageName})\n` +
     `💰 Amount: ₹${opts.amountRupees}\n` +
     `📋 Order: #${shortId}`;
@@ -69,7 +69,7 @@ export async function sendTelegramWithWhatsAppButtons(opts: {
       {
         text: "🎉 Send Coins Credited",
         url: `https://wa.me/${opts.customerWhatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-          `Hi ${opts.customerName}! Your ${opts.coins} coins have been credited to Poppo ID ${opts.poppoId}! 🎉 Enjoy streaming! Thank you for choosing Barbieverse 💖`
+          `Hi ${opts.customerName}! Your ${opts.coins} coins have been credited to Poppo/Vone ID ${opts.poppoId}! 🎉 Enjoy streaming! Thank you for choosing Barbieverse 💖`
         )}`,
       },
     ]);
@@ -88,7 +88,7 @@ export async function sendTelegramWithWhatsAppButtons(opts: {
       {
         text: "🎉 Send Coins Credited",
         url: `https://wa.me/${opts.customerWhatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-          `Hi ${opts.customerName}! Your ${opts.coins} coins have been credited to Poppo ID ${opts.poppoId}! 🎉 Enjoy streaming! Thank you for choosing Barbieverse 💖`
+          `Hi ${opts.customerName}! Your ${opts.coins} coins have been credited to Poppo/Vone ID ${opts.poppoId}! 🎉 Enjoy streaming! Thank you for choosing Barbieverse 💖`
         )}`,
       },
     ]);
@@ -156,7 +156,7 @@ export function getWhatsAppPaymentReceivedMessage(opts: {
   poppoId: string;
   amount: string;
 }): string {
-  return `Hi ${opts.name}, we received your payment for Order #${opts.orderId.slice(0,8)}. Your ${opts.coins} coins for Poppo ID ${opts.poppoId} will be credited within 30 minutes. Track: ${process.env.PUBLIC_APP_URL || "https://barbieverse.org"}/track?id=${opts.orderId}`;
+  return `Hi ${opts.name}, we received your payment for Order #${opts.orderId.slice(0,8)}. Your ${opts.coins} coins for Poppo/Vone ID ${opts.poppoId} will be credited within 30 minutes. Track: ${process.env.PUBLIC_APP_URL || "https://barbieverse.org"}/track?id=${opts.orderId}`;
 }
 
 export function getWhatsAppCoinsCreditedMessage(opts: {
@@ -165,7 +165,7 @@ export function getWhatsAppCoinsCreditedMessage(opts: {
   coins: number;
   poppoId: string;
 }): string {
-  return `Hi ${opts.name}, your ${opts.coins} coins have been credited to Poppo ID ${opts.poppoId}! 🎉 Enjoy streaming! Thank you for choosing Barbieverse 💖`;
+  return `Hi ${opts.name}, your ${opts.coins} coins have been credited to Poppo/Vone ID ${opts.poppoId}! 🎉 Enjoy streaming! Thank you for choosing Barbieverse 💖`;
 }
 
 
@@ -218,7 +218,7 @@ export function welcomeEmailHtml(name: string) {
         <h1 style="color:#ff3b8b;margin:0 0 8px 0;font-size:28px;">Welcome to Barbieverse, ${name}! 💖</h1>
         <p style="color:#d0d0d0;line-height:1.6;">
           Thank you for joining our influencer family. You're now part of the
-          <b style="color:#ff3b8b;">Barbieverse creator ecosystem</b> on Poppo Live.
+          <b style="color:#ff3b8b;">Barbieverse creator ecosystem</b> on Poppo/Vone Live.
         </p>
         <p style="color:#d0d0d0;line-height:1.6;">
           Our team will reach out on WhatsApp shortly with your next steps and exclusive perks.

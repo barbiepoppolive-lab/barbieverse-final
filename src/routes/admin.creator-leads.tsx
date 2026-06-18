@@ -80,7 +80,7 @@ function CreatorLeadsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-bold">Creator Leads</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Acquisition pipeline for Poppo & Vone via BarbieVerse.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Acquisition pipeline for Poppo/Vone & Vone via BarbieVerse.</p>
         </div>
         <button onClick={exportCsv} className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card/60 px-3 text-xs font-semibold hover:border-primary">
           <Download className="h-3.5 w-3.5" /> Export CSV
@@ -91,7 +91,7 @@ function CreatorLeadsPage() {
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
         <StatCard label="Total Leads" value={stats.total ?? 0} />
         <StatCard label="Today" value={stats.today ?? 0} />
-        <StatCard label="Poppo" value={stats.poppo ?? 0} />
+        <StatCard label="Poppo/Vone" value={stats.poppo ?? 0} />
         <StatCard label="Vone" value={stats.vone ?? 0} />
         <StatCard label="Pending Verification" value={stats.pending_verification ?? 0} />
         <StatCard label="Pending Rewards" value={stats.pending_rewards ?? 0} />

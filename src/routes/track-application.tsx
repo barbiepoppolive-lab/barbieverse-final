@@ -130,7 +130,7 @@ function LeadCard({ lead }: { lead: any }) {
       </div>
 
       <dl className="mt-5 grid gap-3 sm:grid-cols-2">
-        <Info label="Platform" value={lead.platform === "vone" ? "Vone" : "Poppo"} />
+        <Info label="Platform" value={lead.platform === "vone" ? "Vone" : "Poppo/Vone"} />
         <Info label="Reward Status" value={lead.reward_status} />
         <Info label="Submitted" value={new Date(lead.created_at).toLocaleString("en-IN")} />
         <Info label="Last Updated" value={new Date(lead.updated_at).toLocaleString("en-IN")} />

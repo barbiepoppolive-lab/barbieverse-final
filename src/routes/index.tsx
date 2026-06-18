@@ -18,9 +18,9 @@ const settingsQO = queryOptions({ queryKey: ["public-settings"], queryFn: () => 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Barbieverse — India's Highest Wealth-Level Poppo Creator Agency" },
-      { name: "description", content: "Join the creator ecosystem built by Barbie, India's highest wealth-level Poppo Live creator. Onboarding, growth, rewards and premium support for new streamers." },
-      { property: "og:title", content: "Barbieverse — Creator Ecosystem by India's Top Poppo Creator" },
+      { title: "Barbieverse — India's Highest Wealth-Level Poppo/Vone Creator Agency" },
+      { name: "description", content: "Join the creator ecosystem built by Barbie, India's highest wealth-level Poppo/Vone Live creator. Onboarding, growth, rewards and premium support for new streamers." },
+      { property: "og:title", content: "Barbieverse — Creator Ecosystem by India's Top Poppo/Vone Creator" },
       { property: "og:description", content: "Start, grow and earn from home with the BarbieVerse creator agency." },
     ],
   }),
@@ -193,7 +193,7 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
                         👑
                       </div>
                       <div>
-                        <div className="text-[9px] uppercase tracking-[0.2em] text-gold/80">Poppo ID</div>
+                        <div className="text-[9px] uppercase tracking-[0.2em] text-gold/80">Poppo/Vone ID</div>
                         <div className="font-mono text-sm font-bold text-foreground">2517496</div>
                       </div>
                     </div>

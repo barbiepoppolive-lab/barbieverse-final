@@ -122,14 +122,14 @@ Questions about these Terms? Visit our [Contact page](/contact).`,
 
   policy_creator_reward: `## What Is The Creator Reward
 
-When you join Poppo Live through BarbieVerse, you gain access to Poppo's **Solo Live Mission** — a guaranteed first-week earning program for new hosts. This is paid directly by Poppo Live, not by BarbieVerse.
+When you join Poppo/Vone Live through BarbieVerse, you gain access to Poppo/Vone's **Solo Live Mission** — a guaranteed first-week earning program for new hosts. This is paid directly by Poppo/Vone Live, not by BarbieVerse.
 
-## How The Poppo First Week Mission Works
+## How The Poppo/Vone First Week Mission Works
 
 - Stream **2 hours daily** for **7 consecutive days**
-- Complete **face authentication** on your Poppo account
-- Reach **Level 5** on your Poppo profile
-- Poppo pays you **20,000 points ($2) daily** — totalling $14 (₹1,150) in week one
+- Complete **face authentication** on your Poppo/Vone account
+- Reach **Level 5** on your Poppo/Vone profile
+- Poppo/Vone pays you **20,000 points ($2) daily** — totalling $14 (₹1,150) in week one
 
 ## Gender-Based Earnings
 
@@ -165,14 +165,14 @@ The following may result in disqualification from reward campaigns:
 
 ## Creator Earnings Disclaimer
 
-- Week 1 earnings are guaranteed through Poppo's Solo Live Mission if requirements are met.
+- Week 1 earnings are guaranteed through Poppo/Vone's Solo Live Mission if requirements are met.
 - Ongoing earnings are **not guaranteed**.
 - Results vary based on creator activity, audience engagement and platform-specific factors.
 - **Past creator performance does not guarantee future earnings.**
 
 ## Platform Independence
 
-BarbieVerse is an **independent creator support ecosystem**. Platform operations, account approvals, account restrictions and creator earnings remain under the control of Poppo Live.
+BarbieVerse is an **independent creator support ecosystem**. Platform operations, account approvals, account restrictions and creator earnings remain under the control of Poppo/Vone Live.
 
 ## Policy Updates
 
@@ -186,7 +186,7 @@ BarbieVerse provides recharge assistance for supported platforms. Delivery times
 
 Users must provide:
 
-- **Correct platform** (e.g. Poppo Live)
+- **Correct platform** (e.g. Poppo/Vone Live)
 - **Correct user ID** on the target platform
 - **Correct payment information**
 

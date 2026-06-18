@@ -15,7 +15,7 @@ export const Route = createFileRoute("/admin/posts")({
   component: PostsAdmin,
 });
 
-const CATEGORIES = ["Poppo Tips", "Influencer Advice", "Coin Offers", "News", "Tutorial"];
+const CATEGORIES = ["Poppo/Vone Tips", "Influencer Advice", "Coin Offers", "News", "Tutorial"];
 
 function PostsAdmin() {
   const qc = useQueryClient();

@@ -29,16 +29,16 @@ const settingsQO = queryOptions({ queryKey: ["public-settings"], queryFn: () => 
 export const Route = createFileRoute("/join/wobb")({
   head: () => ({
     meta: [
-      { title: "Wobb x Barbieverse — Earn ₹1,150+ Poppo Bonus | Barbieverse" },
+      { title: "Wobb x Barbieverse — Earn ₹1,150+ Poppo/Vone Bonus | Barbieverse" },
       {
         name: "description",
         content:
-          "You found us on Wobb! Claim your exclusive ₹1,150+ Poppo Live joining bonus. Sign up in 60 seconds.",
+          "You found us on Wobb! Claim your exclusive ₹1,150+ Poppo/Vone Live joining bonus. Sign up in 60 seconds.",
       },
-      { property: "og:title", content: "Wobb x Barbieverse — Earn ₹1,150+ Poppo Bonus" },
+      { property: "og:title", content: "Wobb x Barbieverse — Earn ₹1,150+ Poppo/Vone Bonus" },
       {
         property: "og:description",
-        content: "You found us on Wobb! Claim your ₹1,150+ Poppo joining bonus.",
+        content: "You found us on Wobb! Claim your ₹1,150+ Poppo/Vone joining bonus.",
       },
     ],
   }),
@@ -63,8 +63,8 @@ function WobbJoinPage() {
     {
       num: "1",
       icon: <Smartphone className="h-6 w-6" />,
-      title: "Open Poppo Live",
-      desc: "Download and open the Poppo Live app. Log in to your account or create one.",
+      title: "Open Poppo/Vone Live",
+      desc: "Download and open the Poppo/Vone Live app. Log in to your account or create one.",
       color: "from-pink-500/20 to-pink-500/5",
       borderColor: "border-pink-500/30",
     },
@@ -122,7 +122,7 @@ function WobbJoinPage() {
               <span className="font-semibold text-gold">Join Agency</span>
             </div>
             <div className="mt-2 text-[11px] text-muted-foreground">
-              Look for "Join Agency" in your Poppo app settings
+              Look for "Join Agency" in your Poppo/Vone app settings
             </div>
           </div>
         </div>
@@ -168,7 +168,7 @@ function WobbJoinPage() {
                       {copied && (
                         <div className="mt-2 flex items-center gap-1.5 text-xs text-green-500 font-medium">
                           <CheckCircle2 className="h-3.5 w-3.5" />
-                          Copied! Paste it in the Poppo app
+                          Copied! Paste it in the Poppo/Vone app
                         </div>
                       )}
                     </div>

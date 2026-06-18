@@ -10,11 +10,11 @@ const postsQO = queryOptions({ queryKey: ["posts", "all"], queryFn: () => listPo
 export const Route = createFileRoute("/blog")({
   head: () => ({
     meta: [
-      { title: "Blog — Poppo Tips, Influencer Advice & Coin Deals | Barbieverse" },
+      { title: "Blog — Poppo/Vone Tips, Influencer Advice & Coin Deals | Barbieverse" },
       {
         name: "description",
         content:
-          "Read the latest Poppo Live tips, influencer growth advice, and coin recharge offers from Barbieverse.",
+          "Read the latest Poppo/Vone Live tips, influencer growth advice, and coin recharge offers from Barbieverse.",
       },
     ],
   }),
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/blog")({
   errorComponent: ({ error }) => <div className="p-8">Error: {error.message}</div>,
 });
 
-const categories = ["all", "Poppo Tips and Tricks", "Influencer Advice", "Coin Offers and Deals"];
+const categories = ["all", "Poppo/Vone Tips and Tricks", "Influencer Advice", "Coin Offers and Deals"];
 
 function BlogList() {
   const { data: posts } = useSuspenseQuery(postsQO);
@@ -44,7 +44,7 @@ function BlogList() {
             The <span className="text-gradient-pink">Barbieverse</span> Blog
           </h1>
           <p className="mt-3 text-muted-foreground">
-            Tips, deals & advice for Poppo Live creators
+            Tips, deals & advice for Poppo/Vone Live creators
           </p>
         </div>
 
@@ -57,7 +57,7 @@ function BlogList() {
             <div className="flex-1">
               <span className="inline-block rounded-full bg-gold/15 px-3 py-1 text-xs font-medium text-gold">Featured Guide</span>
               <h2 className="mt-3 font-display text-xl font-bold transition-colors group-hover:text-gold sm:text-2xl">
-                How to Earn Money on Poppo Live in India (2026 Beginner Guide)
+                How to Earn Money on Poppo/Vone Live in India (2026 Beginner Guide)
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 Complete step-by-step guide for new creators. From account setup to your first earnings.

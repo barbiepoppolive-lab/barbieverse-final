@@ -21,7 +21,7 @@ function MarketingPage() {
 
   const [selected, setSelected] = useState<Set<string>>(() => new Set(contacts.map((c: any) => c.whatsapp)));
   const [message, setMessage] = useState(
-    "💖 Barbieverse offer! Get bonus coins on your next Poppo recharge. Reply YES for today's deal.",
+    "💖 Barbieverse offer! Get bonus coins on your next Poppo/Vone recharge. Reply YES for today's deal.",
   );
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ sent: number; failed: number } | null>(null);

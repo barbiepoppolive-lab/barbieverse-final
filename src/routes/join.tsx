@@ -28,16 +28,16 @@ const settingsQO = queryOptions({ queryKey: ["public-settings"], queryFn: () => 
 export const Route = createFileRoute("/join")({
   head: () => ({
     meta: [
-      { title: "Join Barbieverse — Start Earning on Poppo Live | Barbieverse" },
+      { title: "Join Barbieverse — Start Earning on Poppo/Vone Live | Barbieverse" },
       {
         name: "description",
         content:
-          "Join India's top Poppo creator agency in 4 simple steps. Copy our Agency ID, paste in Poppo app, and start earning.",
+          "Join India's top Poppo/Vone creator agency in 4 simple steps. Copy our Agency ID, paste in Poppo/Vone app, and start earning.",
       },
-      { property: "og:title", content: "Join Barbieverse — Start Earning on Poppo Live" },
+      { property: "og:title", content: "Join Barbieverse — Start Earning on Poppo/Vone Live" },
       {
         property: "og:description",
-        content: "Join India's top Poppo creator agency in 4 simple steps.",
+        content: "Join India's top Poppo/Vone creator agency in 4 simple steps.",
       },
     ],
   }),
@@ -62,8 +62,8 @@ function JoinPageNew() {
     {
       num: "1",
       icon: <Smartphone className="h-6 w-6" />,
-      title: "Open Poppo Live",
-      desc: "Download and open the Poppo Live app. Log in to your account or create one.",
+      title: "Open Poppo/Vone Live",
+      desc: "Download and open the Poppo/Vone Live app. Log in to your account or create one.",
       color: "from-pink-500/20 to-pink-500/5",
       borderColor: "border-pink-500/30",
     },
@@ -100,7 +100,7 @@ function JoinPageNew() {
         {/* Header */}
         <div className="text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">
-            <BadgeCheck className="h-3.5 w-3.5" /> Official Poppo Agency
+            <BadgeCheck className="h-3.5 w-3.5" /> Official Poppo/Vone Agency
           </div>
           <h1 className="mt-4 font-display text-3xl font-bold sm:text-4xl lg:text-5xl">
             Join <span className="text-gradient-pink">Barbieverse</span>
@@ -121,7 +121,7 @@ function JoinPageNew() {
               <span className="font-semibold text-gold">Join Agency</span>
             </div>
             <div className="mt-2 text-[11px] text-muted-foreground">
-              Look for "Join Agency" in your Poppo app settings
+              Look for "Join Agency" in your Poppo/Vone app settings
             </div>
           </div>
         </div>
@@ -168,7 +168,7 @@ function JoinPageNew() {
                       {copied && (
                         <div className="mt-2 flex items-center gap-1.5 text-xs text-green-500 font-medium">
                           <CheckCircle2 className="h-3.5 w-3.5" />
-                          Copied! Paste it in the Poppo app
+                          Copied! Paste it in the Poppo/Vone app
                         </div>
                       )}
                     </div>

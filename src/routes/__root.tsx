@@ -78,8 +78,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Barbieverse — Poppo Live Creator Agency | Earn ₹1,150+ First Week" },
-      { name: "description", content: "Join Poppo Live via Barbieverse agency. Earn ₹1,150+ in your first week. Safe UPI coin recharge for India's fastest growing live streaming app." },
+      { title: "Barbieverse — Poppo/Vone Live Creator Agency | Earn ₹1,150+ First Week" },
+      { name: "description", content: "Join Poppo/Vone Live via Barbieverse agency. Earn ₹1,150+ in your first week. Safe UPI coin recharge for India's fastest growing live streaming app." },
       { name: "theme-color", content: "#ff1f8f" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Barbieverse" },
@@ -103,7 +103,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           url: "https://barbieverse.org",
           logo: "/__l5e/assets-v1/7e05a3d0-85cd-4fae-be66-47e973d674b6/og-home.jpg",
           description:
-            "India's premier creator agency for Poppo Live — onboarding, ₹1,150+ first week bonus, and growth support.",
+            "India's premier creator agency for Poppo/Vone Live — onboarding, ₹1,150+ first week bonus, and growth support.",
           sameAs: [],
         }),
       },

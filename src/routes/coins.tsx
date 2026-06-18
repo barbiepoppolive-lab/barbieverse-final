@@ -17,8 +17,8 @@ const settingsQO = queryOptions({ queryKey: ["public-settings"], queryFn: () => 
 export const Route = createFileRoute("/coins")({
   head: () => ({
     meta: [
-      { title: "Recharge Poppo Live Coins — UPI Auto-Verify | Barbieverse" },
-      { name: "description", content: "Recharge Poppo Live coins safely via UPI. Auto-verified payments, coins delivered in minutes." },
+      { title: "Recharge Poppo/Vone Live Coins — UPI Auto-Verify | Barbieverse" },
+      { name: "description", content: "Recharge Poppo/Vone Live coins safely via UPI. Auto-verified payments, coins delivered in minutes." },
     ],
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(settingsQO),
@@ -133,7 +133,7 @@ function CoinsPage() {
               </div>
               <div className="text-center card-lift rounded-2xl p-6">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-pink text-lg font-bold text-primary-foreground">3</div>
-                <p className="mt-3 text-sm text-muted-foreground">Coins credited to your Poppo account after verification</p>
+                <p className="mt-3 text-sm text-muted-foreground">Coins credited to your Poppo/Vone account after verification</p>
               </div>
             </div>
           </div>
@@ -233,14 +233,14 @@ function CoinsPage() {
             <div className="mt-8 space-y-4">
               <FaqItem
                 q="Is it safe to recharge here?"
-                a="Yes. We only need your Poppo User ID. We never ask for your password or login credentials."
+                a="Yes. We only need your Poppo/Vone User ID. We never ask for your password or login credentials."
               />
               <FaqItem
                 q="How long does delivery take?"
                 a="Within 30 minutes of payment verification during business hours."
               />
               <FaqItem
-                q="What if I enter the wrong Poppo ID?"
+                q="What if I enter the wrong Poppo/Vone ID?"
                 a="Double-check your ID before submitting. We cannot reverse transactions with incorrect IDs."
               />
               <FaqItem
@@ -248,8 +248,8 @@ function CoinsPage() {
                 a="UPI only. Scan our QR code or use our UPI ID directly."
               />
               <FaqItem
-                q="How do I find my Poppo User ID?"
-                a="Open Poppo app → tap My → your numeric ID is below your profile photo."
+                q="How do I find my Poppo/Vone User ID?"
+                a="Open Poppo/Vone app → tap My → your numeric ID is below your profile photo."
               />
             </div>
           </div>
@@ -378,7 +378,7 @@ function DetailsStep({
 
 
       <div>
-        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Poppo Live ID <span className="text-primary">*</span></label>
+        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Poppo/Vone Live ID <span className="text-primary">*</span></label>
         <input
           value={poppoId}
           onChange={(e) => setPoppoId(e.target.value.replace(/[^\d]/g, "").slice(0, 10))}
@@ -392,11 +392,11 @@ function DetailsStep({
         />
         {poppoTouched && !poppoValid ? (
           <p className="mt-1.5 flex items-center gap-1.5 text-xs text-destructive">
-            <AlertCircle className="h-3.5 w-3.5" /> Poppo ID must be 8–10 digits (numbers only).
+            <AlertCircle className="h-3.5 w-3.5" /> Poppo/Vone ID must be 8–10 digits (numbers only).
           </p>
         ) : (
           <p className="mt-1.5 text-[11px] text-muted-foreground">
-            Find it on your Poppo profile as <span className="font-mono">ID: XXXXXXXX</span>. This is permanent.
+            Find it on your Poppo/Vone profile as <span className="font-mono">ID: XXXXXXXX</span>. This is permanent.
           </p>
         )}
       </div>

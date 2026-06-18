@@ -50,7 +50,7 @@ function UpiSetupPage() {
           <li>Pays via UPI to <b>thestrongwingsofficial@okaxis</b></li>
           <li>Enters their 12-digit UTR transaction ID</li>
           <li>Order moves to <b>paid_pending_delivery</b> — you get a <b>Telegram alert</b></li>
-          <li>You verify payment in bank app, send coins via Poppo</li>
+          <li>You verify payment in bank app, send coins via Poppo/Vone</li>
           <li>Go to <b>Admin → Orders</b>, click WhatsApp button → send "Coins Credited" message</li>
           <li>Change order status to <b>completed</b></li>
         </ol>

@@ -20,8 +20,8 @@ export const Route = createFileRoute("/blog/$slug")({
     if (HARDCODED_SLUGS[params.slug]) {
       return {
         meta: [
-          { title: "How to Earn Money on Poppo Live in India (2026 Beginner Guide) | Barbieverse" },
-          { name: "description", content: "Complete beginner guide to earning money on Poppo Live in India." },
+          { title: "How to Earn Money on Poppo/Vone Live in India (2026 Beginner Guide) | Barbieverse" },
+          { name: "description", content: "Complete beginner guide to earning money on Poppo/Vone Live in India." },
         ],
       };
     }

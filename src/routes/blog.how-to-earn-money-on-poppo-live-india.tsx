@@ -11,21 +11,21 @@ const BASE_URL = typeof window !== "undefined" ? window.location.origin : "https
 const CANONICAL_URL = `${BASE_URL}/blog/how-to-earn-money-on-poppo-live-india`;
 
 const FAQ_DATA = [
-  { q: "Do I need viewers to start streaming on Poppo Live?", a: "No. Many onboarding campaigns focus on completing streaming tasks rather than reaching a minimum audience size. Beginners can start with zero viewers." },
-  { q: "Can I start with zero followers?", a: "Yes. Poppo Live is designed for new creators. You do not need an existing audience to create an account, complete verification, or go live." },
-  { q: "Can college students stream on Poppo Live?", a: "Yes, provided you meet the platform's minimum age requirement. Many creators stream part-time alongside studies." },
+  { q: "Do I need viewers to start streaming on Poppo/Vone Live?", a: "No. Many onboarding campaigns focus on completing streaming tasks rather than reaching a minimum audience size. Beginners can start with zero viewers." },
+  { q: "Can I start with zero followers?", a: "Yes. Poppo/Vone Live is designed for new creators. You do not need an existing audience to create an account, complete verification, or go live." },
+  { q: "Can college students stream on Poppo/Vone Live?", a: "Yes, provided you meet the platform's minimum age requirement. Many creators stream part-time alongside studies." },
   { q: "Do I need expensive equipment?", a: "No. A modern smartphone, decent lighting, and stable internet are sufficient. Many successful creators use only their phones." },
-  { q: "How does gifting work on Poppo Live?", a: "Viewers purchase coins within the Poppo app and send virtual gifts to creators during live streams. Creators receive platform credits based on gifts received." },
-  { q: "What is face verification on Poppo Live?", a: "Face verification is a one-time identity check required by Poppo. You take a clear selfie in good lighting to confirm your identity before going live." },
-  { q: "Can I stream from an Android phone?", a: "Yes. Poppo Live supports both Android and iOS devices. A mid-range smartphone is sufficient." },
+  { q: "How does gifting work on Poppo/Vone Live?", a: "Viewers purchase coins within the Poppo/Vone app and send virtual gifts to creators during live streams. Creators receive platform credits based on gifts received." },
+  { q: "What is face verification on Poppo/Vone Live?", a: "Face verification is a one-time identity check required by Poppo/Vone. You take a clear selfie in good lighting to confirm your identity before going live." },
+  { q: "Can I stream from an Android phone?", a: "Yes. Poppo/Vone Live supports both Android and iOS devices. A mid-range smartphone is sufficient." },
   { q: "How long should beginners stream per session?", a: "Start with 1–2 hours per session. Consistency matters more than duration. Stream regularly and improve over time." },
-  { q: "Can I work a full-time job and stream on Poppo?", a: "Yes. Many creators stream part-time in the evenings or on weekends. Poppo Live is flexible — you choose your own schedule." },
-  { q: "Are Poppo Live rewards guaranteed?", a: "No. All rewards, bonuses, and onboarding promotions are subject to platform eligibility rules and may change at any time. Always verify current terms inside the app." },
-  { q: "Is joining Barbieverse required to earn on Poppo?", a: "No. You can use Poppo Live independently. Barbieverse provides optional agency support, guidance, and onboarding assistance." },
-  { q: "Can Poppo Live promotions change without notice?", a: "Yes. Platform promotions, bonuses, and eligibility requirements are controlled by Poppo and may be modified or discontinued at any time." },
+  { q: "Can I work a full-time job and stream on Poppo/Vone?", a: "Yes. Many creators stream part-time in the evenings or on weekends. Poppo/Vone Live is flexible — you choose your own schedule." },
+  { q: "Are Poppo/Vone Live rewards guaranteed?", a: "No. All rewards, bonuses, and onboarding promotions are subject to platform eligibility rules and may change at any time. Always verify current terms inside the app." },
+  { q: "Is joining Barbieverse required to earn on Poppo/Vone?", a: "No. You can use Poppo/Vone Live independently. Barbieverse provides optional agency support, guidance, and onboarding assistance." },
+  { q: "Can Poppo/Vone Live promotions change without notice?", a: "Yes. Platform promotions, bonuses, and eligibility requirements are controlled by Poppo/Vone and may be modified or discontinued at any time." },
   { q: "Can beginners stream using only WiFi?", a: "Yes. WiFi is sufficient for streaming. Ensure your connection is stable with at least 5 Mbps upload speed for smooth streaming." },
   { q: "How do I improve my livestream quality over time?", a: "Focus on consistent scheduling, engaging with viewers, improving audio/video quality, and learning from your analytics. Growth is gradual." },
-  { q: "What mistakes should new Poppo creators avoid?", a: "Inconsistent streaming, ignoring viewers, poor lighting/audio, unrealistic earning expectations, and skipping platform verification steps." },
+  { q: "What mistakes should new Poppo/Vone creators avoid?", a: "Inconsistent streaming, ignoring viewers, poor lighting/audio, unrealistic earning expectations, and skipping platform verification steps." },
 ];
 
 const CHECKLIST_ITEMS = [
@@ -41,20 +41,20 @@ const CHECKLIST_ITEMS = [
 export const Route = createFileRoute("/blog/how-to-earn-money-on-poppo-live-india")({
   head: () => ({
     meta: [
-      { title: "How to Earn Money on Poppo Live in India (2026 Beginner Guide) | Barbieverse" },
-      { name: "description", content: "Complete beginner guide to earning money on Poppo Live in India. Learn how to create an account, go live, understand gifts, and start your creator journey in 2026." },
+      { title: "How to Earn Money on Poppo/Vone Live in India (2026 Beginner Guide) | Barbieverse" },
+      { name: "description", content: "Complete beginner guide to earning money on Poppo/Vone Live in India. Learn how to create an account, go live, understand gifts, and start your creator journey in 2026." },
       { name: "keywords", content: "how to earn money on poppo live india, poppo live earning guide, poppo live beginner guide, poppo live india, poppo live rewards, poppo live host, poppo agency india" },
-      { property: "og:title", content: "How to Earn Money on Poppo Live in India (2026 Beginner Guide)" },
-      { property: "og:description", content: "Complete beginner guide to earning money on Poppo Live in India. Step-by-step walkthrough for new creators." },
+      { property: "og:title", content: "How to Earn Money on Poppo/Vone Live in India (2026 Beginner Guide)" },
+      { property: "og:description", content: "Complete beginner guide to earning money on Poppo/Vone Live in India. Step-by-step walkthrough for new creators." },
       { property: "og:type", content: "article" },
       { property: "og:url", content: CANONICAL_URL },
       { property: "article:published_time", content: "2026-06-15T00:00:00Z" },
       { property: "article:modified_time", content: "2026-06-16T00:00:00Z" },
       { property: "article:author", content: "Barbieverse" },
-      { property: "article:section", content: "Poppo Tips" },
+      { property: "article:section", content: "Poppo/Vone Tips" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "How to Earn Money on Poppo Live in India (2026 Guide)" },
-      { name: "twitter:description", content: "Complete beginner guide to earning money on Poppo Live in India." },
+      { name: "twitter:title", content: "How to Earn Money on Poppo/Vone Live in India (2026 Guide)" },
+      { name: "twitter:description", content: "Complete beginner guide to earning money on Poppo/Vone Live in India." },
       { name: "robots", content: "index, follow" },
       { rel: "canonical", href: CANONICAL_URL },
     ],
@@ -64,8 +64,8 @@ export const Route = createFileRoute("/blog/how-to-earn-money-on-poppo-live-indi
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Article",
-          headline: "How to Earn Money on Poppo Live in India (2026 Beginner Guide)",
-          description: "Complete beginner guide to earning money on Poppo Live in India. Learn how to create an account, go live, understand gifts, and start your creator journey.",
+          headline: "How to Earn Money on Poppo/Vone Live in India (2026 Beginner Guide)",
+          description: "Complete beginner guide to earning money on Poppo/Vone Live in India. Learn how to create an account, go live, understand gifts, and start your creator journey.",
           author: { "@type": "Organization", name: "Barbieverse", url: BASE_URL },
           publisher: { "@type": "Organization", name: "Barbieverse", url: BASE_URL },
           datePublished: "2026-06-15",
@@ -82,7 +82,7 @@ export const Route = createFileRoute("/blog/how-to-earn-money-on-poppo-live-indi
           itemListElement: [
             { "@type": "ListItem", position: 1, name: "Home", item: BASE_URL },
             { "@type": "ListItem", position: 2, name: "Blog", item: `${BASE_URL}/blog` },
-            { "@type": "ListItem", position: 3, name: "How to Earn Money on Poppo Live", item: CANONICAL_URL },
+            { "@type": "ListItem", position: 3, name: "How to Earn Money on Poppo/Vone Live", item: CANONICAL_URL },
           ],
         }),
       },
@@ -155,7 +155,7 @@ export function HowToEarnBlogPost() {
             <ChevronRight className="h-3 w-3" />
             <Link to="/blog" className="hover:text-primary">Blog</Link>
             <ChevronRight className="h-3 w-3" />
-            <span className="text-foreground">Poppo Live Earning Guide</span>
+            <span className="text-foreground">Poppo/Vone Live Earning Guide</span>
           </nav>
 
           <div className="mx-auto max-w-4xl">
@@ -167,7 +167,7 @@ export function HowToEarnBlogPost() {
 
             <h1 className="mt-4 font-display text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
               How to Earn Money on{" "}
-              <span className="text-gradient-pink">Poppo Live</span>{" "}
+              <span className="text-gradient-pink">Poppo/Vone Live</span>{" "}
               in India
             </h1>
             <p className="mt-4 font-display text-lg italic text-muted-foreground sm:text-xl">
@@ -177,7 +177,7 @@ export function HowToEarnBlogPost() {
             {/* Hook */}
             <div className="mt-8 rounded-2xl border border-border/40 bg-card/30 p-6 backdrop-blur-md sm:p-8">
               <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Seven days ago you had zero followers. Nobody knew your name. Yet today you understand how creators build audiences, receive virtual gifts, and participate in official onboarding programs. This guide explains exactly how beginners get started on Poppo Live — without hype or unrealistic promises.
+                Seven days ago you had zero followers. Nobody knew your name. Yet today you understand how creators build audiences, receive virtual gifts, and participate in official onboarding programs. This guide explains exactly how beginners get started on Poppo/Vone Live — without hype or unrealistic promises.
               </p>
             </div>
 
@@ -260,9 +260,9 @@ export function HowToEarnBlogPost() {
               <span className="text-gradient-pink">Step 1:</span> Create Your Account
             </h2>
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-              <p>Getting started on Poppo Live takes about 2 minutes. Here's exactly what to do:</p>
+              <p>Getting started on Poppo/Vone Live takes about 2 minutes. Here's exactly what to do:</p>
               <ol className="list-decimal space-y-3 pl-5">
-                <li><strong className="text-foreground">Download the app</strong> — Search "Poppo Live" on Google Play or the App Store. Install the official app.</li>
+                <li><strong className="text-foreground">Download the app</strong> — Search "Poppo/Vone Live" on Google Play or the App Store. Install the official app.</li>
                 <li><strong className="text-foreground">Create your account</strong> — Sign up with your phone number or email. Choose a memorable username.</li>
                 <li><strong className="text-foreground">Use a referral code</strong> — If you were invited by a creator or agency, enter their referral code during signup for potential benefits.</li>
                 <li><strong className="text-foreground">Add a profile picture</strong> — Upload a clear, friendly photo. Profiles with photos get more engagement.</li>
@@ -282,7 +282,7 @@ export function HowToEarnBlogPost() {
               <span className="text-gradient-pink">Step 2:</span> Face Verification
             </h2>
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-              <p>Face verification is a one-time identity check required by Poppo before you can go live. Here's how to pass it smoothly:</p>
+              <p>Face verification is a one-time identity check required by Poppo/Vone before you can go live. Here's how to pass it smoothly:</p>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 {/* Good verification */}
@@ -334,14 +334,14 @@ export function HowToEarnBlogPost() {
               <ul className="list-disc space-y-2 pl-5">
                 <li>Find a quiet, well-lit space</li>
                 <li>Ensure your phone is charged and connected to stable WiFi</li>
-                <li>Open Poppo Live → tap "Go Live"</li>
+                <li>Open Poppo/Vone Live → tap "Go Live"</li>
                 <li>Add a title describing what you'll be doing</li>
                 <li>Start streaming — even if zero viewers appear initially</li>
                 <li>Talk, interact, and be yourself</li>
               </ul>
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
                 <p className="text-xs text-muted-foreground">
-                  <strong className="text-foreground">Remember:</strong> Promotions change, eligibility differs, and users should always verify the latest rules inside Poppo. What worked last month may be different today.
+                  <strong className="text-foreground">Remember:</strong> Promotions change, eligibility differs, and users should always verify the latest rules inside Poppo/Vone. What worked last month may be different today.
                 </p>
               </div>
             </div>
@@ -349,10 +349,10 @@ export function HowToEarnBlogPost() {
 
           {/* ── Earning Model ── */}
           <section id="earning-model" className="mb-16 scroll-mt-20">
-            <h2 className="font-display text-3xl font-bold">How Earning Works on Poppo Live</h2>
+            <h2 className="font-display text-3xl font-bold">How Earning Works on Poppo/Vone Live</h2>
             <div className="mt-8 space-y-4">
               {[
-                { step: "1", title: "Viewer purchases coins", desc: "Viewers buy virtual coins inside the Poppo app using real money.", icon: TrendingUp },
+                { step: "1", title: "Viewer purchases coins", desc: "Viewers buy virtual coins inside the Poppo/Vone app using real money.", icon: TrendingUp },
                 { step: "2", title: "Viewer sends virtual gifts", desc: "During your livestream, viewers send gifts (hearts, roses, diamonds, etc.)", icon: Gift },
                 { step: "3", title: "Creator receives credits", desc: "You receive platform points/credits based on the gifts you receive.", icon: Star },
                 { step: "4", title: "Withdraw eligible balance", desc: "Eligible balances may be withdrawn according to platform policies and thresholds.", icon: Zap },
@@ -506,9 +506,9 @@ export function HowToEarnBlogPost() {
             <h2 className="font-display text-2xl font-bold">Continue Reading</h2>
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {[
-                { to: "/blog/poppo-new-host-mission-explained", title: "Poppo New Host Mission Explained", desc: "Understand how the new host mission works in 2026" },
+                { to: "/blog/poppo-new-host-mission-explained", title: "Poppo/Vone New Host Mission Explained", desc: "Understand how the new host mission works in 2026" },
                 { to: "/blog/why-join-barbieverse", title: "Why Join Barbieverse?", desc: "Learn about agency support and onboarding assistance" },
-                { to: "/blog/how-much-can-you-earn-on-poppo-live", title: "How Much Can You Earn?", desc: "Realistic earning breakdown for Poppo Live creators" },
+                { to: "/blog/how-much-can-you-earn-on-poppo-live", title: "How Much Can You Earn?", desc: "Realistic earning breakdown for Poppo/Vone Live creators" },
                 { to: "/join", title: "Ready to Start?", desc: "Join Barbieverse and begin your creator journey" },
               ].map((link) => (
                 <Link
@@ -555,7 +555,7 @@ export function HowToEarnBlogPost() {
 
           {/* ── Trust Disclaimer ── */}
           <div className="mt-12 rounded-xl border border-border/40 bg-card/20 p-5 text-xs text-muted-foreground">
-            <p><strong className="text-foreground">Disclaimer:</strong> This article is for educational purposes only. Poppo Live promotions, bonuses, and earning opportunities are subject to platform eligibility rules and may change without notice. Barbieverse provides agency support and guidance but does not guarantee specific earnings. Users should verify current platform requirements inside the Poppo app before relying on any promotion. All illustrative examples are hypothetical and not promises of results.</p>
+            <p><strong className="text-foreground">Disclaimer:</strong> This article is for educational purposes only. Poppo/Vone Live promotions, bonuses, and earning opportunities are subject to platform eligibility rules and may change without notice. Barbieverse provides agency support and guidance but does not guarantee specific earnings. Users should verify current platform requirements inside the Poppo/Vone app before relying on any promotion. All illustrative examples are hypothetical and not promises of results.</p>
           </div>
         </div>
       </div>

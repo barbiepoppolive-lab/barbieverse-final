@@ -16,7 +16,7 @@ export const Route = createFileRoute("/admin/settings")({
 const HERO_FIELDS = [
   { key: "hero_eyebrow", label: "Hero Eyebrow (small label above name)", placeholder: "Founder, Barbieverse" },
   { key: "hero_name", label: "Your Name", placeholder: "Barbie" },
-  { key: "hero_title", label: "Hero Title / Tagline", placeholder: "India's most trusted home for Poppo Live creators" },
+  { key: "hero_title", label: "Hero Title / Tagline", placeholder: "India's most trusted home for Poppo/Vone Live creators" },
   { key: "hero_intro", label: "Personal Intro (2-3 sentences)", placeholder: "Hi, I'm Barbie..." },
   { key: "hero_signature", label: "Signature Line", placeholder: "— with love, Barbie" },
   { key: "hero_photo_url", label: "Your Photo URL (leave blank for default)", placeholder: "https://..." },
@@ -25,8 +25,8 @@ const HERO_FIELDS = [
 const FIELDS = [
   { key: "upi_id", label: "UPI ID", placeholder: "yourname@upi" },
   { key: "upi_payee_name", label: "UPI Payee Name", placeholder: "Barbieverse" },
-  { key: "agency_id", label: "Agency ID (Poppo)", placeholder: "e.g. 2517496" },
-  { key: "poppo_signup_link", label: "Poppo Signup Link", placeholder: "https://poppo.live/..." },
+  { key: "agency_id", label: "Agency ID (Poppo/Vone)", placeholder: "e.g. 2517496" },
+  { key: "poppo_signup_link", label: "Poppo/Vone Signup Link", placeholder: "https://poppo.live/..." },
   { key: "admin_whatsapp", label: "Admin WhatsApp (for notifications)", placeholder: "+9198..." },
   { key: "interakt_webhook_url", label: "Interakt WhatsApp Webhook URL", placeholder: "https://..." },
   { key: "brevo_sender_email", label: "Brevo Sender Email", placeholder: "hello@..." },

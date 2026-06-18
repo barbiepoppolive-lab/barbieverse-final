@@ -1,0 +1,33 @@
+{
+  "name": "OceanHunt_Screenshot",
+  "description": "Automated screenshots for Ocean Hunt Max Hit monitoring",
+  "version": "1.0",
+  "created": "2026-06-17T23:27:40.431262+05:30",
+  "tasks": [
+    {
+      "name": "Take Screenshot Every 10s",
+      "description": "Captures screen and saves to sync folder",
+      "steps": [
+        {
+          "action": "Media.Control",
+          "type": "Screenshot",
+          "description": "Take a screenshot"
+        },
+        {
+          "action": "File.Move",
+          "source": "/sdcard/Pictures/Screenshots/latest.png",
+          "destination": "/sdcard/Sync/OceanHunt/",
+          "description": "Move to sync folder"
+        }
+      ]
+    }
+  ],
+  "profiles": [
+    {
+      "name": "Ocean Hunt Active",
+      "description": "Trigger when Ocean Hunt app is in foreground",
+      "condition": "app = com.poppo.live",
+      "interval_seconds": 10
+    }
+  ]
+}
