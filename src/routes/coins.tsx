@@ -192,7 +192,7 @@ function CoinsPage() {
             packageName={selected.name}
             quantity={quantity}
             totalCoins={selected.coins * quantity}
-            whatsappNumber={settings.admin_whatsapp || "8615736912069"}
+            whatsappNumber={settings.admin_whatsapp || "919000966360"}
             onBack={() => setStep("form")}
             onDone={() => setStep("done")}
           />

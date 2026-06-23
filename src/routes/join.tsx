@@ -50,7 +50,7 @@ function JoinPageNew() {
   const [copied, setCopied] = useState(false);
 
   const agencyId = settings.agency_id || "2517496";
-  const adminWhatsapp = settings.admin_whatsapp || "8615736912069";
+  const adminWhatsapp = settings.admin_whatsapp || "919000966360";
 
   const copyAgencyId = () => {
     navigator.clipboard.writeText(agencyId);
