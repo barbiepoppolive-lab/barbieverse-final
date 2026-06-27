@@ -266,9 +266,9 @@ function PoppoDailyTasks() {
               <span className="text-gradient-pink">Treasure Box</span> Task
             </h2>
             <LessonImage
-              src="https://play-lh.googleusercontent.com/cLOoyMtYqAEnr8YY0DmXBm4QO4Zft1m5GR7-pRWjumUtjIqjxio3N0mU_FkBShiuEd4=w526-h296-rw"
-              alt="Poppo Live treasure box daily reward claim screen"
-              caption="Claim your daily 400 free coins from the Treasure Box"
+              src="https://images.unsplash.com/photo-1507925921958-8a62f3d1a50d?w=1200&auto=format&fit=crop"
+              alt="Checklist with completed tasks representing daily earning tasks"
+              caption="Complete daily tasks to earn coins and climb the host ranking"
             />
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>

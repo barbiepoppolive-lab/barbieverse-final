@@ -129,9 +129,9 @@ function PKBattleGuide() {
               <span className="text-gradient-pink">3 PK Formats</span>
             </h2>
             <LessonImage
-              src="https://play-lh.googleusercontent.com/5Fmm1Y1nKJ9obxvbOowaw61VT9RAmUj_b_oEI_rDhwJBfWWQOI1yeamHE_beA=w526-h296-rw"
-              alt="Poppo Live PK battle split screen with two hosts competing"
-              caption="PK battle mode — two hosts compete side-by-side for viewer gifts"
+              src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&auto=format&fit=crop"
+              alt="Two competitors facing off in a live gaming competition"
+              caption="PK battles pit two hosts against each other — viewers send gifts to crown a winner"
             />
             <LessonTable
               columns={[

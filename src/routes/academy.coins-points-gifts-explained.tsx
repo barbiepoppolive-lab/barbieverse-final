@@ -129,9 +129,9 @@ function CoinsPointsGifts() {
               <span className="text-gradient-pink">What Are Coins?</span> (Viewer Currency)
             </h2>
             <LessonImage
-              src="https://play-lh.googleusercontent.com/Sn_dvmr79aRDS00qL308U1p3SxKSm-uwXx8JTyZKlJwEQJfsEsDQ70gFRtE9245r_eg=w526-h296-rw"
-              alt="Poppo Live app coins wallet screen showing coin balance and recharge options"
-              caption="Poppo Live coins wallet — where viewers buy coins to send as gifts"
+              src="https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=1200&auto=format&fit=crop"
+              alt="Stack of gold coins representing virtual currency"
+              caption="Coins are the virtual currency viewers use to purchase gifts for hosts"
             />
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>
@@ -169,9 +169,9 @@ function CoinsPointsGifts() {
               <span className="text-gradient-pink">What Are Gifts?</span>
             </h2>
             <LessonImage
-              src="https://play-lh.googleusercontent.com/-BM0ElmHMceAbIY-Q05WMb342R5a8GG20vVBJl12Ec-s6Q5IniW41-NEnT8YbYCODOI=w526-h296-rw"
-              alt="Poppo Live virtual gift sending during a live stream"
-              caption="Virtual gifts animate on screen during live streams"
+              src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=1200&auto=format&fit=crop"
+              alt="Heart-shaped gift box representing virtual gifts on live streaming"
+              caption="Virtual gifts range from simple hearts to luxury items worth thousands of coins"
             />
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>
@@ -202,9 +202,9 @@ function CoinsPointsGifts() {
               <span className="text-gradient-pink">What Are Points?</span> (Host Currency)
             </h2>
             <LessonImage
-              src="https://play-lh.googleusercontent.com/xPlVMY-4A-5OO2ZUsRyLtosXWhDTwgqRUO96BlHXZs56BXD9sHqR6rB0cm__BX3GAg=w526-h296-rw"
-              alt="Poppo Live host points wallet withdrawal screen"
-              caption="Points wallet — where hosts see their earnings before withdrawal"
+              src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1200&auto=format&fit=crop"
+              alt="Calculator and financial charts representing host earnings"
+              caption="Points convert to real money — 100 points = ₹1 when you withdraw"
             />
             <LessonCallout variant="tip" label="The Fixed Rule — Never Changes">
               <strong>10,000 Points = $1 USD ≈ ₹83</strong><br />

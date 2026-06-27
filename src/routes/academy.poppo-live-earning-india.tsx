@@ -137,9 +137,9 @@ function PoppoLiveEarningIndia() {
               <span className="text-gradient-pink">Week 1</span> Earning Numbers
             </h2>
             <LessonImage
-              src="https://play-lh.googleusercontent.com/CFAmn4a505mGpnrun2uxM4js_16nDdcARJH0r4ocw8LJrLj0_5diVGm4tfMRYkIVrjI=w526-h296-rw"
-              alt="Poppo Live host earnings dashboard showing points balance"
-              caption="Your earnings dashboard — points from tasks and viewer gifts"
+              src="https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1200&auto=format&fit=crop"
+              alt="Plant growing from coins representing earnings and growth"
+              caption="Start earning from day one — complete tasks and receive viewer gifts"
             />
             <p className="mt-2 text-sm text-muted-foreground">Streaming 2 hours per day for 7 consecutive days:</p>
             <LessonTable

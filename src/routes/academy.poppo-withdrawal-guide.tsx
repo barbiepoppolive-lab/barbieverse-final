@@ -196,9 +196,9 @@ function PoppoWithdrawalGuide() {
               <span className="text-gradient-pink">Step-by-Step</span> Withdrawal
             </h2>
             <LessonImage
-              src="https://play-lh.googleusercontent.com/USZtcSTGJSd0bS3UIPpGRuAJM7_mI3pQmDBcL4a1OjY7eqVmregVpZbVTuKCz95S=w526-h296-rw"
-              alt="Poppo Live withdrawal screen showing payment method options"
-              caption="Withdrawal screen — select your payment method and enter the amount"
+              src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1200&auto=format&fit=crop"
+              alt="Digital payment interface representing withdrawal to bank account"
+              caption="Withdraw your earnings to UPI, Paytm, or bank transfer"
             />
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <ol className="list-decimal space-y-3 pl-5">

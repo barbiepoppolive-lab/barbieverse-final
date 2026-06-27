@@ -191,9 +191,9 @@ function HowToBecomePoppoHost() {
               <span className="text-gradient-pink">Face Authentication</span> — The Step That Blocks Most People
             </h2>
             <LessonImage
-              src="https://play-lh.googleusercontent.com/lT0Z1Wd_p80_AwbBpcpvynij9SBMgK_SATVPrG9vag8egC1n-fEui-bmX1JK2eHCbg=w526-h296-rw"
-              alt="Poppo Live face authentication verification screen"
-              caption="Face authentication — tilt head left, right, and nod as prompted"
+              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&auto=format&fit=crop"
+              alt="Person taking a selfie for identity verification"
+              caption="Face authentication requires a live selfie — tilt head and nod as prompted"
             />
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>
@@ -307,9 +307,9 @@ function HowToBecomePoppoHost() {
               <span className="text-gradient-pink">Go Live</span> — Exact Tap Sequence
             </h2>
             <LessonImage
-              src="https://play-lh.googleusercontent.com/sGVud3ieTNJNnYiAYAAQankA3tC_kkemsBOK2grKWBw7_QP2DZGPrxrim-IWuknBEw=w526-h296-rw"
-              alt="Poppo Live go live button and stream setup screen"
-              caption="Tap the camera button and set your stream title before going live"
+              src="https://images.unsplash.com/photo-1574169208507-84376144848b?w=1200&auto=format&fit=crop"
+              alt="Content creator live streaming with professional setup"
+              caption="Set up your stream with a catchy title and go live to your audience"
             />
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>
