@@ -25,6 +25,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AcademyRouteImport } from './routes/academy'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AcademyIndexRouteImport } from './routes/academy.index'
 import { Route as JoinWobbRouteImport } from './routes/join.wobb'
 import { Route as AdminUpiSetupRouteImport } from './routes/admin.upi-setup'
 import { Route as AdminUnmatchedRouteImport } from './routes/admin.unmatched'
@@ -128,6 +129,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const AcademyIndexRoute = AcademyIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AcademyRoute,
 } as any)
 const JoinWobbRoute = JoinWobbRouteImport.update({
   id: '/wobb',
@@ -285,6 +291,7 @@ export interface FileRoutesByFullPath {
   '/admin/unmatched': typeof AdminUnmatchedRoute
   '/admin/upi-setup': typeof AdminUpiSetupRoute
   '/join/wobb': typeof JoinWobbRoute
+  '/academy/': typeof AcademyIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
   '/api/public/order-action': typeof ApiPublicOrderActionRoute
@@ -292,7 +299,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/academy': typeof AcademyRouteWithChildren
   '/coins': typeof CoinsRoute
   '/contact': typeof ContactRoute
   '/creator-reward-policy': typeof CreatorRewardPolicyRoute
@@ -325,6 +331,7 @@ export interface FileRoutesByTo {
   '/admin/unmatched': typeof AdminUnmatchedRoute
   '/admin/upi-setup': typeof AdminUpiSetupRoute
   '/join/wobb': typeof JoinWobbRoute
+  '/academy': typeof AcademyIndexRoute
   '/admin': typeof AdminIndexRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
   '/api/public/order-action': typeof ApiPublicOrderActionRoute
@@ -367,6 +374,7 @@ export interface FileRoutesById {
   '/admin/unmatched': typeof AdminUnmatchedRoute
   '/admin/upi-setup': typeof AdminUpiSetupRoute
   '/join/wobb': typeof JoinWobbRoute
+  '/academy/': typeof AcademyIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
   '/api/public/order-action': typeof ApiPublicOrderActionRoute
@@ -410,6 +418,7 @@ export interface FileRouteTypes {
     | '/admin/unmatched'
     | '/admin/upi-setup'
     | '/join/wobb'
+    | '/academy/'
     | '/admin/'
     | '/api/public/interakt-action'
     | '/api/public/order-action'
@@ -417,7 +426,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/academy'
     | '/coins'
     | '/contact'
     | '/creator-reward-policy'
@@ -450,6 +458,7 @@ export interface FileRouteTypes {
     | '/admin/unmatched'
     | '/admin/upi-setup'
     | '/join/wobb'
+    | '/academy'
     | '/admin'
     | '/api/public/interakt-action'
     | '/api/public/order-action'
@@ -491,6 +500,7 @@ export interface FileRouteTypes {
     | '/admin/unmatched'
     | '/admin/upi-setup'
     | '/join/wobb'
+    | '/academy/'
     | '/admin/'
     | '/api/public/interakt-action'
     | '/api/public/order-action'
@@ -631,6 +641,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/academy/': {
+      id: '/academy/'
+      path: '/'
+      fullPath: '/academy/'
+      preLoaderRoute: typeof AcademyIndexRouteImport
+      parentRoute: typeof AcademyRoute
     }
     '/join/wobb': {
       id: '/join/wobb'
@@ -805,6 +822,7 @@ interface AcademyRouteChildren {
   AcademyPoppoWithdrawalGuideRoute: typeof AcademyPoppoWithdrawalGuideRoute
   AcademyVoneAppIndiaRoute: typeof AcademyVoneAppIndiaRoute
   AcademyWhatIsPoppoLiveRoute: typeof AcademyWhatIsPoppoLiveRoute
+  AcademyIndexRoute: typeof AcademyIndexRoute
 }
 
 const AcademyRouteChildren: AcademyRouteChildren = {
@@ -816,6 +834,7 @@ const AcademyRouteChildren: AcademyRouteChildren = {
   AcademyPoppoWithdrawalGuideRoute: AcademyPoppoWithdrawalGuideRoute,
   AcademyVoneAppIndiaRoute: AcademyVoneAppIndiaRoute,
   AcademyWhatIsPoppoLiveRoute: AcademyWhatIsPoppoLiveRoute,
+  AcademyIndexRoute: AcademyIndexRoute,
 }
 
 const AcademyRouteWithChildren =
