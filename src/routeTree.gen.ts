@@ -9,26 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as TrackApplicationRouteImport } from './routes/track-application'
+import { Route as TrackRouteImport } from './routes/track'
 import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as RechargePolicyRouteImport } from './routes/recharge-policy'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as JoinRouteImport } from './routes/join'
+import { Route as EarningsRouteImport } from './routes/earnings'
 import { Route as CreatorRewardPolicyRouteImport } from './routes/creator-reward-policy'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CoinsRouteImport } from './routes/coins'
-import { Route as BlogRouteImport } from './routes/blog'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AcademyRouteImport } from './routes/academy'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as JoinWobbRouteImport } from './routes/join.wobb'
-import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
-import { Route as BlogHowToEarnMoneyRouteImport } from './routes/blog.how-to-earn-money-on-poppo-live-india'
 import { Route as AdminUpiSetupRouteImport } from './routes/admin.upi-setup'
 import { Route as AdminUnmatchedRouteImport } from './routes/admin.unmatched'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
-import { Route as AdminPostsRouteImport } from './routes/admin.posts'
 import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
 import { Route as AdminPayoutsRouteImport } from './routes/admin.payouts'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
@@ -37,16 +37,31 @@ import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminLeadsRouteImport } from './routes/admin.leads'
 import { Route as AdminHomepageRouteImport } from './routes/admin.homepage'
 import { Route as AdminCreatorLeadsRouteImport } from './routes/admin.creator-leads'
+import { Route as AcademyWhatIsPoppoLiveRouteImport } from './routes/academy.what-is-poppo-live'
+import { Route as AcademyVoneAppIndiaRouteImport } from './routes/academy.vone-app-india'
+import { Route as AcademyPoppoWithdrawalGuideRouteImport } from './routes/academy.poppo-withdrawal-guide'
+import { Route as AcademyPoppoLiveEarningIndiaRouteImport } from './routes/academy.poppo-live-earning-india'
+import { Route as AcademyPoppoDailyTasksRouteImport } from './routes/academy.poppo-daily-tasks'
+import { Route as AcademyPkBattleGuideRouteImport } from './routes/academy.pk-battle-guide'
+import { Route as AcademyHowToBecomePoppoHostRouteImport } from './routes/academy.how-to-become-poppo-host'
+import { Route as AcademyCoinsPointsGiftsExplainedRouteImport } from './routes/academy.coins-points-gifts-explained'
 import { Route as ApiPublicUpiWebhookRouteImport } from './routes/api/public/upi-webhook'
 import { Route as ApiPublicOrderActionRouteImport } from './routes/api/public/order-action'
 import { Route as ApiPublicInteraktActionRouteImport } from './routes/api/public/interakt-action'
-import { Route as TrackRouteImport } from './routes/track'
-import { Route as VerifyRouteImport } from './routes/verify'
-import { Route as EarningsRouteImport } from './routes/earnings'
 
+const VerifyRoute = VerifyRouteImport.update({
+  id: '/verify',
+  path: '/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TrackApplicationRoute = TrackApplicationRouteImport.update({
   id: '/track-application',
   path: '/track-application',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrackRoute = TrackRouteImport.update({
+  id: '/track',
+  path: '/track',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsAndConditionsRoute = TermsAndConditionsRouteImport.update({
@@ -74,6 +89,11 @@ const JoinRoute = JoinRouteImport.update({
   path: '/join',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EarningsRoute = EarningsRouteImport.update({
+  id: '/earnings',
+  path: '/earnings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CreatorRewardPolicyRoute = CreatorRewardPolicyRouteImport.update({
   id: '/creator-reward-policy',
   path: '/creator-reward-policy',
@@ -89,14 +109,14 @@ const CoinsRoute = CoinsRouteImport.update({
   path: '/coins',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BlogRoute = BlogRouteImport.update({
-  id: '/blog',
-  path: '/blog',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcademyRoute = AcademyRouteImport.update({
+  id: '/academy',
+  path: '/academy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -114,16 +134,6 @@ const JoinWobbRoute = JoinWobbRouteImport.update({
   path: '/wobb',
   getParentRoute: () => JoinRoute,
 } as any)
-const BlogSlugRoute = BlogSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => BlogRoute,
-} as any)
-const BlogHowToEarnMoneyRoute = BlogHowToEarnMoneyRouteImport.update({
-  id: '/how-to-earn-money-on-poppo-live-india',
-  path: '/how-to-earn-money-on-poppo-live-india',
-  getParentRoute: () => BlogRoute,
-} as any)
 const AdminUpiSetupRoute = AdminUpiSetupRouteImport.update({
   id: '/upi-setup',
   path: '/upi-setup',
@@ -137,11 +147,6 @@ const AdminUnmatchedRoute = AdminUnmatchedRouteImport.update({
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPostsRoute = AdminPostsRouteImport.update({
-  id: '/posts',
-  path: '/posts',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPoliciesRoute = AdminPoliciesRouteImport.update({
@@ -184,6 +189,50 @@ const AdminCreatorLeadsRoute = AdminCreatorLeadsRouteImport.update({
   path: '/creator-leads',
   getParentRoute: () => AdminRoute,
 } as any)
+const AcademyWhatIsPoppoLiveRoute = AcademyWhatIsPoppoLiveRouteImport.update({
+  id: '/what-is-poppo-live',
+  path: '/what-is-poppo-live',
+  getParentRoute: () => AcademyRoute,
+} as any)
+const AcademyVoneAppIndiaRoute = AcademyVoneAppIndiaRouteImport.update({
+  id: '/vone-app-india',
+  path: '/vone-app-india',
+  getParentRoute: () => AcademyRoute,
+} as any)
+const AcademyPoppoWithdrawalGuideRoute =
+  AcademyPoppoWithdrawalGuideRouteImport.update({
+    id: '/poppo-withdrawal-guide',
+    path: '/poppo-withdrawal-guide',
+    getParentRoute: () => AcademyRoute,
+  } as any)
+const AcademyPoppoLiveEarningIndiaRoute =
+  AcademyPoppoLiveEarningIndiaRouteImport.update({
+    id: '/poppo-live-earning-india',
+    path: '/poppo-live-earning-india',
+    getParentRoute: () => AcademyRoute,
+  } as any)
+const AcademyPoppoDailyTasksRoute = AcademyPoppoDailyTasksRouteImport.update({
+  id: '/poppo-daily-tasks',
+  path: '/poppo-daily-tasks',
+  getParentRoute: () => AcademyRoute,
+} as any)
+const AcademyPkBattleGuideRoute = AcademyPkBattleGuideRouteImport.update({
+  id: '/pk-battle-guide',
+  path: '/pk-battle-guide',
+  getParentRoute: () => AcademyRoute,
+} as any)
+const AcademyHowToBecomePoppoHostRoute =
+  AcademyHowToBecomePoppoHostRouteImport.update({
+    id: '/how-to-become-poppo-host',
+    path: '/how-to-become-poppo-host',
+    getParentRoute: () => AcademyRoute,
+  } as any)
+const AcademyCoinsPointsGiftsExplainedRoute =
+  AcademyCoinsPointsGiftsExplainedRouteImport.update({
+    id: '/coins-points-gifts-explained',
+    path: '/coins-points-gifts-explained',
+    getParentRoute: () => AcademyRoute,
+  } as any)
 const ApiPublicUpiWebhookRoute = ApiPublicUpiWebhookRouteImport.update({
   id: '/api/public/upi-webhook',
   path: '/api/public/upi-webhook',
@@ -199,26 +248,11 @@ const ApiPublicInteraktActionRoute = ApiPublicInteraktActionRouteImport.update({
   path: '/api/public/interakt-action',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TrackRoute = TrackRouteImport.update({
-  id: '/track',
-  path: '/track',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const VerifyRoute = VerifyRouteImport.update({
-  id: '/verify',
-  path: '/verify',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EarningsRoute = EarningsRouteImport.update({
-  id: '/earnings',
-  path: '/earnings',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/academy': typeof AcademyRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
-  '/blog': typeof BlogRouteWithChildren
   '/coins': typeof CoinsRoute
   '/contact': typeof ContactRoute
   '/creator-reward-policy': typeof CreatorRewardPolicyRoute
@@ -231,6 +265,14 @@ export interface FileRoutesByFullPath {
   '/track': typeof TrackRoute
   '/track-application': typeof TrackApplicationRoute
   '/verify': typeof VerifyRoute
+  '/academy/coins-points-gifts-explained': typeof AcademyCoinsPointsGiftsExplainedRoute
+  '/academy/how-to-become-poppo-host': typeof AcademyHowToBecomePoppoHostRoute
+  '/academy/pk-battle-guide': typeof AcademyPkBattleGuideRoute
+  '/academy/poppo-daily-tasks': typeof AcademyPoppoDailyTasksRoute
+  '/academy/poppo-live-earning-india': typeof AcademyPoppoLiveEarningIndiaRoute
+  '/academy/poppo-withdrawal-guide': typeof AcademyPoppoWithdrawalGuideRoute
+  '/academy/vone-app-india': typeof AcademyVoneAppIndiaRoute
+  '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -239,13 +281,9 @@ export interface FileRoutesByFullPath {
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payouts': typeof AdminPayoutsRoute
   '/admin/policies': typeof AdminPoliciesRoute
-  '/admin/posts': typeof AdminPostsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/unmatched': typeof AdminUnmatchedRoute
   '/admin/upi-setup': typeof AdminUpiSetupRoute
-  '/blog/$slug': typeof BlogSlugRoute
-  '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyRoute
-  '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyRoute
   '/join/wobb': typeof JoinWobbRoute
   '/admin/': typeof AdminIndexRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
@@ -254,7 +292,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/blog': typeof BlogRouteWithChildren
+  '/academy': typeof AcademyRouteWithChildren
   '/coins': typeof CoinsRoute
   '/contact': typeof ContactRoute
   '/creator-reward-policy': typeof CreatorRewardPolicyRoute
@@ -267,6 +305,14 @@ export interface FileRoutesByTo {
   '/track': typeof TrackRoute
   '/track-application': typeof TrackApplicationRoute
   '/verify': typeof VerifyRoute
+  '/academy/coins-points-gifts-explained': typeof AcademyCoinsPointsGiftsExplainedRoute
+  '/academy/how-to-become-poppo-host': typeof AcademyHowToBecomePoppoHostRoute
+  '/academy/pk-battle-guide': typeof AcademyPkBattleGuideRoute
+  '/academy/poppo-daily-tasks': typeof AcademyPoppoDailyTasksRoute
+  '/academy/poppo-live-earning-india': typeof AcademyPoppoLiveEarningIndiaRoute
+  '/academy/poppo-withdrawal-guide': typeof AcademyPoppoWithdrawalGuideRoute
+  '/academy/vone-app-india': typeof AcademyVoneAppIndiaRoute
+  '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -275,13 +321,9 @@ export interface FileRoutesByTo {
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payouts': typeof AdminPayoutsRoute
   '/admin/policies': typeof AdminPoliciesRoute
-  '/admin/posts': typeof AdminPostsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/unmatched': typeof AdminUnmatchedRoute
   '/admin/upi-setup': typeof AdminUpiSetupRoute
-  '/blog/$slug': typeof BlogSlugRoute
-  '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyRoute
-  '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyRoute
   '/join/wobb': typeof JoinWobbRoute
   '/admin': typeof AdminIndexRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
@@ -291,8 +333,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/academy': typeof AcademyRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
-  '/blog': typeof BlogRouteWithChildren
   '/coins': typeof CoinsRoute
   '/contact': typeof ContactRoute
   '/creator-reward-policy': typeof CreatorRewardPolicyRoute
@@ -305,6 +347,14 @@ export interface FileRoutesById {
   '/track': typeof TrackRoute
   '/track-application': typeof TrackApplicationRoute
   '/verify': typeof VerifyRoute
+  '/academy/coins-points-gifts-explained': typeof AcademyCoinsPointsGiftsExplainedRoute
+  '/academy/how-to-become-poppo-host': typeof AcademyHowToBecomePoppoHostRoute
+  '/academy/pk-battle-guide': typeof AcademyPkBattleGuideRoute
+  '/academy/poppo-daily-tasks': typeof AcademyPoppoDailyTasksRoute
+  '/academy/poppo-live-earning-india': typeof AcademyPoppoLiveEarningIndiaRoute
+  '/academy/poppo-withdrawal-guide': typeof AcademyPoppoWithdrawalGuideRoute
+  '/academy/vone-app-india': typeof AcademyVoneAppIndiaRoute
+  '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -313,13 +363,9 @@ export interface FileRoutesById {
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payouts': typeof AdminPayoutsRoute
   '/admin/policies': typeof AdminPoliciesRoute
-  '/admin/posts': typeof AdminPostsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/unmatched': typeof AdminUnmatchedRoute
   '/admin/upi-setup': typeof AdminUpiSetupRoute
-  '/blog/$slug': typeof BlogSlugRoute
-  '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyRoute
-  '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyRoute
   '/join/wobb': typeof JoinWobbRoute
   '/admin/': typeof AdminIndexRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
@@ -330,11 +376,12 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/academy'
     | '/admin'
-    | '/blog'
     | '/coins'
     | '/contact'
     | '/creator-reward-policy'
+    | '/earnings'
     | '/join'
     | '/privacy-policy'
     | '/recharge-policy'
@@ -343,6 +390,14 @@ export interface FileRouteTypes {
     | '/track'
     | '/track-application'
     | '/verify'
+    | '/academy/coins-points-gifts-explained'
+    | '/academy/how-to-become-poppo-host'
+    | '/academy/pk-battle-guide'
+    | '/academy/poppo-daily-tasks'
+    | '/academy/poppo-live-earning-india'
+    | '/academy/poppo-withdrawal-guide'
+    | '/academy/vone-app-india'
+    | '/academy/what-is-poppo-live'
     | '/admin/creator-leads'
     | '/admin/homepage'
     | '/admin/leads'
@@ -351,12 +406,9 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/payouts'
     | '/admin/policies'
-    | '/admin/posts'
     | '/admin/settings'
     | '/admin/unmatched'
     | '/admin/upi-setup'
-    | '/blog/$slug'
-    | '/blog/how-to-earn-money-on-poppo-live-india'
     | '/join/wobb'
     | '/admin/'
     | '/api/public/interakt-action'
@@ -365,10 +417,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/blog'
+    | '/academy'
     | '/coins'
     | '/contact'
     | '/creator-reward-policy'
+    | '/earnings'
     | '/join'
     | '/privacy-policy'
     | '/recharge-policy'
@@ -377,6 +430,14 @@ export interface FileRouteTypes {
     | '/track'
     | '/track-application'
     | '/verify'
+    | '/academy/coins-points-gifts-explained'
+    | '/academy/how-to-become-poppo-host'
+    | '/academy/pk-battle-guide'
+    | '/academy/poppo-daily-tasks'
+    | '/academy/poppo-live-earning-india'
+    | '/academy/poppo-withdrawal-guide'
+    | '/academy/vone-app-india'
+    | '/academy/what-is-poppo-live'
     | '/admin/creator-leads'
     | '/admin/homepage'
     | '/admin/leads'
@@ -385,12 +446,9 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/payouts'
     | '/admin/policies'
-    | '/admin/posts'
     | '/admin/settings'
     | '/admin/unmatched'
     | '/admin/upi-setup'
-    | '/blog/$slug'
-    | '/blog/how-to-earn-money-on-poppo-live-india'
     | '/join/wobb'
     | '/admin'
     | '/api/public/interakt-action'
@@ -399,11 +457,12 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/academy'
     | '/admin'
-    | '/blog'
     | '/coins'
     | '/contact'
     | '/creator-reward-policy'
+    | '/earnings'
     | '/join'
     | '/privacy-policy'
     | '/recharge-policy'
@@ -412,6 +471,14 @@ export interface FileRouteTypes {
     | '/track'
     | '/track-application'
     | '/verify'
+    | '/academy/coins-points-gifts-explained'
+    | '/academy/how-to-become-poppo-host'
+    | '/academy/pk-battle-guide'
+    | '/academy/poppo-daily-tasks'
+    | '/academy/poppo-live-earning-india'
+    | '/academy/poppo-withdrawal-guide'
+    | '/academy/vone-app-india'
+    | '/academy/what-is-poppo-live'
     | '/admin/creator-leads'
     | '/admin/homepage'
     | '/admin/leads'
@@ -420,12 +487,9 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/payouts'
     | '/admin/policies'
-    | '/admin/posts'
     | '/admin/settings'
     | '/admin/unmatched'
     | '/admin/upi-setup'
-    | '/blog/$slug'
-    | '/blog/how-to-earn-money-on-poppo-live-india'
     | '/join/wobb'
     | '/admin/'
     | '/api/public/interakt-action'
@@ -435,8 +499,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcademyRoute: typeof AcademyRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
-  BlogRoute: typeof BlogRouteWithChildren
   CoinsRoute: typeof CoinsRoute
   ContactRoute: typeof ContactRoute
   CreatorRewardPolicyRoute: typeof CreatorRewardPolicyRoute
@@ -456,18 +520,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify': {
+      id: '/verify'
+      path: '/verify'
+      fullPath: '/verify'
+      preLoaderRoute: typeof VerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/track-application': {
       id: '/track-application'
       path: '/track-application'
       fullPath: '/track-application'
       preLoaderRoute: typeof TrackApplicationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms-and-conditions': {
-      id: '/terms-and-conditions'
-      path: '/terms-and-conditions'
-      fullPath: '/terms-and-conditions'
-      preLoaderRoute: typeof TermsAndConditionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/track': {
@@ -477,11 +541,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TrackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/verify': {
-      id: '/verify'
-      path: '/verify'
-      fullPath: '/verify'
-      preLoaderRoute: typeof VerifyRouteImport
+    '/terms-and-conditions': {
+      id: '/terms-and-conditions'
+      path: '/terms-and-conditions'
+      fullPath: '/terms-and-conditions'
+      preLoaderRoute: typeof TermsAndConditionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -512,18 +576,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JoinRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/creator-reward-policy': {
-      id: '/creator-reward-policy'
-      path: '/creator-reward-policy'
-      fullPath: '/creator-reward-policy'
-      preLoaderRoute: typeof CreatorRewardPolicyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/earnings': {
       id: '/earnings'
       path: '/earnings'
       fullPath: '/earnings'
       preLoaderRoute: typeof EarningsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/creator-reward-policy': {
+      id: '/creator-reward-policy'
+      path: '/creator-reward-policy'
+      fullPath: '/creator-reward-policy'
+      preLoaderRoute: typeof CreatorRewardPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -540,18 +604,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoinsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/blog': {
-      id: '/blog'
-      path: '/blog'
-      fullPath: '/blog'
-      preLoaderRoute: typeof BlogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/admin': {
       id: '/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/academy': {
+      id: '/academy'
+      path: '/academy'
+      fullPath: '/academy'
+      preLoaderRoute: typeof AcademyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -575,20 +639,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JoinWobbRouteImport
       parentRoute: typeof JoinRoute
     }
-    '/blog/$slug': {
-      id: '/blog/$slug'
-      path: '/$slug'
-      fullPath: '/blog/$slug'
-      preLoaderRoute: typeof BlogSlugRouteImport
-      parentRoute: typeof BlogRoute
-    }
-    '/blog/how-to-earn-money-on-poppo-live-india': {
-      id: '/blog/how-to-earn-money-on-poppo-live-india'
-      path: '/how-to-earn-money-on-poppo-live-india'
-      fullPath: '/blog/how-to-earn-money-on-poppo-live-india'
-      preLoaderRoute: typeof BlogHowToEarnMoneyRouteImport
-      parentRoute: typeof BlogRoute
-    }
     '/admin/upi-setup': {
       id: '/admin/upi-setup'
       path: '/upi-setup'
@@ -608,13 +658,6 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/admin/settings'
       preLoaderRoute: typeof AdminSettingsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/posts': {
-      id: '/admin/posts'
-      path: '/posts'
-      fullPath: '/admin/posts'
-      preLoaderRoute: typeof AdminPostsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/policies': {
@@ -673,6 +716,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCreatorLeadsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/academy/what-is-poppo-live': {
+      id: '/academy/what-is-poppo-live'
+      path: '/what-is-poppo-live'
+      fullPath: '/academy/what-is-poppo-live'
+      preLoaderRoute: typeof AcademyWhatIsPoppoLiveRouteImport
+      parentRoute: typeof AcademyRoute
+    }
+    '/academy/vone-app-india': {
+      id: '/academy/vone-app-india'
+      path: '/vone-app-india'
+      fullPath: '/academy/vone-app-india'
+      preLoaderRoute: typeof AcademyVoneAppIndiaRouteImport
+      parentRoute: typeof AcademyRoute
+    }
+    '/academy/poppo-withdrawal-guide': {
+      id: '/academy/poppo-withdrawal-guide'
+      path: '/poppo-withdrawal-guide'
+      fullPath: '/academy/poppo-withdrawal-guide'
+      preLoaderRoute: typeof AcademyPoppoWithdrawalGuideRouteImport
+      parentRoute: typeof AcademyRoute
+    }
+    '/academy/poppo-live-earning-india': {
+      id: '/academy/poppo-live-earning-india'
+      path: '/poppo-live-earning-india'
+      fullPath: '/academy/poppo-live-earning-india'
+      preLoaderRoute: typeof AcademyPoppoLiveEarningIndiaRouteImport
+      parentRoute: typeof AcademyRoute
+    }
+    '/academy/poppo-daily-tasks': {
+      id: '/academy/poppo-daily-tasks'
+      path: '/poppo-daily-tasks'
+      fullPath: '/academy/poppo-daily-tasks'
+      preLoaderRoute: typeof AcademyPoppoDailyTasksRouteImport
+      parentRoute: typeof AcademyRoute
+    }
+    '/academy/pk-battle-guide': {
+      id: '/academy/pk-battle-guide'
+      path: '/pk-battle-guide'
+      fullPath: '/academy/pk-battle-guide'
+      preLoaderRoute: typeof AcademyPkBattleGuideRouteImport
+      parentRoute: typeof AcademyRoute
+    }
+    '/academy/how-to-become-poppo-host': {
+      id: '/academy/how-to-become-poppo-host'
+      path: '/how-to-become-poppo-host'
+      fullPath: '/academy/how-to-become-poppo-host'
+      preLoaderRoute: typeof AcademyHowToBecomePoppoHostRouteImport
+      parentRoute: typeof AcademyRoute
+    }
+    '/academy/coins-points-gifts-explained': {
+      id: '/academy/coins-points-gifts-explained'
+      path: '/coins-points-gifts-explained'
+      fullPath: '/academy/coins-points-gifts-explained'
+      preLoaderRoute: typeof AcademyCoinsPointsGiftsExplainedRouteImport
+      parentRoute: typeof AcademyRoute
+    }
     '/api/public/upi-webhook': {
       id: '/api/public/upi-webhook'
       path: '/api/public/upi-webhook'
@@ -697,6 +796,31 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AcademyRouteChildren {
+  AcademyCoinsPointsGiftsExplainedRoute: typeof AcademyCoinsPointsGiftsExplainedRoute
+  AcademyHowToBecomePoppoHostRoute: typeof AcademyHowToBecomePoppoHostRoute
+  AcademyPkBattleGuideRoute: typeof AcademyPkBattleGuideRoute
+  AcademyPoppoDailyTasksRoute: typeof AcademyPoppoDailyTasksRoute
+  AcademyPoppoLiveEarningIndiaRoute: typeof AcademyPoppoLiveEarningIndiaRoute
+  AcademyPoppoWithdrawalGuideRoute: typeof AcademyPoppoWithdrawalGuideRoute
+  AcademyVoneAppIndiaRoute: typeof AcademyVoneAppIndiaRoute
+  AcademyWhatIsPoppoLiveRoute: typeof AcademyWhatIsPoppoLiveRoute
+}
+
+const AcademyRouteChildren: AcademyRouteChildren = {
+  AcademyCoinsPointsGiftsExplainedRoute: AcademyCoinsPointsGiftsExplainedRoute,
+  AcademyHowToBecomePoppoHostRoute: AcademyHowToBecomePoppoHostRoute,
+  AcademyPkBattleGuideRoute: AcademyPkBattleGuideRoute,
+  AcademyPoppoDailyTasksRoute: AcademyPoppoDailyTasksRoute,
+  AcademyPoppoLiveEarningIndiaRoute: AcademyPoppoLiveEarningIndiaRoute,
+  AcademyPoppoWithdrawalGuideRoute: AcademyPoppoWithdrawalGuideRoute,
+  AcademyVoneAppIndiaRoute: AcademyVoneAppIndiaRoute,
+  AcademyWhatIsPoppoLiveRoute: AcademyWhatIsPoppoLiveRoute,
+}
+
+const AcademyRouteWithChildren =
+  AcademyRoute._addFileChildren(AcademyRouteChildren)
+
 interface AdminRouteChildren {
   AdminCreatorLeadsRoute: typeof AdminCreatorLeadsRoute
   AdminHomepageRoute: typeof AdminHomepageRoute
@@ -706,7 +830,6 @@ interface AdminRouteChildren {
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminPayoutsRoute: typeof AdminPayoutsRoute
   AdminPoliciesRoute: typeof AdminPoliciesRoute
-  AdminPostsRoute: typeof AdminPostsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminUnmatchedRoute: typeof AdminUnmatchedRoute
   AdminUpiSetupRoute: typeof AdminUpiSetupRoute
@@ -722,7 +845,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOrdersRoute: AdminOrdersRoute,
   AdminPayoutsRoute: AdminPayoutsRoute,
   AdminPoliciesRoute: AdminPoliciesRoute,
-  AdminPostsRoute: AdminPostsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminUnmatchedRoute: AdminUnmatchedRoute,
   AdminUpiSetupRoute: AdminUpiSetupRoute,
@@ -730,18 +852,6 @@ const AdminRouteChildren: AdminRouteChildren = {
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
-
-interface BlogRouteChildren {
-  BlogSlugRoute: typeof BlogSlugRoute
-  BlogHowToEarnMoneyRoute: typeof BlogHowToEarnMoneyRoute
-}
-
-const BlogRouteChildren: BlogRouteChildren = {
-  BlogSlugRoute: BlogSlugRoute,
-  BlogHowToEarnMoneyRoute: BlogHowToEarnMoneyRoute,
-}
-
-const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
 
 interface JoinRouteChildren {
   JoinWobbRoute: typeof JoinWobbRoute
@@ -755,8 +865,8 @@ const JoinRouteWithChildren = JoinRoute._addFileChildren(JoinRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcademyRoute: AcademyRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
-  BlogRoute: BlogRouteWithChildren,
   CoinsRoute: CoinsRoute,
   ContactRoute: ContactRoute,
   CreatorRewardPolicyRoute: CreatorRewardPolicyRoute,
@@ -776,13 +886,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
