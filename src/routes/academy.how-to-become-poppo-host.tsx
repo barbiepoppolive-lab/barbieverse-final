@@ -191,9 +191,9 @@ function HowToBecomePoppoHost() {
               <span className="text-gradient-pink">Face Authentication</span> — The Step That Blocks Most People
             </h2>
             <LessonImage
-              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&auto=format&fit=crop"
-              alt="Person taking a selfie for identity verification"
-              caption="Face authentication requires a live selfie — tilt head and nod as prompted"
+              src="https://static.pp-static.com/uploads/94cbe879caeaf82872c11119130163671765951477.png"
+              alt="Poppo Live official homepage banner showing the app interface"
+              caption="Complete face authentication from the Poppo Live homepage — tap the Live button to start the process"
             />
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>
@@ -307,9 +307,9 @@ function HowToBecomePoppoHost() {
               <span className="text-gradient-pink">Go Live</span> — Exact Tap Sequence
             </h2>
             <LessonImage
-              src="https://images.unsplash.com/photo-1574169208507-84376144848b?w=1200&auto=format&fit=crop"
-              alt="Content creator live streaming with professional setup"
-              caption="Set up your stream with a catchy title and go live to your audience"
+              src="https://downloadr2.apkmirror.com/wp-content/uploads/2026/05/20/Poppo-Live-com.baitu.qingshu.jpg"
+              alt="Poppo Live host going live with viewer chat and gift animations"
+              caption="Go live and start earning — viewers send gifts that convert to withdrawable points"
             />
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>

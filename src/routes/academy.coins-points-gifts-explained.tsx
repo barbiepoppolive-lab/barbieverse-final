@@ -129,9 +129,9 @@ function CoinsPointsGifts() {
               <span className="text-gradient-pink">What Are Coins?</span> (Viewer Currency)
             </h2>
             <LessonImage
-              src="https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=1200&auto=format&fit=crop"
-              alt="Stack of gold coins representing virtual currency"
-              caption="Coins are the virtual currency viewers use to purchase gifts for hosts"
+              src="https://downloadr2.apkmirror.com/wp-content/uploads/2026/05/20/Poppo-Live-com.baitu.qingshu.jpg"
+              alt="Poppo Live stream with a love U gift animation appearing on screen"
+              caption="Viewers spend coins to send animated gifts like Love U during live streams — hosts earn points from each gift"
             />
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>
@@ -169,9 +169,9 @@ function CoinsPointsGifts() {
               <span className="text-gradient-pink">What Are Gifts?</span>
             </h2>
             <LessonImage
-              src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=1200&auto=format&fit=crop"
-              alt="Heart-shaped gift box representing virtual gifts on live streaming"
-              caption="Virtual gifts range from simple hearts to luxury items worth thousands of coins"
+              src="https://downloadr2.apkmirror.com/wp-content/uploads/2026/05/20/Poppo-Live-com.baitu.qingshu-4.jpg"
+              alt="Poppo Live party room with ranked participants and a crystal throne gift"
+              caption="Premium gifts like the Crystal Throne can worth thousands of coins — hosts receive 70% as points"
             />
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>
@@ -202,9 +202,9 @@ function CoinsPointsGifts() {
               <span className="text-gradient-pink">What Are Points?</span> (Host Currency)
             </h2>
             <LessonImage
-              src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1200&auto=format&fit=crop"
-              alt="Calculator and financial charts representing host earnings"
-              caption="Points convert to real money — 100 points = ₹1 when you withdraw"
+              src="https://downloadr2.apkmirror.com/wp-content/uploads/2026/05/20/Poppo-Live-com.baitu.qingshu-3.jpg"
+              alt="Poppo Live Team PK battle with two hosts competing and a crystal ball gift"
+              caption="PK battles generate massive gift activity — points from viewer gifts convert at 10,000 points = $1 USD"
             />
             <LessonCallout variant="tip" label="The Fixed Rule — Never Changes">
               <strong>10,000 Points = $1 USD ≈ ₹83</strong><br />

@@ -266,9 +266,9 @@ function PoppoDailyTasks() {
               <span className="text-gradient-pink">Treasure Box</span> Task
             </h2>
             <LessonImage
-              src="https://images.unsplash.com/photo-1507925921958-8a62f3d1a50d?w=1200&auto=format&fit=crop"
-              alt="Checklist with completed tasks representing daily earning tasks"
-              caption="Complete daily tasks to earn coins and climb the host ranking"
+              src="https://downloadr2.apkmirror.com/wp-content/uploads/2026/05/20/Poppo-Live-com.baitu.qingshu-2.jpg"
+              alt="Poppo Live Explore page showing Activity section and stream categories"
+              caption="Complete daily tasks from the Activity section — earn bonus points for streaming and engagement"
             />
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>

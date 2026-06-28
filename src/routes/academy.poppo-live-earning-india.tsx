@@ -137,9 +137,9 @@ function PoppoLiveEarningIndia() {
               <span className="text-gradient-pink">Week 1</span> Earning Numbers
             </h2>
             <LessonImage
-              src="https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1200&auto=format&fit=crop"
-              alt="Plant growing from coins representing earnings and growth"
-              caption="Start earning from day one — complete tasks and receive viewer gifts"
+              src="https://downloadr2.apkmirror.com/wp-content/uploads/2026/05/20/Poppo-Live-com.baitu.qingshu-4.jpg"
+              alt="Poppo Live party room showing ranked participants and gift leaderboard"
+              caption="Earn through gifts in live streams and party rooms — top hosts earn $300-600+ monthly"
             />
             <p className="mt-2 text-sm text-muted-foreground">Streaming 2 hours per day for 7 consecutive days:</p>
             <LessonTable

@@ -196,9 +196,9 @@ function PoppoWithdrawalGuide() {
               <span className="text-gradient-pink">Step-by-Step</span> Withdrawal
             </h2>
             <LessonImage
-              src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1200&auto=format&fit=crop"
-              alt="Digital payment interface representing withdrawal to bank account"
-              caption="Withdraw your earnings to UPI, Paytm, or bank transfer"
+              src="https://pic.bittopup.com/apiUpload/4f5b39ce60dfd613c5c2639d3eb97e38.jpg"
+              alt="Poppo Live withdrawal screen showing $245 balance and 245,000 points with Withdraw now button"
+              caption="Withdraw your earnings — minimum 100,000 points ($10 USD) via bank transfer, USDT, or e-wallet"
             />
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <ol className="list-decimal space-y-3 pl-5">

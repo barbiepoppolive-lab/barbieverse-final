@@ -127,9 +127,9 @@ function WhatIsPoppoLive() {
               <span className="text-gradient-pink">Who Made It</span> and How Big Is It?
             </h2>
             <LessonImage
-              src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=1200&auto=format&fit=crop"
-              alt="Live streamer broadcasting to audience on smartphone"
-              caption="Live streaming has grown into a global industry — Poppo Live lets anyone join"
+              src="https://downloadr2.apkmirror.com/wp-content/uploads/2026/05/20/Poppo-Live-com.baitu.qingshu-2.jpg"
+              alt="Poppo Live app Explore page showing live stream categories and the LIVE button"
+              caption="Poppo Live home screen — browse Singing, Chatting, and Dancing streams or tap LIVE to start your own"
             />
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>

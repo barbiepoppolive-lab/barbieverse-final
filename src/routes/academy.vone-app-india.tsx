@@ -127,9 +127,9 @@ function VoneAppIndia() {
               <span className="text-gradient-pink">Vone vs Poppo</span> — What's Actually Different?
             </h2>
             <LessonImage
-              src="https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=1200&auto=format&fit=crop"
-              alt="Mobile phone displaying app interface representing Vone Live"
-              caption="Vone Live is the India-focused version of the Poppo Live platform"
+              src="https://play-lh.googleusercontent.com/4aYfrPH_nHti2wbuubO0pijq89MdkQIlLGyFCpWdBIYHZQaihPwrR8w83nk1EGzrP3Y=w1080-h1920-rw"
+              alt="Vone Live app home screen showing live streams and categories"
+              caption="Vone Live — the India-focused version of the Poppo Live platform"
             />
             <LessonCallout variant="info">
               The reason is regulatory: Indian app store compliance and local digital content rules led Vshow PTE. LTD. to operate under the Vone brand specifically for India. The backend, earnings system, and agency structure are completely shared.
@@ -164,9 +164,9 @@ function VoneAppIndia() {
               <span className="text-gradient-pink">How to Download</span> Vone Live in India
             </h2>
             <LessonImage
-              src="https://images.unsplash.com/photo-1551650975-87deedd944c3?w=1200&auto=format&fit=crop"
-              alt="Person downloading an app from the Google Play Store"
-              caption="Download Vone Live directly from the Google Play Store on Android"
+              src="https://play-lh.googleusercontent.com/mEP3rbWpezdLT7EC8EtGb2l5BqGHkZTU2eCR6MHa-pPY6MKb-Cjx8MgxTBmsxoy9lxM=w1080-h1920-rw"
+              alt="Vone Live app interface showing party room and live streaming features"
+              caption="Download Vone Live directly from the Google Play Store — search Vone Live"
             />
             <LessonCallout variant="danger" label="Security Warning">
               Never download Vone or Poppo from any website or APK link outside the official Play Store. Fake versions exist that steal account credentials and payment information. The official Google Play Store listing is the only safe source.
