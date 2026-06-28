@@ -226,6 +226,42 @@
   box-shadow: 0 0 30px -10px oklch(0.72 0.25 350 / 0.12);
 }
 
+@utility hover-lift {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -8px oklch(0 0 0 / 0.35);
+}
+
+@utility hover-glow-pink {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.hover-glow-pink:hover {
+  box-shadow: 0 0 20px oklch(0.72 0.25 350 / 0.25), 0 0 40px oklch(0.72 0.25 350 / 0.1);
+}
+
+@utility hover-glow-gold {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.hover-glow-gold:hover {
+  box-shadow: 0 0 20px oklch(0.82 0.13 75 / 0.25), 0 0 40px oklch(0.82 0.13 75 / 0.1);
+}
+
+@utility hover-scale-sm {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-scale-sm:hover {
+  transform: scale(1.02);
+}
+
+.tap-feedback {
+  transition: transform 0.1s ease;
+}
+.tap-feedback:active {
+  transform: scale(0.98);
+}
+
 @utility pulse-subtle {
   animation: pulseSubtle 3s ease-in-out infinite;
 }
@@ -398,14 +434,54 @@
     animation: none !important;
   }
   .card-lift:hover,
-  .card-glow:hover {
+  .card-glow:hover,
+  .hover-lift:hover,
+  .hover-scale-sm:hover {
     transform: none !important;
   }
 }
 
 @media (hover: none) and (pointer: coarse) {
   .card-lift:hover,
-  .card-glow:hover {
+  .card-glow:hover,
+  .hover-lift:hover,
+  .hover-scale-sm:hover {
     transform: none !important;
+  }
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 640px) {
+  /* Larger touch targets */
+  button, a, [role="button"] {
+    min-height: 44px;
+  }
+
+  /* Better spacing on small screens */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Responsive tables - horizontal scroll */
+  .lesson-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .lesson-table-wrapper::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Full-width CTA buttons on mobile */
+  .lesson-cta-full {
+    width: 100%;
+  }
+}
+
+/* Safe area for iPhone notch */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .pb-20 {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
   }
 }

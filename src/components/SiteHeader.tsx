@@ -39,7 +39,7 @@ export function SiteHeader() {
       >
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link to="/" className="group flex items-center gap-2">
-            <Crown className="h-5 w-5 text-gold transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6" />
+            <Crown className="h-5 w-5 text-gold transition-all duration-300 group-hover:scale-110 group-hover:rotate-12 group-hover:drop-shadow-[0_0_8px_oklch(0.82_0.13_75/0.6)]" />
             <span className="font-display text-xl tracking-wide">
               <span className="italic text-gradient-pink">Barbie</span>verse
             </span>
@@ -50,11 +50,11 @@ export function SiteHeader() {
               <Link
                 key={l.to}
                 to={l.to}
-                className="group relative text-[13px] font-medium uppercase tracking-[0.15em] text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                className="group relative text-[13px] font-medium uppercase tracking-[0.15em] text-muted-foreground transition-all duration-200 hover:text-foreground hover:-translate-y-px"
                 activeProps={{ className: "text-foreground" }}
               >
                 {l.label}
-                <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-gradient-pink transition-all duration-300 group-hover:w-full group-[.active]:w-full" />
+                <span className="absolute -bottom-0.5 left-1/2 h-px w-0 -translate-x-1/2 bg-gradient-pink transition-all duration-300 group-hover:w-full group-[.active]:w-full" />
               </Link>
             ))}
           </nav>
@@ -63,7 +63,7 @@ export function SiteHeader() {
             <LanguageToggle />
             <Link
               to="/join"
-              className="hidden h-9 items-center rounded-full bg-gradient-pink px-4 text-xs font-semibold uppercase tracking-wider text-primary-foreground glow-pink transition-all hover:scale-[1.02] sm:inline-flex"
+              className="hidden h-9 items-center rounded-full bg-gradient-pink px-4 text-xs font-semibold uppercase tracking-wider text-primary-foreground glow-pink transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_0_24px_oklch(0.72_0.25_350/0.4)] sm:inline-flex"
             >
               {t("cta.get500short")}
             </Link>
@@ -71,7 +71,7 @@ export function SiteHeader() {
               aria-label={open ? "Close menu" : "Open menu"}
               aria-expanded={open}
               onClick={() => setOpen(!open)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 transition-all duration-200 hover:border-primary/40 hover:bg-card md:hidden"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 transition-all duration-200 hover:border-primary/40 hover:bg-card hover:scale-105 md:hidden"
             >
               {open
                 ? <X className="h-4 w-4" />
@@ -100,8 +100,8 @@ export function SiteHeader() {
                   key={l.to}
                   to={l.to}
                   onClick={() => setOpen(false)}
-                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-card/60 hover:text-foreground hover:pl-4"
-                  activeProps={{ className: "bg-card/60 text-foreground pl-4" }}
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-card/60 hover:text-foreground hover:pl-5 active:scale-[0.98]"
+                  activeProps={{ className: "bg-card/60 text-foreground pl-5" }}
                 >
                   {l.label}
                 </Link>
@@ -127,7 +127,7 @@ export function SiteHeader() {
               <Link
                 key={l.to}
                 to={l.to}
-                className={`flex flex-col items-center gap-0.5 px-3 py-1 transition-colors ${
+                className={`relative flex flex-col items-center gap-0.5 px-3 py-1 transition-all duration-200 active:scale-90 ${
                   isCoins
                     ? "text-gold"
                     : "text-muted-foreground hover:text-foreground"
@@ -136,7 +136,7 @@ export function SiteHeader() {
               >
                 {isCoins ? (
                   <div className="relative">
-                    <div className="absolute -inset-2 rounded-full bg-gold/15 blur-md" />
+                    <div className="absolute -inset-2 rounded-full bg-gold/15 blur-md animate-pulse" />
                     <Icon className="relative h-5 w-5" />
                   </div>
                 ) : (

@@ -12,7 +12,7 @@ export function LessonImage({ src, alt, caption, className = "" }: LessonImagePr
         <img
           src={src}
           alt={alt}
-          className="w-full object-cover"
+          className="w-full object-cover transition-transform duration-300 hover:scale-[1.02]"
           loading="lazy"
         />
       </div>

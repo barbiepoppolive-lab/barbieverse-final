@@ -12,9 +12,9 @@ export function LessonNav({ prev, next }: LessonNavProps) {
       {prev ? (
         <Link
           to={prev.slug as any}
-          className="group flex items-center gap-3 rounded-2xl border border-border/40 bg-card/30 p-5 backdrop-blur-md transition-all hover:border-primary/40"
+          className="group flex items-center gap-3 rounded-2xl border border-border/40 bg-card/30 p-5 backdrop-blur-md transition-all duration-200 hover:border-primary/40 hover:bg-card/40 hover:shadow-[0_0_30px_oklch(0.72_0.25_350/0.08)] hover-lift"
         >
-          <ArrowLeft className="h-5 w-5 text-muted-foreground transition-transform group-hover:-translate-x-1" />
+          <ArrowLeft className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-hover:-translate-x-2 group-hover:text-primary" />
           <div>
             <span className="text-xs text-muted-foreground">Previous Lesson</span>
             <h3 className="font-display text-sm font-bold group-hover:text-primary sm:text-base">
@@ -28,7 +28,7 @@ export function LessonNav({ prev, next }: LessonNavProps) {
       {next ? (
         <Link
           to={next.slug as any}
-          className="group flex items-center justify-end gap-3 rounded-2xl border border-border/40 bg-card/30 p-5 backdrop-blur-md transition-all hover:border-primary/40"
+          className="group flex items-center justify-end gap-3 rounded-2xl border border-border/40 bg-card/30 p-5 backdrop-blur-md transition-all duration-200 hover:border-gold/40 hover:bg-card/40 hover:shadow-[0_0_30px_oklch(0.82_0.13_75/0.08)] hover-lift"
         >
           <div className="text-right">
             <span className="text-xs text-muted-foreground">Next Lesson</span>
@@ -36,7 +36,7 @@ export function LessonNav({ prev, next }: LessonNavProps) {
               {next.title}
             </h3>
           </div>
-          <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+          <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-hover:translate-x-2 group-hover:text-gold" />
         </Link>
       ) : (
         <div />

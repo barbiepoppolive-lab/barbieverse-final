@@ -31,7 +31,7 @@ export function LessonTable({ columns, rows, caption }: LessonTableProps) {
           </thead>
           <tbody className="divide-y divide-border/40">
             {rows.map((row, i) => (
-              <tr key={i} className="bg-card/30">
+              <tr key={i} className="bg-card/30 hover:bg-primary/5 transition-colors duration-150">
                 {columns.map((col) => (
                   <td key={col.key} className={`px-4 py-3 text-muted-foreground ${col.className || ""}`}>
                     {row[col.key]}
