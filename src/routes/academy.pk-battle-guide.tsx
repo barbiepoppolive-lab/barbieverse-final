@@ -13,7 +13,7 @@ const BASE_URL = typeof window !== "undefined" ? window.location.origin : "https
 const CANONICAL_URL = `${BASE_URL}/academy/pk-battle-guide`;
 
 const FAQ_DATA = [
-  { q: "What format does PK come in on Poppo Live?", a: "3 formats: 1v1 Solo PK, Team PK (3v3), and Group PK. Each has different rules and scoring." },
+  { q: "What format does PK come in on Poppo Live?", a: "4 formats: Friend PK (you pick your opponent), Random PK (auto-matched), Team PK (group format), and Fan PK (audience-based). Each has different rules and scoring." },
   { q: "Is there an entry fee for PK battles?", a: "No entry fee. You spend coins on gifts during the battle to boost your score. No coins = no points earned." },
   { q: "How is the winner scored?", a: "1,000 coins spent = 700 points earned. The host with more total gift points at the end wins." },
   { q: "What do winner and loser get?", a: "Winner gets bonus points + the gift points from their viewers. Loser still keeps their gift points — there's no penalty for losing." },
@@ -126,7 +126,7 @@ function PKBattleGuide() {
           {/* Formats */}
           <section id="formats" className="mb-16 scroll-mt-20">
             <h2 className="font-display text-3xl font-bold">
-              <span className="text-gradient-pink">3 PK Formats</span>
+              <span className="text-gradient-pink">4 PK Formats</span>
             </h2>
             <LessonImage
               src="https://downloadr2.apkmirror.com/wp-content/uploads/2026/05/20/Poppo-Live-com.baitu.qingshu-3.jpg"
@@ -141,9 +141,10 @@ function PKBattleGuide() {
                 { header: "Earning Potential", key: "earning" },
               ]}
               rows={[
-                { format: "1v1 Solo PK", participants: "2 hosts", best: "Direct competition", earning: "High" },
-                { format: "Team PK (3v3)", participants: "6 hosts (3v3)", best: "Group coordination", earning: "Very High" },
-                { format: "Group PK", participants: "Multiple hosts", best: "Large events", earning: "Highest" },
+                { format: "Friend PK", participants: "2 hosts", best: "Direct competition", earning: "High" },
+                { format: "Random PK", participants: "2 hosts", best: "Auto-matched battles", earning: "High" },
+                { format: "Team PK", participants: "Multiple hosts", best: "Group coordination", earning: "Very High" },
+                { format: "Fan PK", participants: "Multiple hosts", best: "Audience-based", earning: "Highest" },
               ]}
             />
           </section>
@@ -160,10 +161,7 @@ function PKBattleGuide() {
                 { header: "Typical Spend", key: "spend" },
               ]}
               rows={[
-                { duration: "5 minutes", best: "Quick battles, testing", spend: "Low" },
-                { duration: "10 minutes", best: "Standard PK", spend: "Medium" },
-                { duration: "15 minutes", best: "Extended battles", spend: "Medium-High" },
-                { duration: "30 minutes", best: "Full strategy PK", spend: "High" },
+                { duration: "30 minutes", best: "Standard PK", spend: "High" },
               ]}
             />
           </section>
@@ -207,7 +205,7 @@ function PKBattleGuide() {
             </h2>
             <LessonCallout variant="info" label="The Core Formula">
               <strong>1,000 coins spent = 700 points earned</strong><br />
-              The host with more total points at the end wins. Both hosts keep their earned points regardless of outcome.
+              The host with more total points at the end wins. Both hosts keep their earned points regardless of outcome. The final 60-90 seconds offer a 10-20% conversion bonus.
             </LessonCallout>
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>
@@ -230,14 +228,13 @@ function PKBattleGuide() {
                 { header: "Strategy", key: "strategy" },
               ]}
               rows={[
-                { phase: "Opening", time: "0–5 min", happens: "Initial gifts, testing opponent", strategy: "Start small to gauge support" },
-                { phase: "Conservation", time: "5–15 min", happens: "Steady gift flow, building score", strategy: "Maintain consistent spending" },
-                { phase: "Hold", time: "15–25 min", happens: "Score stabilises,双方 conserve", strategy: "Save coins for final burst" },
-                { phase: "Final Burst", time: "25–30 min", happens: "Multiplier window, heavy spending", strategy: "Spend biggest gifts here — 2x multiplier" },
+                { phase: "Opening Surge", time: "0–5 min", happens: "Initial gifts, testing opponent", strategy: "Start small to gauge support" },
+                { phase: "Momentum Shift", time: "5–20 min", happens: "Steady gift flow, building score", strategy: "Maintain consistent spending" },
+                { phase: "Final Rush", time: "20–30 min", happens: "Enhanced conversion window, heavy spending", strategy: "Spend biggest gifts here — 10-20% bonus conversion" },
               ]}
             />
-            <LessonCallout variant="warning" label="Final Minute Multiplier">
-              The last 5 minutes have a <strong>2x point multiplier</strong>. A 1,000-coin gift in the final minutes = 1,400 points instead of 700. Timing your biggest gifts here is the key to winning.
+            <LessonCallout variant="warning" label="Final Minute Conversion Bonus">
+              The last 60-90 seconds have a <strong>10-20% enhanced conversion rate</strong>. Timing your biggest gifts here maximises points earned. Community testing shows the highest impact occurs in the final 60 seconds.
             </LessonCallout>
           </section>
 
@@ -352,11 +349,11 @@ function PKBattleGuide() {
             </h2>
             <div className="mt-6 space-y-3">
               {[
-                { myth: "Spending big in the first minute", fix: "Save your biggest gifts for the final 5 minutes when the 2x multiplier is active." },
+                { myth: "Spending big in the first minute", fix: "Save your biggest gifts for the final 60-90 seconds when the enhanced conversion rate is active." },
                 { myth: "Not briefing your supporters", fix: "Tell your top viewers the strategy beforehand. 'Save for the last 5 minutes' is the most effective briefing." },
                 { myth: "Accepting random PK challenges", fix: "Random opponents may have massive supporter bases. Coordinate through BarbieVerse for balanced matchups." },
                 { myth: "PK during low-activity hours", fix: "7 PM–11 PM IST is peak. PK during the day = fewer viewers = fewer gifts = lower earnings." },
-                { myth: "Giving up when behind early", fix: "The 2x multiplier in the final minutes means a small lead can be overturned instantly. Stay until the end." },
+                { myth: "Giving up when behind early", fix: "The enhanced conversion in the final minute means a small lead can be overturned. Stay until the end." },
               ].map((m, i) => (
                 <div key={i} className="rounded-xl border border-border/40 bg-card/30 p-4 backdrop-blur-md">
                   <p className="text-sm font-semibold text-destructive">❌ {m.myth}</p>

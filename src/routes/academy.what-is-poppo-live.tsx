@@ -19,7 +19,7 @@ const FAQ_DATA = [
   { q: "How much can a host earn on Poppo Live?", a: "Hosts earn 70% of every gift as points. 10,000 points = $1 USD ≈ ₹83. Week 1 female hosts earn ₹1,162 from task rewards alone." },
   { q: "Do I need followers to start earning?", a: "No. Task rewards pay from Day 1 regardless of follower count. You can start earning immediately after going live." },
   { q: "Can I stream in Hindi?", a: "Yes. Vone supports Hindi as an interface language. The Chatting category works in Hindi, regional languages, or Hinglish equally well." },
-  { q: "What equipment do I need to start?", a: "Just your phone. Android 6.0+ or iOS 12.0+, minimum 1 Mbps upload internet, and a well-lit room. Total startup cost: ₹0." },
+                { q: "What equipment do I need to start?", a: "Just your phone. Android 5.0+ or iOS 13.0+, minimum 1 Mbps upload internet, and a well-lit room. Total startup cost: ₹0." },
   { q: "What is the minimum withdrawal amount?", a: "100,000 points = $10 USD ≈ ₹830. This is the minimum for any withdrawal request." },
   { q: "How long does withdrawal take?", a: "Epay: 1-3 days. USDT: under 15 minutes off-peak. Bank transfer: 3-7 days. Withdrawal requests must be submitted before Monday 1:29 AM IST." },
 ];
@@ -142,14 +142,14 @@ function WhatIsPoppoLive() {
                 { header: "Detail", key: "detail" },
               ]}
               rows={[
-                { stat: "Downloads", detail: "10 million+ on Google Play" },
-                { stat: "Rating", detail: "4.2 out of 5 stars (959 reviews)" },
-                { stat: "Languages", detail: "21 languages including Hindi, Bengali, Urdu" },
+                { stat: "Downloads", detail: "40 million+ on Google Play" },
+                { stat: "Rating", detail: "4.2 out of 5 stars (229K+ reviews)" },
+                { stat: "Languages", detail: "23 languages including Hindi, Bengali, Urdu" },
                 { stat: "Age Rating", detail: "16+ with built-in profanity filters" },
-                { stat: "App Size", detail: "263.7 MB (iOS) / ~100 MB (Android)" },
-                { stat: "Requirements", detail: "iOS 12.0+ or Android 6.0+" },
-                { stat: "Support Email", detail: "android.official@poppolive.com" },
-                { stat: "Website", detail: "poppolive.app" },
+                { stat: "App Size", detail: "~344 MB (iOS) / ~140 MB (Android)" },
+                { stat: "Requirements", detail: "iOS 13.0+ or Android 5.0+" },
+                { stat: "Support Email", detail: "official@poppolive.com" },
+                { stat: "Website", detail: "poppo.com" },
                 { stat: "Agency Portal", detail: "poppoliveagencyapp.com" },
               ]}
             />
@@ -216,7 +216,7 @@ function WhatIsPoppoLive() {
               ]}
               rows={[
                 { activity: "🎙️ Solo Live", what: "Stream alone. Viewers watch and gift.", who: "Hosts" },
-                { activity: "⚔️ PK Battle", what: "Two hosts compete. Gifts decide the winner. Duration: 3, 5, 15, or 30 minutes.", who: "Hosts" },
+                { activity: "⚔️ PK Battle", what: "Two hosts compete. Gifts decide the winner. Duration: 30 minutes.", who: "Hosts" },
                 { activity: "🎉 Party Room", what: "Group live room — multiple hosts on screen together.", who: "Hosts + Viewers" },
                 { activity: "💬 1v1 Private Match", what: "Private video/voice with one viewer. Earns 1,400–4,200 points/minute.", who: "Hosts" },
                 { activity: "📱 Moments / VLOGs", what: "Short videos between live sessions. Builds audience.", who: "Hosts" },
@@ -269,13 +269,13 @@ function WhatIsPoppoLive() {
             </h2>
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>
-                Two hosts appear side-by-side on screen. Their audiences send gifts. <strong className="text-foreground">Every 1,000 coins gifted = 700 rank points.</strong> The host with more points after 30 minutes wins. Winners take 70% of the combined gift pool plus a platform bonus.
+                Two hosts appear side-by-side on screen. Their audiences send gifts. <strong className="text-foreground">Every 1,000 coins gifted = 700 rank points.</strong> The host with more points after 30 minutes wins. Winners keep all earned points plus a platform bonus. The final 60-90 seconds offer a 10-20% conversion bonus.
               </p>
               <p>
                 Entry requires: Level 5 account + 1,000-coin entry fee (refunded to winners).
               </p>
               <p>
-                Three battle types: <strong className="text-foreground">Friend PK</strong> (you pick your opponent), <strong className="text-foreground">Random PK</strong> (auto-matched), <strong className="text-foreground">Team PK</strong> (group format).
+                Four battle types: <strong className="text-foreground">Friend PK</strong> (you pick your opponent), <strong className="text-foreground">Random PK</strong> (auto-matched), <strong className="text-foreground">Team PK</strong> (group format), and <strong className="text-foreground">Fan PK</strong> (audience-based).
               </p>
             </div>
           </section>

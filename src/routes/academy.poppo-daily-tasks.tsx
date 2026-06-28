@@ -13,7 +13,7 @@ const BASE_URL = typeof window !== "undefined" ? window.location.origin : "https
 const CANONICAL_URL = `${BASE_URL}/academy/poppo-daily-tasks`;
 
 const FAQ_DATA = [
-  { q: "What time do Poppo daily tasks reset?", a: "Daily tasks reset at 5:30 AM IST (Indian Standard Time) every morning. Weekly tasks reset on Monday at 1:29 AM IST." },
+  { q: "What time do Poppo daily tasks reset?", a: "Daily tasks reset at 00:00 UTC+8 (9:30 PM IST the previous day) every day. Weekly tasks reset on Monday at 1:29 AM IST." },
   { q: "How many task points do female/male hosts get in Week 1?", a: "Female hosts: 20,000 pts/day. Male hosts: 10,000 pts/day. Streaming 2 hours per day triggers the daily task reward." },
   { q: "What is the ongoing solo live task after Week 1?", a: "After Week 1, solo live tasks vary by salary tier — from 5,000 pts/day (Tier D) up to 30,000 pts/day (Tier S-IDOL)." },
   { q: "What is the Crown Seat and how much does it pay?", a: "Crown Seat pays 800 pts/hour for simply sitting in a designated seat in a party room. No active streaming required." },
@@ -133,7 +133,7 @@ function PoppoDailyTasks() {
             </h2>
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>
-                <strong className="text-foreground">Daily Tasks:</strong> Reset every day at <strong className="text-foreground">5:30 AM IST</strong>. Complete them before midnight to earn guaranteed points.
+                <strong className="text-foreground">Daily Tasks:</strong> Reset every day at <strong className="text-foreground">00:00 UTC+8 (9:30 PM IST previous day)</strong>. Complete them before reset to earn guaranteed points.
               </p>
               <p>
                 <strong className="text-foreground">Weekly Tasks:</strong> Reset every <strong className="text-foreground">Monday at 1:29 AM IST</strong>. These are higher-reward tasks that span the full week.
@@ -255,7 +255,7 @@ function PoppoDailyTasks() {
             </h2>
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>
-                Each chat message sent during a live stream earns <strong className="text-foreground">7 pts</strong>. Small but adds up with consistent participation.
+                Each chat message sent during a live stream earns <strong className="text-foreground">4–7 pts</strong>. Small but adds up with consistent participation.
               </p>
             </div>
           </section>
@@ -296,7 +296,7 @@ function PoppoDailyTasks() {
                 { task: "Crown Seat", pts: "800/hr", freq: "Per hour", req: "Sit in Crown Seat" },
                 { task: "Party Seat", pts: "1,000/hr", freq: "Per hour", req: "3+ hosts in room" },
                 { task: "PK Battle", pts: "1,000", freq: "Per battle", req: "Enter PK" },
-                { task: "Chat Message", pts: "7", freq: "Per message", req: "Send in live room" },
+                { task: "Chat Message", pts: "4–7", freq: "Per message", req: "Send in live room" },
                 { task: "Treasure Box", pts: "400 coins", freq: "Daily", req: "Open box" },
               ]}
             />
@@ -314,7 +314,7 @@ function PoppoDailyTasks() {
                 { header: "Points Earned", key: "pts" },
               ]}
               rows={[
-                { time: "5:30 AM", activity: "Tasks reset — claim yesterday's rewards", pts: "—" },
+                { time: "9:30 PM (prev day)", activity: "Tasks reset — claim yesterday's rewards", pts: "—" },
                 { time: "6:00 AM", activity: "Open Treasure Box", pts: "400 coins" },
                 { time: "10:00 AM", activity: "Solo Live stream (2 hrs)", pts: "20,000" },
                 { time: "12:00 PM", activity: "Claim solo live task", pts: "Claimed" },
@@ -336,7 +336,7 @@ function PoppoDailyTasks() {
               <span className="text-gradient-pink">The #1 Mistake</span> That Loses Rewards
             </h2>
             <LessonCallout variant="danger" label="Critical">
-              Most new hosts complete tasks but forget to <strong>manually claim</strong> them. Unclaimed rewards disappear when tasks reset. Go to Tasks → click Claim next to every completed task before 5:30 AM IST.
+              Most new hosts complete tasks but forget to <strong>manually claim</strong> them. Unclaimed rewards disappear when tasks reset. Go to Tasks → click Claim next to every completed task before the daily reset at 00:00 UTC+8 (9:30 PM IST).
             </LessonCallout>
           </section>
 
@@ -381,7 +381,7 @@ function PoppoDailyTasks() {
             </h2>
             <div className="mt-6 space-y-3">
               {[
-                "Set a daily alarm for 5:30 AM IST to claim tasks before reset",
+                "Set a daily alarm for 9:30 PM IST (00:00 UTC+8) to claim tasks before reset",
                 "Use BarbieVerse's event calendar to know when multipliers are active",
                 "Join coordinated party rooms via BarbieVerse for guaranteed Party Seat hours",
                 "Track your daily points in a spreadsheet to monitor tier progression",
@@ -401,10 +401,10 @@ function PoppoDailyTasks() {
             </h2>
             <div className="mt-6 space-y-3">
               {[
-                { myth: "Not claiming tasks manually", fix: "Every task must be claimed before 5:30 AM IST reset. Unclaimed = lost forever." },
+                { myth: "Not claiming tasks manually", fix: "Every task must be claimed before the daily reset at 00:00 UTC+8 (9:30 PM IST). Unclaimed = lost forever." },
                 { myth: "Streaming less than 2 hours", fix: "Solo live tasks require minimum 2 hours. 1 hour 59 minutes = zero task credit." },
                 { myth: "Ignoring Crown Seat and Party Seat", fix: "These passive tasks earn ₹6.64–8.30/hour with zero effort. Stack them with other activities." },
-                { myth: "Not checking reset times", fix: "Daily reset: 5:30 AM IST. Weekly reset: Monday 1:29 AM IST. Plan around these." },
+                { myth: "Not checking reset times", fix: "Daily reset: 00:00 UTC+8 (9:30 PM IST previous day). Weekly reset: Monday 1:29 AM IST. Plan around these." },
                 { myth: "Missing event multiplier windows", fix: "Events can double/triple task income. BarbieVerse gives advance notice — use it." },
               ].map((m, i) => (
                 <div key={i} className="rounded-xl border border-border/40 bg-card/30 p-4 backdrop-blur-md">

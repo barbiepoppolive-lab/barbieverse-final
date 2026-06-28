@@ -171,7 +171,7 @@ function CoinsPointsGifts() {
             <LessonImage
               src="https://downloadr2.apkmirror.com/wp-content/uploads/2026/05/20/Poppo-Live-com.baitu.qingshu-4.jpg"
               alt="Poppo Live party room with ranked participants and a crystal throne gift"
-              caption="Premium gifts like the Crystal Throne can worth thousands of coins — hosts receive 70% as points"
+              caption="Premium gifts like the Crystal Throne can be worth thousands of coins — hosts receive 70% as points"
             />
             <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>
@@ -188,8 +188,8 @@ function CoinsPointsGifts() {
               ]}
               rows={[
                 { gift: "🌹 Rose", coins: "200", spends: "₹17", points: "140", earns: "₹1.16" },
-                { gift: "🏆 Trophy", coins: "500", spends: "₹42", points: "350", earns: "₹2.90" },
-                { gift: "🚗 Luxury Car", coins: "10,000", spends: "₹830", points: "7,000", earns: "₹58" },
+                { gift: "🏆 Standout", coins: "500", spends: "₹42", points: "350", earns: "₹2.90" },
+                { gift: "🚗 Luxury Car", coins: "50,000", spends: "₹4,150", points: "35,000", earns: "₹290" },
                 { gift: "🛥️ Yacht", coins: "1,000", spends: "₹83", points: "700", earns: "₹5.80" },
                 { gift: "✈️ Private Jet", coins: "50,000", spends: "₹4,150", points: "35,000", earns: "₹290" },
               ]}
@@ -286,7 +286,7 @@ function CoinsPointsGifts() {
               </p>
               <ul className="list-disc space-y-2 pl-5">
                 <li><strong className="text-foreground">Points</strong> = earned from viewer gifts (70% of gift coin value). Withdrawable.</li>
-                <li><strong className="text-foreground">Pcoins</strong> = earned from platform tasks, bonuses, daily missions. Also withdrawable.</li>
+                <li><strong className="text-foreground">Pcoins</strong> = earned from platform tasks, bonuses, daily missions. Also withdrawable. Expires after 12 months on Level 5 accounts.</li>
               </ul>
               <p>
                 When you withdraw $10, Poppo combines both sources automatically. You do not manage them separately.
@@ -332,7 +332,7 @@ function CoinsPointsGifts() {
                 { feature: "Who has them", coins: "Viewers", points: "Hosts" },
                 { feature: "How you get them", coins: "Buy with ₹", points: "Earned from gifts + tasks" },
                 { feature: "Can you withdraw?", coins: "❌ No", points: "✅ Yes" },
-                { feature: "Expiry", coins: "12 months if unused", points: "No expiry" },
+                { feature: "Expiry", coins: "12 months if unused", points: "12 months on Level 5 accounts" },
                 { feature: "Rate", coins: "~9,460 coins = $1", points: "10,000 points = $1" },
                 { feature: "Used for", coins: "Sending gifts", points: "Withdrawing as cash" },
               ]}

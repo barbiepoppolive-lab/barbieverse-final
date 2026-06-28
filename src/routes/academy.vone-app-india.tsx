@@ -152,7 +152,6 @@ function VoneAppIndia() {
                 { feature: "Week 1 task (female)", poppo: "20,000 pts/day", vone: "20,000 pts/day" },
                 { feature: "Week 1 task (male)", poppo: "10,000 pts/day", vone: "10,000 pts/day" },
                 { feature: "Minimum withdrawal", poppo: "$10 (100,000 pts)", vone: "$10 (100,000 pts)" },
-                { feature: "App version required", poppo: "2.9.6+", vone: "2.9.6+" },
                 { feature: "Min internet speed", poppo: "1 Mbps upload", vone: "1 Mbps upload" },
               ]}
             />
