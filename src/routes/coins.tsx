@@ -261,32 +261,61 @@ function CoinsPage() {
 
 function PackageCard({ pkg, index, onSelect, isPopular }: { pkg: Pkg; index: number; onSelect: () => void; isPopular: boolean }) {
   const { t } = useLang();
-  const colors = [
-    { border: "border-sky-500/50", bg: "from-sky-500/10 to-sky-500/5", accent: "text-sky-400", badge: "bg-sky-500" },
-    { border: "border-yellow-400/60", bg: "from-yellow-400/15 to-yellow-400/5", accent: "text-yellow-400", badge: "bg-yellow-400" },
-    { border: "border-blue-500/50", bg: "from-blue-500/10 to-blue-500/5", accent: "text-blue-400", badge: "bg-blue-500" },
-    { border: "border-yellow-300/50", bg: "from-yellow-300/10 to-yellow-300/5", accent: "text-yellow-300", badge: "bg-yellow-300" },
+
+  const TIER_CONFIG = [
+    { emoji: "🪙", gradient: "from-amber-500/20 to-yellow-600/10", accent: "text-amber-400", badge: "" },
+    { emoji: "💎", gradient: "from-primary/20 to-pink-600/10", accent: "text-primary", badge: t("coins.mostpopular") },
+    { emoji: "👑", gradient: "from-purple-500/20 to-violet-600/10", accent: "text-purple-400", badge: "Best Value" },
+    { emoji: "⭐", gradient: "from-gold/20 to-amber-500/10", accent: "text-gold", badge: "VIP" },
   ];
-  const c = colors[index % colors.length];
+  const tier = TIER_CONFIG[index % TIER_CONFIG.length];
 
   return (
     <button
       onClick={onSelect}
-      className={`group relative rounded-xl border-2 ${c.border} bg-gradient-to-br ${c.bg} p-4 text-left backdrop-blur-md transition-all duration-200 hover:scale-[1.03] hover:shadow-lg`}
+      className={`group relative overflow-hidden rounded-2xl border bg-card/40 p-5 text-left backdrop-blur-md transition-all duration-300 hover-lift ${
+        isPopular
+          ? "border-primary/50 shadow-[0_0_25px_oklch(0.72_0.25_350/0.1)]"
+          : "border-border/60 hover:border-gold/40"
+      }`}
     >
+      {/* Gradient background on hover */}
+      <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${tier.gradient} opacity-0 transition-opacity duration-300 group-hover:opacity-100`} />
+
+      {/* Popular badge */}
       {isPopular && (
-        <span className={`absolute -top-2.5 right-3 rounded-full ${c.badge} px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-black`}>
-          {t("coins.mostpopular")}
-        </span>
+        <div className="absolute -right-8 top-3 rotate-45 bg-gradient-pink px-10 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary-foreground shadow-lg">
+          {tier.badge}
+        </div>
       )}
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{pkg.name}</div>
-      <div className="mt-2 flex items-baseline gap-1.5">
-        <span className={`font-display text-2xl font-bold ${c.accent}`}>{pkg.coins}</span>
-        <span className="text-[10px] text-muted-foreground">{t("coins.coins")}</span>
+
+      {/* Tier emoji */}
+      <div className="relative text-center text-4xl">{tier.emoji}</div>
+
+      {/* Package name */}
+      <div className="relative mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        {pkg.name}
       </div>
-      <div className="mt-2 font-display text-lg font-bold text-foreground">₹{pkg.price}</div>
-      <div className="mt-1 text-[10px] text-muted-foreground">≈ ₹{(pkg.price / pkg.coins).toFixed(2)}{t("coins.percoin")}</div>
-      <div className={`mt-3 inline-flex items-center text-xs font-bold ${c.accent}`}>
+
+      {/* Coin count */}
+      <div className="relative mt-3 text-center">
+        <span className={`font-display text-3xl font-bold ${tier.accent}`}>{pkg.coins.toLocaleString()}</span>
+        <span className="ml-1 text-xs text-muted-foreground">{t("coins.coins")}</span>
+      </div>
+
+      {/* Price */}
+      <div className="relative mt-2 text-center font-display text-lg font-bold text-foreground">
+        ₹{pkg.price.toLocaleString()}
+      </div>
+      <div className="relative text-center text-[10px] text-muted-foreground">
+        ≈ ₹{(pkg.price / pkg.coins).toFixed(2)}{t("coins.percoin")}
+      </div>
+
+      {/* Divider */}
+      <div className="relative my-4 border-t border-border/40" />
+
+      {/* Select button */}
+      <div className={`relative inline-flex w-full items-center justify-center text-xs font-bold ${tier.accent} transition-all duration-200 group-hover:scale-[1.02]`}>
         {t("section.packages.select")}
       </div>
     </button>
