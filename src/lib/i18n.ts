@@ -1399,6 +1399,11 @@ function getInitialLang(): Lang {
     const v = localStorage.getItem(KEY);
     if (v === "hi" || v === "en" || v === "tl") return v;
   } catch {}
+  // Auto-detect from browser language
+  const nav = navigator?.language || (navigator as any)?.languages?.[0] || "";
+  const lower = nav.toLowerCase();
+  if (lower.startsWith("hi")) return "hi";
+  if (lower.startsWith("tl") || lower.startsWith("fil")) return "tl";
   return "en";
 }
 
