@@ -56,21 +56,21 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
   const reduced = usePrefersReducedMotion();
   const lowPower = useIsLowPower();
   const { lang, t } = useLang();
-  const hi = lang === "hi";
+  const nonEn = lang !== "en";
 
   const heroPhoto = settings.hero_photo_url?.trim() || founderPortrait.url;
-  const heroEyebrow = hi ? t("hero.eyebrow") : (settings.hero_eyebrow || t("hero.eyebrow"));
-  const heroName = hi ? t("hero.name") : (settings.hero_name || t("hero.name"));
-  const heroTitle = hi ? t("hero.title") : (settings.hero_title || t("hero.title"));
-  const heroSubtitle = hi ? t("hero.subtitle") : (settings.hero_subtitle || t("hero.subtitle"));
-  const heroIntro = hi ? t("hero.intro") : (settings.hero_intro || t("hero.intro"));
-  const heroSignature = hi ? t("hero.signature") : (settings.hero_signature || t("hero.signature"));
-  const ctaPrimaryText = hi ? t("hero.cta.primary") : (settings.hero_cta_primary_text || t("hero.cta.primary"));
+  const heroEyebrow = nonEn ? t("hero.eyebrow") : (settings.hero_eyebrow || t("hero.eyebrow"));
+  const heroName = nonEn ? t("hero.name") : (settings.hero_name || t("hero.name"));
+  const heroTitle = nonEn ? t("hero.title") : (settings.hero_title || t("hero.title"));
+  const heroSubtitle = nonEn ? t("hero.subtitle") : (settings.hero_subtitle || t("hero.subtitle"));
+  const heroIntro = nonEn ? t("hero.intro") : (settings.hero_intro || t("hero.intro"));
+  const heroSignature = nonEn ? t("hero.signature") : (settings.hero_signature || t("hero.signature"));
+  const ctaPrimaryText = nonEn ? t("hero.cta.primary") : (settings.hero_cta_primary_text || t("hero.cta.primary"));
   const ctaPrimaryLink = settings.hero_cta_primary_link || "/join";
-  const ctaSecondaryText = hi ? t("hero.cta.secondary") : (settings.hero_cta_secondary_text || t("hero.cta.secondary"));
+  const ctaSecondaryText = nonEn ? t("hero.cta.secondary") : (settings.hero_cta_secondary_text || t("hero.cta.secondary"));
   const ctaSecondaryLink = settings.hero_cta_secondary_link || "/join";
 
-  const badges: Badge[] = hi
+  const badges: Badge[] = nonEn
     ? [
         { icon: "🏆", label: t("hero.badge.wealth") },
         { icon: "💎", label: t("hero.badge.agency") },

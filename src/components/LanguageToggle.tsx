@@ -4,7 +4,7 @@ export function LanguageToggle() {
   const { lang, setLang } = useLang();
   return (
     <div className="inline-flex items-center rounded-full border border-border/60 bg-card/40 p-0.5 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-md">
-      {(["en", "hi"] as const).map((l) => (
+      {(["en", "hi", "tl"] as const).map((l) => (
         <button
           key={l}
           type="button"
@@ -14,7 +14,7 @@ export function LanguageToggle() {
           }`}
           aria-pressed={lang === l}
         >
-          {l === "en" ? "EN" : "हि"}
+          {l === "en" ? "EN" : l === "hi" ? "हि" : "TL"}
         </button>
       ))}
     </div>
