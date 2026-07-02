@@ -61,6 +61,7 @@ function SettingsPage() {
   const [draft, setDraft] = useState<Record<string, string>>(data);
   const [saving, setSaving] = useState<string | null>(null);
   const [togglesDirty, setTogglesDirty] = useState(false);
+  const [heroLang, setHeroLang] = useState<"en" | "hi" | "tl">("en");
 
   const save = async (key: string) => {
     setSaving(key);
@@ -86,15 +87,46 @@ function SettingsPage() {
     }
   };
 
+  const heroFields = heroLang === "en"
+    ? HERO_FIELDS
+    : HERO_FIELDS.filter((f) => f.key !== "hero_photo_url").map((f) => ({
+        ...f,
+        key: `${f.key}_${heroLang}`,
+        label: `${f.label} (${heroLang === "hi" ? "Hindi" : "Filipino"})`,
+      }));
+
   return (
     <div className="max-w-3xl">
       <h1 className="font-display text-3xl font-bold">Settings</h1>
       <p className="mt-1 text-sm text-muted-foreground">All values used across the website. Editable here.</p>
 
       <section className="mt-8 space-y-4">
-        <h2 className="font-display text-lg font-bold">Homepage Hero (Personal Intro)</h2>
-        <p className="text-xs text-muted-foreground">Edit your photo, name and intro shown on the homepage.</p>
-        {HERO_FIELDS.map((f) => (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-display text-lg font-bold">Homepage Hero (Personal Intro)</h2>
+            <p className="text-xs text-muted-foreground">Edit your photo, name and intro shown on the homepage.</p>
+          </div>
+          <div className="inline-flex items-center rounded-full border border-border/60 bg-card/40 p-0.5 text-xs font-semibold">
+            {(["en", "hi", "tl"] as const).map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => setHeroLang(l)}
+                className={`rounded-full px-3 py-1 transition-colors ${
+                  heroLang === l ? "bg-gradient-pink text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {l === "en" ? "EN" : l === "hi" ? "हि" : "TL"}
+              </button>
+            ))}
+          </div>
+        </div>
+        {heroLang !== "en" && (
+          <p className="text-xs text-amber-500">
+            Editing {heroLang === "hi" ? "Hindi" : "Filipino"} translations. Leave blank to fall back to English.
+          </p>
+        )}
+        {heroFields.map((f) => (
           <Row key={f.key} field={f} value={draft[f.key]} onChange={(v) => setDraft({ ...draft, [f.key]: v })} onSave={() => save(f.key)} saving={saving === f.key} />
         ))}
       </section>

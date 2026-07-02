@@ -58,6 +58,7 @@ function HomepagePage() {
 
   const [draft, setDraft] = useState<Record<string, string>>(settings);
   const [saving, setSaving] = useState<string | null>(null);
+  const [heroLang, setHeroLang] = useState<"en" | "hi" | "tl">("en");
 
   const save = async (key: string) => {
     setSaving(key);
@@ -73,6 +74,14 @@ function HomepagePage() {
     qc.invalidateQueries({ queryKey: ["carousel"] });
   };
 
+  const heroFields = heroLang === "en"
+    ? HERO_FIELDS
+    : HERO_FIELDS.filter((f) => f.key !== "hero_photo_url" && f.key !== "hero_cta_primary_link" && f.key !== "hero_cta_secondary_link").map((f) => ({
+        ...f,
+        key: `${f.key}_${heroLang}`,
+        label: `${f.label} (${heroLang === "hi" ? "Hindi" : "Filipino"})`,
+      }));
+
   return (
     <div className="max-w-4xl space-y-12">
       <header>
@@ -82,8 +91,29 @@ function HomepagePage() {
 
       {/* HERO */}
       <section className="space-y-3">
-        <h2 className="font-display text-lg font-bold">Hero & CTAs</h2>
-        {HERO_FIELDS.map((f) => (
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-lg font-bold">Hero & CTAs</h2>
+          <div className="inline-flex items-center rounded-full border border-border/60 bg-card/40 p-0.5 text-xs font-semibold">
+            {(["en", "hi", "tl"] as const).map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => setHeroLang(l)}
+                className={`rounded-full px-3 py-1 transition-colors ${
+                  heroLang === l ? "bg-gradient-pink text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {l === "en" ? "EN" : l === "hi" ? "हि" : "TL"}
+              </button>
+            ))}
+          </div>
+        </div>
+        {heroLang !== "en" && (
+          <p className="text-xs text-amber-500">
+            Editing {heroLang === "hi" ? "Hindi" : "Filipino"} translations. Leave blank to fall back to English.
+          </p>
+        )}
+        {heroFields.map((f) => (
           <Row key={f.key} label={f.label} value={draft[f.key]} onChange={(v) => setDraft({ ...draft, [f.key]: v })} onSave={() => save(f.key)} saving={saving === f.key} textarea={f.textarea} />
         ))}
       </section>

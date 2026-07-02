@@ -31,6 +31,34 @@ const PUBLIC_SETTING_KEYS = new Set([
   "coins_enabled", "auto_match_enabled",
 ]);
 
+// Localizable hero keys — these get _hi and _tl suffixed versions
+const LOCALIZABLE_KEYS = [
+  "hero_eyebrow", "hero_name", "hero_title", "hero_subtitle", "hero_intro", "hero_signature",
+  "hero_cta_primary_text", "hero_cta_secondary_text",
+  "homepage_announcement",
+];
+
+// Generate suffixed keys for each non-English language
+for (const key of LOCALIZABLE_KEYS) {
+  PUBLIC_SETTING_KEYS.add(`${key}_hi`);
+  PUBLIC_SETTING_KEYS.add(`${key}_tl`);
+}
+
+/**
+ * Get a localized setting value. Checks {key}_{lang} first, falls back to {key}.
+ */
+export function localizedSetting(
+  settings: Record<string, string>,
+  key: string,
+  lang: string,
+): string {
+  if (lang !== "en") {
+    const localized = settings[`${key}_${lang}`];
+    if (localized) return localized;
+  }
+  return settings[key] ?? "";
+}
+
 // Admin-only keys (sensitive)
 const ADMIN_SETTING_KEYS = new Set([
   "upi_id", "usdt_network", "usdt_wallet_address", "usdt_inr_rate",

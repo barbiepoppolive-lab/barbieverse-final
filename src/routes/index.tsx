@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { ArrowRight, Crown, ChevronDown, Gem } from "lucide-react";
-import { getPublicSettings } from "@/lib/api/settings.functions";
+import { getPublicSettings, localizedSetting } from "@/lib/api/settings.functions";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import founderPortrait from "@/assets/founder-portrait.jpg.asset.json";
 import { AutoCarousel } from "@/components/carousel/AutoCarousel";
@@ -56,21 +56,20 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
   const reduced = usePrefersReducedMotion();
   const lowPower = useIsLowPower();
   const { lang, t } = useLang();
-  const nonEn = lang !== "en";
 
   const heroPhoto = settings.hero_photo_url?.trim() || founderPortrait.url;
-  const heroEyebrow = nonEn ? t("hero.eyebrow") : (settings.hero_eyebrow || t("hero.eyebrow"));
-  const heroName = nonEn ? t("hero.name") : (settings.hero_name || t("hero.name"));
-  const heroTitle = nonEn ? t("hero.title") : (settings.hero_title || t("hero.title"));
-  const heroSubtitle = nonEn ? t("hero.subtitle") : (settings.hero_subtitle || t("hero.subtitle"));
-  const heroIntro = nonEn ? t("hero.intro") : (settings.hero_intro || t("hero.intro"));
-  const heroSignature = nonEn ? t("hero.signature") : (settings.hero_signature || t("hero.signature"));
-  const ctaPrimaryText = nonEn ? t("hero.cta.primary") : (settings.hero_cta_primary_text || t("hero.cta.primary"));
+  const heroEyebrow = localizedSetting(settings, "hero_eyebrow", lang) || t("hero.eyebrow");
+  const heroName = localizedSetting(settings, "hero_name", lang) || t("hero.name");
+  const heroTitle = localizedSetting(settings, "hero_title", lang) || t("hero.title");
+  const heroSubtitle = localizedSetting(settings, "hero_subtitle", lang) || t("hero.subtitle");
+  const heroIntro = localizedSetting(settings, "hero_intro", lang) || t("hero.intro");
+  const heroSignature = localizedSetting(settings, "hero_signature", lang) || t("hero.signature");
+  const ctaPrimaryText = localizedSetting(settings, "hero_cta_primary_text", lang) || t("hero.cta.primary");
   const ctaPrimaryLink = settings.hero_cta_primary_link || "/join";
-  const ctaSecondaryText = nonEn ? t("hero.cta.secondary") : (settings.hero_cta_secondary_text || t("hero.cta.secondary"));
+  const ctaSecondaryText = localizedSetting(settings, "hero_cta_secondary_text", lang) || t("hero.cta.secondary");
   const ctaSecondaryLink = settings.hero_cta_secondary_link || "/join";
 
-  const badges: Badge[] = nonEn
+  const badges: Badge[] = lang !== "en"
     ? [
         { icon: "🏆", label: t("hero.badge.wealth") },
         { icon: "💎", label: t("hero.badge.agency") },
