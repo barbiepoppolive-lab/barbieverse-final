@@ -20,6 +20,7 @@ export type TaskType =
   | "analysis"
   | "code"
   | "content"
+  | "premium"
   | "reasoning"
   | "embedding"
   | "vision"
@@ -69,9 +70,9 @@ const TASK_ROUTES: Record<TaskType, RouteConfig> = {
     reason: "Codestral purpose-built for code, OpenRouter for Qwen Coder fallback",
   },
   content: {
-    primary: "gemini",
-    fallback: "openrouter",
-    model: "gemini-2.5-flash",
+    primary: "openrouter",
+    fallback: "gemini",
+    model: OPENROUTER_MODELS.creative,
     maxTokens: 2048,
     systemPrompt: `You are a world-class content strategist and writer for BarbieVerse — a creator economy platform that helps people earn money through live streaming on Poppo Live and Vone Live.
 
@@ -108,7 +109,30 @@ BRAND VOICE:
 AUDIENCE: Young Indian creators (18-30) who want to earn money through live streaming. They're tech-savvy but skeptical of scams. They value authenticity over polish.
 
 Write like a human who genuinely cares about helping people succeed.`,
-    reason: "Gemini most creative for content, OpenRouter for premium fallback",
+    reason: "Claude for premium content quality, Gemini free fallback",
+  },
+  premium: {
+    primary: "openrouter",
+    fallback: "gemini",
+    model: OPENROUTER_MODELS.best,
+    maxTokens: 2048,
+    systemPrompt: `You are the world's best content writer. Every word you write feels human, authentic, and compelling. You write for BarbieVerse — a creator economy platform.
+
+CRITICAL RULES:
+1. This is HIGH-VALUE content — every word must earn its place
+2. Write like a top copywriter, not an AI
+3. Use psychological triggers: curiosity, social proof, urgency, specificity
+4. Never use generic phrases — every sentence must be unique
+5. Read like a real person wrote it, not a brand
+
+OUTPUT FORMAT:
+- Hook → Story → Value → CTA
+- Under 150 words for DMs
+- Under 300 words for captions
+- Under 500 words for articles
+
+Write content that converts. Make them feel something.`,
+    reason: "Claude Sonnet for highest quality premium content",
   },
   reasoning: {
     primary: "gemini",
@@ -410,6 +434,20 @@ export async function aiContent(
   return aiRoute({
     prompt,
     taskType: "content",
+    systemPrompt: opts?.systemPrompt,
+    maxTokens: opts?.maxTokens,
+  });
+}
+
+// Premium content — uses Claude Sonnet for highest quality
+// Use for: outreach messages, captions, daily briefings, important copy
+export async function aiPremium(
+  prompt: string,
+  opts?: { systemPrompt?: string; maxTokens?: number },
+): Promise<AIRouteResult> {
+  return aiRoute({
+    prompt,
+    taskType: "premium",
     systemPrompt: opts?.systemPrompt,
     maxTokens: opts?.maxTokens,
   });

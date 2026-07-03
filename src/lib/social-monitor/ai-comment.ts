@@ -1,7 +1,7 @@
 // AI Comment Generator — Uses existing AI router for social media comments
 // Generates human-like, contextual comments for social media posts
 
-import { aiContent } from "@/lib/ai/router";
+import { aiPremium } from "@/lib/ai/router";
 
 // ── Comment Generation ─────────────────────────────────
 
@@ -127,7 +127,7 @@ REMEMBER:
 Write the comment and classify the post intent.`;
 
   try {
-    const result = await aiContent(prompt, SYSTEM_PROMPT);
+    const result = await aiPremium(prompt, SYSTEM_PROMPT);
 
     // Parse JSON response
     const jsonMatch = result.text.match(/\{[\s\S]*\}/);

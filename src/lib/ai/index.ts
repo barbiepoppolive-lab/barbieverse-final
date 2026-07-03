@@ -3,7 +3,7 @@
 //   import { aiRoute, aiChat, aiCode, aiContent, aiVision } from "@/lib/ai";
 
 // Core router
-export { aiRoute, aiChat, aiAnalyze, aiCode, aiContent, aiVision } from "./router";
+export { aiRoute, aiChat, aiAnalyze, aiCode, aiContent, aiPremium, aiVision } from "./router";
 export type { TaskType, AIRouteResult } from "./router";
 
 // Rate limiter

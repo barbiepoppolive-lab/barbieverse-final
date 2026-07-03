@@ -1,7 +1,7 @@
 // Scout AI Module — Lead Discovery, Scoring & Outreach
 // Automated lead intelligence for BarbieVerse
 
-import { aiRoute, aiAnalyze, aiChat } from "../router";
+import { aiRoute, aiAnalyze, aiChat, aiPremium } from "../router";
 import { PROMPTS } from "../utils/prompts";
 
 // ── Types ──────────────────────────────────────────────
@@ -176,7 +176,7 @@ export async function recommendOutreach(
   lead: LeadProfile,
   score: LeadScore,
 ): Promise<OutreachPlan> {
-  const result = await aiChat(
+  const result = await aiPremium(
     `You are an expert at crafting personalized outreach messages that get responses. Create an outreach plan for this lead.
 
 LEAD PROFILE:
@@ -260,7 +260,7 @@ export async function generateDailyBriefing(
   const warmLeads = leads.filter((l) => scores.get(l.id)?.category === "warm");
   const coldLeads = leads.filter((l) => scores.get(l.id)?.category === "cold");
 
-  const result = await aiChat(
+  const result = await aiPremium(
     `Generate a daily scouting briefing for a solo founder running a creator economy platform (BarbieVerse).
 
 TODAY'S LEAD SUMMARY:
