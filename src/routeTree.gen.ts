@@ -37,7 +37,6 @@ import { Route as AdminSocialLeadsRouteImport } from './routes/admin.social-lead
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminScraperRouteImport } from './routes/admin.scraper'
 import { Route as AdminScoutRouteImport } from './routes/admin.scout'
-import { Route as AdminReelsRouteImport } from './routes/admin.reels'
 import { Route as AdminPostsRouteImport } from './routes/admin.posts'
 import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
 import { Route as AdminPayoutsRouteImport } from './routes/admin.payouts'
@@ -204,11 +203,6 @@ const AdminScoutRoute = AdminScoutRouteImport.update({
   path: '/scout',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminReelsRoute = AdminReelsRouteImport.update({
-  id: '/reels',
-  path: '/reels',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminPostsRoute = AdminPostsRouteImport.update({
   id: '/posts',
   path: '/posts',
@@ -370,7 +364,6 @@ export interface FileRoutesByFullPath {
   '/admin/payouts': typeof AdminPayoutsRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/posts': typeof AdminPostsRoute
-  '/admin/reels': typeof AdminReelsRoute
   '/admin/scout': typeof AdminScoutRoute
   '/admin/scraper': typeof AdminScraperRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -423,7 +416,6 @@ export interface FileRoutesByTo {
   '/admin/payouts': typeof AdminPayoutsRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/posts': typeof AdminPostsRoute
-  '/admin/reels': typeof AdminReelsRoute
   '/admin/scout': typeof AdminScoutRoute
   '/admin/scraper': typeof AdminScraperRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -479,7 +471,6 @@ export interface FileRoutesById {
   '/admin/payouts': typeof AdminPayoutsRoute
   '/admin/policies': typeof AdminPoliciesRoute
   '/admin/posts': typeof AdminPostsRoute
-  '/admin/reels': typeof AdminReelsRoute
   '/admin/scout': typeof AdminScoutRoute
   '/admin/scraper': typeof AdminScraperRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -536,7 +527,6 @@ export interface FileRouteTypes {
     | '/admin/payouts'
     | '/admin/policies'
     | '/admin/posts'
-    | '/admin/reels'
     | '/admin/scout'
     | '/admin/scraper'
     | '/admin/settings'
@@ -589,7 +579,6 @@ export interface FileRouteTypes {
     | '/admin/payouts'
     | '/admin/policies'
     | '/admin/posts'
-    | '/admin/reels'
     | '/admin/scout'
     | '/admin/scraper'
     | '/admin/settings'
@@ -644,7 +633,6 @@ export interface FileRouteTypes {
     | '/admin/payouts'
     | '/admin/policies'
     | '/admin/posts'
-    | '/admin/reels'
     | '/admin/scout'
     | '/admin/scraper'
     | '/admin/settings'
@@ -888,13 +876,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminScoutRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/reels': {
-      id: '/admin/reels'
-      path: '/reels'
-      fullPath: '/admin/reels'
-      preLoaderRoute: typeof AdminReelsRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/posts': {
       id: '/admin/posts'
       path: '/posts'
@@ -1104,7 +1085,6 @@ interface AdminRouteChildren {
   AdminPayoutsRoute: typeof AdminPayoutsRoute
   AdminPoliciesRoute: typeof AdminPoliciesRoute
   AdminPostsRoute: typeof AdminPostsRoute
-  AdminReelsRoute: typeof AdminReelsRoute
   AdminScoutRoute: typeof AdminScoutRoute
   AdminScraperRoute: typeof AdminScraperRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
@@ -1125,7 +1105,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPayoutsRoute: AdminPayoutsRoute,
   AdminPoliciesRoute: AdminPoliciesRoute,
   AdminPostsRoute: AdminPostsRoute,
-  AdminReelsRoute: AdminReelsRoute,
   AdminScoutRoute: AdminScoutRoute,
   AdminScraperRoute: AdminScraperRoute,
   AdminSettingsRoute: AdminSettingsRoute,
