@@ -33,6 +33,7 @@ function BrandManagerPage() {
   const [tab, setTab] = useState<Tab>("generators");
   const [activeGen, setActiveGen] = useState<GeneratorType>("carousel");
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("");
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
   const [provider, setProvider] = useState<ProviderChoice>("free");
@@ -64,7 +65,14 @@ function BrandManagerPage() {
     setError("");
     setResult(null);
 
+    const providerName = provider === "premium" ? "Claude Sonnet 4" : "Llama 3.3 70B";
+    const genLabel = generators.find(g => g.type === activeGen)?.label || activeGen;
+
     try {
+      setStatus(`Connecting to ${providerName}...`);
+      await new Promise(r => setTimeout(r, 300));
+
+      setStatus(`Generating ${genLabel.toLowerCase()} with ${providerName}...`);
       let res;
       switch (activeGen) {
         case "carousel":
@@ -86,9 +94,16 @@ function BrandManagerPage() {
           res = await generatePoll({ data: { topic, platform: platform as any, provider } });
           break;
       }
-      setResult((res as any)?.content || res);
+
+      setStatus("Parsing response...");
+      await new Promise(r => setTimeout(r, 200));
+
+      const content = (res as any)?.content || res;
+      setResult(content);
+      setStatus(`Done! Generated with ${providerName}. Cost: ${provider === "premium" ? "~$0.003" : "$0.00"}`);
     } catch (err: any) {
       setError(err.message || "Generation failed");
+      setStatus("");
     } finally {
       setLoading(false);
     }
@@ -266,6 +281,22 @@ function BrandManagerPage() {
                 }
               </button>
 
+              {/* Status Progress */}
+              {status && (
+                <div className={`flex items-center gap-2 rounded-lg p-3 text-sm ${
+                  status.startsWith("Done")
+                    ? "bg-green-500/10 text-green-600"
+                    : "bg-blue-500/10 text-blue-600"
+                }`}>
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                  ) : status.startsWith("Done") ? (
+                    <Check className="h-4 w-4 shrink-0" />
+                  ) : null}
+                  <span>{status}</span>
+                </div>
+              )}
+
               {error && (
                 <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
               )}
@@ -278,7 +309,10 @@ function BrandManagerPage() {
                   <h3 className="font-semibold text-primary flex items-center gap-2">
                     <Check className="h-4 w-4" /> Generated Content
                   </h3>
-                  <span className="text-xs text-muted-foreground">Cost: $0.00 (FREE)</span>
+                  <span className="text-xs text-muted-foreground">
+                    Provider: {provider === "premium" ? "Claude" : "Llama"} •
+                    Cost: {provider === "premium" ? "~$0.003" : "$0.00"}
+                  </span>
                 </div>
                 <pre className="whitespace-pre-wrap rounded-lg bg-background p-4 text-sm overflow-auto max-h-96">
                   {JSON.stringify(result, null, 2)}
