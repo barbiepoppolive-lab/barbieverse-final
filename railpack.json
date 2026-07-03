@@ -1,20 +1,10 @@
 {
   "provider": "node",
   "steps": {
-    "copy": {
-      "commands": [
-        {
-          "path": ".",
-          "src": ".",
-          "dest": "/app"
-        }
-      ]
-    },
-    "install": {
-      "commands": ["npm install"]
-    },
-    "build": {
-      "commands": ["npm run build"]
-    }
+    "commands": [
+      "cp -r . /app",
+      "npm install",
+      "npm run build"
+    ]
   }
 }
