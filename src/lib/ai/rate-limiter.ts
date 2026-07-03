@@ -7,7 +7,8 @@ export type Provider =
   | "mistral"
   | "cerebras"
   | "ollama"
-  | "anthropic";
+  | "anthropic"
+  | "openrouter";
 
 interface RateLimitConfig {
   rpm: number;
@@ -22,6 +23,7 @@ const PROVIDER_LIMITS: Record<Provider, RateLimitConfig> = {
   cerebras: { rpm: 30, rpd: 1000, tpm: 100_000 },
   ollama: { rpm: 999, rpd: 999_999, tpm: 999_999 },
   anthropic: { rpm: 50, rpd: 1000, tpm: 40_000 },
+  openrouter: { rpm: 20, rpd: 1000, tpm: 200_000 },
 };
 
 interface UsageRecord {
@@ -38,6 +40,7 @@ const usage: Record<Provider, UsageRecord> = {
   cerebras: { count: 0, tokens: 0, resetAt: getResetTime() },
   ollama: { count: 0, tokens: 0, resetAt: getResetTime() },
   anthropic: { count: 0, tokens: 0, resetAt: getResetTime() },
+  openrouter: { count: 0, tokens: 0, resetAt: getResetTime() },
 };
 
 function getResetTime(): number {
@@ -88,6 +91,7 @@ export function getAllUsage(): Record<Provider, ReturnType<typeof getUsage>> {
     cerebras: getUsage("cerebras"),
     ollama: getUsage("ollama"),
     anthropic: getUsage("anthropic"),
+    openrouter: getUsage("openrouter"),
   };
 }
 

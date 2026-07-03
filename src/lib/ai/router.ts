@@ -11,6 +11,7 @@ import { mistralChat } from "./providers/mistral";
 import { cerebrasChat } from "./providers/cerebras";
 import { ollamaChat, ollamaIsAvailable } from "./providers/ollama";
 import { anthropicVision } from "./providers/anthropic";
+import { openrouterChat, openrouterChatWithImage, OPENROUTER_MODELS } from "./providers/openrouter";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -46,30 +47,30 @@ export interface AIRouteResult {
 const TASK_ROUTES: Record<TaskType, RouteConfig> = {
   chat: {
     primary: "groq",
-    fallback: "ollama",
+    fallback: "openrouter",
     model: "llama-3.3-70b-versatile",
     maxTokens: 1024,
-    reason: "Groq fastest for real-time chat",
+    reason: "Groq fastest for real-time chat, OpenRouter fallback for quality",
   },
   analysis: {
     primary: "gemini",
-    fallback: "groq",
+    fallback: "openrouter",
     model: "gemini-2.5-flash",
     maxTokens: 2048,
-    reason: "Gemini best reasoning on GPQA",
+    reason: "Gemini best reasoning, OpenRouter fallback for premium models",
   },
   code: {
     primary: "mistral",
-    fallback: "gemini",
+    fallback: "openrouter",
     model: "codestral-latest",
     maxTokens: 4096,
     systemPrompt:
       "You are an expert TypeScript/React developer. Write clean, production-ready code.",
-    reason: "Codestral purpose-built for code",
+    reason: "Codestral purpose-built for code, OpenRouter for Qwen Coder fallback",
   },
   content: {
     primary: "gemini",
-    fallback: "groq",
+    fallback: "openrouter",
     model: "gemini-2.5-flash",
     maxTokens: 2048,
     systemPrompt: `You are a world-class content strategist and writer for BarbieVerse — a creator economy platform that helps people earn money through live streaming on Poppo Live and Vone Live.
@@ -107,14 +108,14 @@ BRAND VOICE:
 AUDIENCE: Young Indian creators (18-30) who want to earn money through live streaming. They're tech-savvy but skeptical of scams. They value authenticity over polish.
 
 Write like a human who genuinely cares about helping people succeed.`,
-    reason: "Gemini most creative for content",
+    reason: "Gemini most creative for content, OpenRouter for premium fallback",
   },
   reasoning: {
     primary: "gemini",
-    fallback: "groq",
+    fallback: "openrouter",
     model: "gemini-2.5-flash",
     maxTokens: 4096,
-    reason: "Gemini wins GPQA benchmark",
+    reason: "Gemini wins GPQA benchmark, OpenRouter for Claude/GPT-4 fallback",
   },
   embedding: {
     primary: "ollama",
@@ -124,18 +125,18 @@ Write like a human who genuinely cares about helping people succeed.`,
     reason: "Ollama embeddings free and fast",
   },
   vision: {
-    primary: "anthropic",
+    primary: "openrouter",
     fallback: "gemini",
-    model: "claude-sonnet-4-20250514",
+    model: OPENROUTER_MODELS.vision,
     maxTokens: 1024,
-    reason: "Claude Vision for image analysis",
+    reason: "OpenRouter Claude Vision for premium quality, Gemini fallback",
   },
   fallback: {
-    primary: "ollama",
+    primary: "openrouter",
     fallback: "ollama",
-    model: "phi4-mini",
+    model: OPENROUTER_MODELS.free,
     maxTokens: 1024,
-    reason: "Ollama always available",
+    reason: "OpenRouter free models, Ollama as last resort",
   },
 };
 
@@ -178,6 +179,12 @@ async function callProvider(
         return anthropicVision(prompt, imageBase64, mimeType, opts);
       }
       throw new Error("Anthropic text-only not supported, use vision");
+
+    case "openrouter":
+      if (imageBase64) {
+        return openrouterChatWithImage(prompt, imageBase64, mimeType, opts);
+      }
+      return openrouterChat(prompt, opts);
 
     default:
       throw new Error(`Unknown provider: ${provider}`);

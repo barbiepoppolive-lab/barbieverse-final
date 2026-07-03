@@ -20,6 +20,7 @@ export { mistralChat, mistralEmbed } from "./providers/mistral";
 export { cerebrasChat } from "./providers/cerebras";
 export { ollamaChat, ollamaEmbed, ollamaIsAvailable } from "./providers/ollama";
 export { anthropicChat, anthropicVision } from "./providers/anthropic";
+export { openrouterChat, openrouterChatWithImage, openrouterListModels, OPENROUTER_MODELS } from "./providers/openrouter";
 
 // Utilities
 export { generateEmbedding, cosineSimilarity, findSimilar } from "./utils/embeddings";
