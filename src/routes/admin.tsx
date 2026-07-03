@@ -49,6 +49,7 @@ function AdminLayout() {
     { to: "/admin/marketing", label: "Marketing", icon: Megaphone },
     { to: "/admin/posts", label: "Posts", icon: FileText },
     { to: "/admin/brand-manager", label: "Brand Manager", icon: Sparkles },
+    { to: "/admin/content-compare", label: "Compare AI", icon: BarChart3 },
     { to: "/admin/content", label: "Content AI", icon: Megaphone },
     { to: "/admin/upi-setup", label: "UPI Setup", icon: Smartphone },
     { to: "/admin/policies", label: "Policies", icon: ScrollText },
