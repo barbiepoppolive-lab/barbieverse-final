@@ -1,5 +1,5 @@
 import { aiPremium, aiContent } from "../router";
-import { generateBlogAudio, type AudioGenResult } from "../audio-gen.server";
+import type { AudioGenResult } from "../audio-gen.server";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -76,7 +76,7 @@ Return EXACTLY this JSON:
   // Generate read-aloud audio if requested
   if (input.withAudio && blog.content) {
     try {
-      blog.audio = await generateBlogAudio(blog.content);
+      blog.audio = await (await import("../audio-gen.server")).generateBlogAudio(blog.content);
     } catch (err) {
       console.error("[ContentAI] Blog audio generation failed:", err);
     }

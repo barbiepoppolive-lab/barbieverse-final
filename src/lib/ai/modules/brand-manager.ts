@@ -8,13 +8,7 @@ import {
   getProviderStatus,
   type ImageGenInput,
 } from "../image-gen";
-import {
-  generateAudio,
-  generateCarouselAudio,
-  generateStoryAudio,
-  type AudioGenResult,
-  type CarouselAudio,
-} from "../audio-gen.server";
+import type { AudioGenResult, CarouselAudio } from "../audio-gen.server";
 import {
   recommendMusic,
   type MusicTrack,
@@ -189,7 +183,7 @@ Return EXACTLY this JSON:
   // Generate audio narration if requested
   if (input.withAudio && carousel.slides.length > 0) {
     try {
-      carousel.audio = await generateCarouselAudio(carousel.slides);
+      carousel.audio = await (await import("../audio-gen.server")).generateCarouselAudio(carousel.slides);
     } catch (err) {
       console.error("[BrandManager] Audio generation failed:", err);
       // Continue without audio — don't fail the whole generation
@@ -276,6 +270,7 @@ Return EXACTLY this JSON:
         .filter((a) => a && !a.startsWith("[") && !a.toLowerCase().includes("music"));
 
       if (sceneTexts.length > 0) {
+        const { generateAudio } = await import("../audio-gen.server");
         const fullText = sceneTexts.join(". ");
         const fullAudio = await generateAudio({
           text: fullText,
@@ -408,7 +403,7 @@ Return EXACTLY this JSON:
   // Generate audio if requested
   if (input.withAudio && storySlides.length > 0) {
     try {
-      storyResult.audio = await generateStoryAudio(storySlides);
+      storyResult.audio = await (await import("../audio-gen.server")).generateStoryAudio(storySlides);
     } catch (err) {
       console.error("[BrandManager] Story audio generation failed:", err);
     }
