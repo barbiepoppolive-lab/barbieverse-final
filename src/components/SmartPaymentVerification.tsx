@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronUp,
   Image,
+  ClipboardPaste,
 } from "lucide-react";
 
 interface SmartPaymentVerificationProps {
@@ -50,6 +51,7 @@ export function SmartPaymentVerification({
   onDone,
 }: SmartPaymentVerificationProps) {
   const [utr, setUtr] = useState("");
+  const utrInputRef = useRef<HTMLInputElement>(null);
   const [guide, setGuide] = useState<"gpay" | "phonepe" | "paytm" | null>(null);
   const [showScreenshot, setShowScreenshot] = useState(false);
   const [screenshot, setScreenshot] = useState<File | null>(null);
@@ -76,6 +78,17 @@ export function SmartPaymentVerification({
 
   const openUPI = () => {
     window.location.href = upiLink;
+  };
+
+  const pasteUtr = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const cleaned = text.replace(/[^A-Za-z0-9]/g, "").slice(0, 30);
+      if (cleaned) {
+        setUtr(cleaned);
+        utrInputRef.current?.focus();
+      }
+    } catch {}
   };
 
   const handleScreenshot = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -167,14 +180,25 @@ export function SmartPaymentVerification({
           <CopyRow label="Note" value={`BV-${orderShortId}`} k="note" copied={copied} onCopy={copy} />
         </div>
 
-        {/* Mobile: Open UPI button */}
+        {/* Mobile: Open UPI button — one tap pays */}
         {isMobile && (
           <button
             onClick={openUPI}
-            className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-gradient-pink text-base font-bold text-primary-foreground glow-pink transition-transform hover:scale-[1.02]"
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-gradient-pink text-base font-bold text-primary-foreground glow-pink transition-transform active:scale-[0.98]"
           >
             <Smartphone className="h-5 w-5" />
-            Open UPI App
+            Pay ₹{amountRupees} via UPI
+          </button>
+        )}
+
+        {/* Desktop: Copy UPI link (paste on phone to pay instantly) */}
+        {!isMobile && (
+          <button
+            onClick={() => copy(upiLink, "upi-link")}
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-full border-2 border-primary/40 bg-primary/10 text-base font-bold text-primary transition-colors hover:bg-primary/20"
+          >
+            <Copy className="h-5 w-5" />
+            {copied === "upi-link" ? "UPI Link Copied!" : "Copy UPI Link — Pay on Phone"}
           </button>
         )}
 
@@ -328,12 +352,13 @@ export function SmartPaymentVerification({
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
             12-digit transaction ID <span className="text-primary">*</span>
           </label>
-          <div className="relative">
+          <div className="relative flex gap-2">
             <input
+              ref={utrInputRef}
               value={utr}
               onChange={(e) => setUtr(e.target.value.replace(/[^A-Za-z0-9]/g, "").slice(0, 30))}
               placeholder="Enter UTR number"
-              className={`h-11 w-full rounded-lg border bg-input/50 px-3 pr-10 text-sm font-mono focus:outline-none ${
+              className={`h-11 flex-1 rounded-lg border bg-input/50 px-3 pr-10 text-sm font-mono focus:outline-none ${
                 utr.length > 0 && utrValid
                   ? "border-primary"
                   : utr.length > 0
@@ -341,13 +366,22 @@ export function SmartPaymentVerification({
                     : "border-input"
               }`}
             />
-            {utrValid && (
-              <CheckCircle2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+            {utrValid ? (
+              <CheckCircle2 className="absolute right-[5.5rem] top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+            ) : null}
+            {utr.length > 0 && !utrValid && (
+              <span className="absolute right-[5.5rem] top-1/2 -translate-y-1/2 text-[10px] text-destructive">
+                {Math.max(0, 12 - utr.length)} more
+              </span>
             )}
+            <button
+              onClick={pasteUtr}
+              title="Paste from clipboard"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-input bg-input/50 text-muted-foreground hover:border-primary hover:text-primary"
+            >
+              <ClipboardPaste className="h-4 w-4" />
+            </button>
           </div>
-          {utr.length > 0 && !utrValid && (
-            <p className="mt-1 text-xs text-destructive">Minimum 12 characters, alphanumeric only</p>
-          )}
         </div>
 
         {/* Confirm Button */}

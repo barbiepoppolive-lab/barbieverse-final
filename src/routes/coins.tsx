@@ -10,7 +10,7 @@ import { getPublicSettings } from "@/lib/api/settings.functions";
 import { submitOrder } from "@/lib/api/orders.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Coins, CheckCircle2, Copy, ShieldCheck, ArrowLeft, Smartphone, Bitcoin, Building2, Loader2, AlertCircle } from "lucide-react";
+import { Coins, CheckCircle2, Copy, ShieldCheck, ArrowLeft, Smartphone, Bitcoin, Building2, Loader2, AlertCircle, Lock, MessageCircle, IndianRupee, Package, Sparkles, Banknote, User, Phone, Gamepad2, ArrowRight } from "lucide-react";
 import { useLang } from "@/lib/i18n";
 
 type Method = "upi" | "usdt" | "netbanking";
@@ -50,9 +50,9 @@ function CoinsPage() {
         <section className="container mx-auto px-4 py-16 text-center">
           <div className="mx-auto max-w-md rounded-2xl border border-border/60 bg-card/60 p-8 backdrop-blur-md">
             <AlertCircle className="mx-auto h-14 w-14 text-muted-foreground" />
-            <h1 className="mt-4 font-display text-2xl font-bold">Coin Sales Paused</h1>
+            <h1 className="mt-4 font-display text-2xl font-bold">⏸️ Coin Sales Paused</h1>
             <p className="mt-3 text-muted-foreground">
-              Coin recharge is currently paused. Please check back later or contact support on WhatsApp.
+              Coin recharge is currently paused. Please check back later or contact support on WhatsApp. 💬
             </p>
             <Link
               to="/"
@@ -90,39 +90,33 @@ function CoinsPage() {
 
   return (
     <SiteLayout>
-      <section className="container mx-auto px-4 py-12 lg:py-16 relative">
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 mx-auto h-[200px] max-w-2xl rounded-full bg-primary/10 blur-[120px]" />
-        {/* Trust bar */}
-        <div className="mx-auto mb-8 flex max-w-3xl flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground glass rounded-2xl px-6 py-4">
-          <span>🔒 Your UID only — never your password</span>
-          <span>💬 WhatsApp support available</span>
-          <span>🇮🇳 UPI payment — zero extra charges</span>
-        </div>
+      <section className="container mx-auto px-4 pt-6 pb-12 lg:pt-10 lg:pb-16 relative">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 mx-auto h-[120px] max-w-2xl rounded-full bg-primary/10 blur-[120px]" />
 
         <div className="mx-auto max-w-3xl text-center">
-          <h1 className="font-display text-4xl font-bold sm:text-5xl">
-            {t("coins.recharge")} <span className="text-gradient-pink">{t("coins.poppo")}</span> {t("section.packages.coins")}
+          <h1 className="font-display text-3xl font-bold sm:text-4xl">
+            🪙 {t("coins.recharge")} <span className="text-gradient-pink">{t("coins.poppo")}</span> {t("section.packages.coins")} 🪙
           </h1>
-          <p className="mt-4 text-muted-foreground">
-            {t("coins.page.sub")}
+          <p className="mt-2 text-sm text-muted-foreground">
+            🚀 {t("coins.page.sub")}
           </p>
         </div>
 
         {step !== "done" && (
           <StepProgress
-            className="mt-8"
+            className="mt-5"
             steps={[
-              { label: "Pick Package" },
-              { label: "Details" },
-              { label: "Payment" },
-              { label: "Done" },
+              { label: "📦 Pick Package" },
+              { label: "📝 Details" },
+              { label: "💳 Payment" },
+              { label: "✅ Done" },
             ]}
             current={step === "pick" ? 0 : step === "form" ? 1 : step === "pay" ? 2 : 3}
           />
         )}
 
         {step === "pick" && (
-          <div className="mx-auto mt-8 grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mx-auto mt-5 grid max-w-3xl grid-cols-4 gap-1.5 sm:grid-cols-4 lg:gap-2.5 stagger-grid">
             {packages.map((p, i) => (
               <PackageCard
                 key={i}
@@ -130,29 +124,33 @@ function CoinsPage() {
                 index={i}
                 onSelect={() => selectPackage(p)}
                 isPopular={i === 1}
+                savingsPercent={i === 0 ? 0 : Math.round((1 - (p.price / p.coins) / (packages[0].price / packages[0].coins)) * 100)}
               />
             ))}
           </div>
         )}
 
-        {/* How It Works */}
+        {/* Trust bar — inline below packages */}
         {step === "pick" && (
-          <div className="mx-auto mt-10 max-w-3xl">
-            <h2 className="text-center font-display text-2xl font-bold">How It Works</h2>
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              <div className="text-center card-lift rounded-2xl p-6">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-pink text-lg font-bold text-primary-foreground">1</div>
-                <p className="mt-3 text-sm text-muted-foreground">Select your coin package and quantity</p>
-              </div>
-              <div className="text-center card-lift rounded-2xl p-6">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-pink text-lg font-bold text-primary-foreground">2</div>
-                <p className="mt-3 text-sm text-muted-foreground">Pay via UPI to our ID — enter your UTR number</p>
-              </div>
-              <div className="text-center card-lift rounded-2xl p-6">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-pink text-lg font-bold text-primary-foreground">3</div>
-                <p className="mt-3 text-sm text-muted-foreground">Coins credited to your Poppo/Vone account after verification</p>
-              </div>
-            </div>
+          <div className="mx-auto mt-5 flex max-w-3xl flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              🔒 UID only — no password needed
+            </span>
+            <span className="inline-flex items-center gap-1">
+              💬 WhatsApp support
+            </span>
+            <span className="inline-flex items-center gap-1">
+              🇮🇳 UPI — zero extra charges
+            </span>
+            <span className="inline-flex items-center gap-1">
+              📦 Select
+            </span>
+            <span className="inline-flex items-center gap-1">
+              📱 Pay via UPI
+            </span>
+            <span className="inline-flex items-center gap-1">
+              ✨ Coins delivered
+            </span>
           </div>
         )}
 
@@ -228,33 +226,32 @@ function CoinsPage() {
         )}
 
         {step === "done" && (
-          <div className="mx-auto mt-12 max-w-md rounded-2xl border border-primary/30 bg-card/60 p-8 text-center">
-            <CheckCircle2 className="mx-auto h-14 w-14 text-primary" />
-            <h2 className="mt-4 font-display text-2xl font-bold">Done! 🎉</h2>
+          <GlassCard className="mx-auto mt-12 max-w-md p-8 text-center" glow="pink">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-pink shadow-glow" style={{ animation: "bounce-in 0.6s cubic-bezier(0.16, 1, 0.3, 1)" }}>
+              <Sparkles className="h-8 w-8 text-primary-foreground" />
+            </div>
+            <h2 className="mt-4 font-display text-2xl font-bold">🎉 Payment Submitted! 🎉</h2>
             <p className="mt-3 text-muted-foreground">
-              We're verifying your payment now. Coins will be credited within minutes. You'll get a WhatsApp confirmation as soon as it's complete.
+              We're verifying your payment now. Coins will be credited within minutes. You'll get a WhatsApp confirmation as soon as it's complete. 🪙✨
             </p>
-            <button
-              onClick={() => { setStep("pick"); setSelected(null); setOrderResult(null); }}
-              className="mt-6 inline-flex h-11 items-center rounded-full bg-gradient-pink px-6 text-sm font-bold text-primary-foreground"
-            >
-              New order
-            </button>
-          </div>
+            <PremiumButton onClick={() => { setStep("pick"); setSelected(null); setOrderResult(null); }} className="mt-6" variant="primary">
+              🛒 New order <ArrowRight className="h-4 w-4" />
+            </PremiumButton>
+          </GlassCard>
         )}
 
         {/* FAQ Section */}
         {step === "pick" && (
           <div className="mx-auto mt-16 max-w-2xl">
-            <h2 className="text-center font-display text-2xl font-bold">Frequently Asked Questions</h2>
+            <h2 className="text-center font-display text-2xl font-bold">❓ Frequently Asked Questions</h2>
             <FaqAccordion
               className="mt-8"
               items={[
-                { q: "Is it safe to recharge here?", a: "Yes. We only need your Poppo/Vone User ID. We never ask for your password or login credentials." },
-                { q: "How long does delivery take?", a: "Within 30 minutes of payment verification during business hours." },
-                { q: "What if I enter the wrong Poppo/Vone ID?", a: "Double-check your ID before submitting. We cannot reverse transactions with incorrect IDs." },
-                { q: "What payment methods are accepted?", a: "UPI only. Scan our QR code or use our UPI ID directly." },
-                { q: "How do I find my Poppo/Vone User ID?", a: "Open Poppo/Vone app → tap My → your numeric ID is below your profile photo." },
+                { q: "🛡️ Is it safe to recharge here?", a: "Yes! We only need your Poppo/Vone User ID. We never ask for your password or login credentials. Your account stays 100% secure." },
+                { q: "⚡ How long does delivery take?", a: "Within 30 minutes of payment verification during business hours. Most orders are completed within 10 minutes!" },
+                { q: "⚠️ What if I enter the wrong Poppo/Vone ID?", a: "Double-check your ID before submitting. We cannot reverse transactions with incorrect IDs, so please verify carefully!" },
+                { q: "💳 What payment methods are accepted?", a: "UPI only — scan our QR code or use our UPI ID directly. Zero extra charges on your payment!" },
+                { q: "📱 How do I find my Poppo/Vone User ID?", a: "Open Poppo/Vone app → tap My → your numeric ID is below your profile photo. It looks like: ID: XXXXXXXX" },
               ]}
             />
           </div>
@@ -264,7 +261,7 @@ function CoinsPage() {
   );
 }
 
-function PackageCard({ pkg, index, onSelect, isPopular }: { pkg: Pkg; index: number; onSelect: () => void; isPopular: boolean }) {
+function PackageCard({ pkg, index, onSelect, isPopular, savingsPercent }: { pkg: Pkg; index: number; onSelect: () => void; isPopular: boolean; savingsPercent: number }) {
   const { t } = useLang();
 
   const TIER_CONFIG = [
@@ -274,56 +271,58 @@ function PackageCard({ pkg, index, onSelect, isPopular }: { pkg: Pkg; index: num
     { emoji: "⭐", gradient: "from-gold/20 to-amber-500/10", accent: "text-gold", badge: "VIP" },
   ];
   const tier = TIER_CONFIG[index % TIER_CONFIG.length];
+  const coinRate = (pkg.price / pkg.coins).toFixed(2);
 
   return (
-    <button
+    <div
       onClick={onSelect}
-      className={`group relative overflow-hidden rounded-2xl border bg-card/40 p-5 text-left backdrop-blur-md transition-all duration-300 hover-lift ${
+      className={`group relative overflow-hidden rounded-xl border bg-card/40 p-2 text-center backdrop-blur-md transition-all duration-300 hover-lift cursor-pointer sm:p-3.5 sm:text-left ${
         isPopular
           ? "border-primary/50 shadow-[0_0_25px_oklch(0.72_0.25_350/0.1)]"
           : "border-border/60 hover:border-gold/40"
       }`}
     >
-      {/* Gradient background on hover */}
       <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${tier.gradient} opacity-0 transition-opacity duration-300 group-hover:opacity-100`} />
 
-      {/* Popular badge */}
       {isPopular && (
-        <div className="absolute -right-8 top-3 rotate-45 bg-gradient-pink px-10 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary-foreground shadow-lg">
+        <div className="absolute -right-6 top-1.5 rotate-45 bg-gradient-pink px-6 py-0.5 text-[7px] font-bold uppercase tracking-wider text-primary-foreground shadow-lg sm:-right-7 sm:top-2 sm:px-8 sm:text-[8px]">
           {tier.badge}
         </div>
       )}
 
-      {/* Tier emoji */}
-      <div className="relative text-center text-4xl">{tier.emoji}</div>
+      {savingsPercent > 0 && (
+        <div className="absolute left-1.5 top-1.5 rounded-full bg-gradient-gold px-1.5 py-0.5 text-[7px] font-bold text-black shadow-lg sm:left-2 sm:top-2 sm:px-2 sm:text-[8px]">
+          Save {savingsPercent}%
+        </div>
+      )}
 
-      {/* Package name */}
-      <div className="relative mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+      <div className="relative text-center text-2xl sm:text-3xl">{tier.emoji}</div>
+
+      <div className="relative mt-0.5 text-center text-[7px] font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:mt-1 sm:text-[9px] sm:tracking-[0.16em]">
         {pkg.name}
       </div>
 
-      {/* Coin count */}
-      <div className="relative mt-3 text-center">
-        <span className={`font-display text-3xl font-bold ${tier.accent}`}>{pkg.coins.toLocaleString()}</span>
-        <span className="ml-1 text-xs text-muted-foreground">{t("coins.coins")}</span>
+      <div className="relative mt-1.5 text-center sm:mt-2">
+        <span className={`font-display text-lg font-bold leading-none sm:text-2xl ${tier.accent}`}>{pkg.coins.toLocaleString()}</span>
+        <span className="ml-0.5 text-[8px] text-muted-foreground sm:text-[10px]">{t("coins.coins")}</span>
       </div>
 
-      {/* Price */}
-      <div className="relative mt-2 text-center font-display text-lg font-bold text-foreground">
+      <div className="relative mt-1 text-center font-display text-sm font-bold text-foreground sm:text-base">
         ₹{pkg.price.toLocaleString()}
       </div>
-      <div className="relative text-center text-[10px] text-muted-foreground">
-        ≈ ₹{(pkg.price / pkg.coins).toFixed(2)}{t("coins.percoin")}
+      <div className="relative text-center text-[8px] text-muted-foreground sm:text-[9px]">
+        <span className={savingsPercent > 0 ? "text-green-400 font-semibold" : ""}>₹{coinRate}</span>{t("coins.percoin")}
+        {savingsPercent > 0 && (
+          <span className="ml-0.5 text-green-400 font-semibold">(−{savingsPercent}%)</span>
+        )}
       </div>
 
-      {/* Divider */}
-      <div className="relative my-4 border-t border-border/40" />
+      <div className="relative my-2 border-t border-border/40 sm:my-3" />
 
-      {/* Select button */}
-      <div className={`relative inline-flex w-full items-center justify-center text-xs font-bold ${tier.accent} transition-all duration-200 group-hover:scale-[1.02]`}>
-        {t("section.packages.select")}
+      <div className="relative inline-flex w-full items-center justify-center gap-0.5 rounded-full bg-gradient-pink px-3 py-1.5 text-[10px] font-bold text-primary-foreground transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-[0_0_40px_oklch(0.72_0.25_350/0.4)] sm:gap-1 sm:px-4 sm:py-2 sm:text-[11px]">
+        {t("section.packages.select")} <ArrowRight className="h-3 w-3" />
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -350,131 +349,121 @@ function DetailsStep({
   ];
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (!poppoValid) return;
-        const fd = new FormData(e.currentTarget);
-        onSubmit({
-          name: String(fd.get("name") || ""),
-          whatsapp: String(fd.get("whatsapp") || ""),
-          poppo_id: poppoId.trim(),
-        });
-      }}
-      className="mx-auto mt-10 max-w-xl space-y-5 rounded-2xl border border-border/60 bg-card/60 p-6 backdrop-blur-md"
-    >
-      <button type="button" onClick={onBack} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Change package
-      </button>
+    <GlassCard className="mx-auto mt-10 max-w-xl p-6">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!poppoValid) return;
+          const fd = new FormData(e.currentTarget);
+          onSubmit({
+            name: String(fd.get("name") || ""),
+            whatsapp: String(fd.get("whatsapp") || ""),
+            poppo_id: poppoId.trim(),
+          });
+        }}
+        className="space-y-5"
+      >
+        <button type="button" onClick={onBack} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> 🔄 Change package
+        </button>
 
-      <div className="rounded-xl bg-secondary/40 p-4">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Package</span>
-          <span className="font-semibold">{pkg.name} ({pkg.coins} coins)</span>
-        </div>
-        <div className="mt-3 flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Quantity</span>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-lg font-bold hover:border-primary"
-            >
-              −
-            </button>
-            <span className="w-8 text-center font-semibold">{quantity}</span>
-            <button
-              type="button"
-              onClick={() => onQuantityChange(Math.min(10, quantity + 1))}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-lg font-bold hover:border-primary"
-            >
-              +
-            </button>
+        <div className="rounded-xl bg-secondary/40 p-4">
+          <div className="flex items-center justify-between text-sm">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              📦 Package
+            </span>
+            <span className="font-semibold">{pkg.name} ({pkg.coins} coins)</span>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Quantity</span>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => onQuantityChange(Math.max(1, quantity - 1))} className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-lg font-bold hover:border-primary">−</button>
+              <span className="w-8 text-center font-semibold">{quantity}</span>
+              <button type="button" onClick={() => onQuantityChange(Math.min(10, quantity + 1))} className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-lg font-bold hover:border-primary">+</button>
+            </div>
+          </div>
+          <div className="mt-2 flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Amount</span>
+            <span className="font-display text-xl font-bold text-gradient-pink">₹{pkg.price * quantity}</span>
+          </div>
+          <div className="mt-1 text-right text-xs text-muted-foreground">
+            for {pkg.coins * quantity} coins
           </div>
         </div>
-        <div className="mt-2 flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Amount</span>
-          <span className="font-display text-xl font-bold text-gradient-pink">₹{pkg.price * quantity}</span>
+
+        <div>
+          <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            👤 Your Name <span className="text-primary">*</span>
+          </label>
+          <input name="name" required placeholder="e.g. Priya Sharma" className="h-11 w-full rounded-lg border border-input bg-input/50 px-3 text-sm focus:border-primary focus:outline-none focus-glow" />
         </div>
-        <div className="mt-1 text-right text-xs text-muted-foreground">
-          for {pkg.coins * quantity} coins
-        </div>
-      </div>
 
-      <FormField name="name" label="Your Name" required />
-      <div>
-        <FormField name="whatsapp" label="WhatsApp Number" placeholder="+91 98765 43210" required />
-        <p className="mt-1.5 text-[11px] text-muted-foreground">
-          Required — we'll send your coin purchase receipt and delivery confirmation on WhatsApp.
-        </p>
-      </div>
-
-
-
-      <div>
-        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Poppo/Vone Live ID <span className="text-primary">*</span></label>
-        <input
-          value={poppoId}
-          onChange={(e) => setPoppoId(e.target.value.replace(/[^\d]/g, "").slice(0, 10))}
-          required
-          inputMode="numeric"
-          pattern="\d{8,10}"
-          placeholder="e.g. 18592742"
-          className={`h-11 w-full rounded-lg border bg-input/50 px-3 text-sm focus:outline-none ${
-            poppoTouched && !poppoValid ? "border-destructive" : "border-input focus:border-primary"
-          }`}
-        />
-        {poppoTouched && !poppoValid ? (
-          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-destructive">
-            <AlertCircle className="h-3.5 w-3.5" /> Poppo/Vone ID must be 8–10 digits (numbers only).
-          </p>
-        ) : (
+        <div>
+          <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            📱 WhatsApp Number <span className="text-primary">*</span>
+          </label>
+          <input name="whatsapp" required placeholder="+91 98765 43210" className="h-11 w-full rounded-lg border border-input bg-input/50 px-3 text-sm focus:border-primary focus:outline-none focus-glow" />
           <p className="mt-1.5 text-[11px] text-muted-foreground">
-            Find it on your Poppo/Vone profile as <span className="font-mono">ID: XXXXXXXX</span>. This is permanent.
+            📩 We'll send your coin purchase receipt and delivery confirmation on WhatsApp.
           </p>
-        )}
-      </div>
-
-      <div>
-        <label className="mb-2 block text-xs font-medium text-muted-foreground">Payment method</label>
-        <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border/60 bg-card/40 p-1.5">
-          {methods.map((m) => {
-            const Icon = m.icon;
-            const active = method === m.id;
-            return (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => onMethodChange(m.id)}
-                className={`flex items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-xs font-semibold transition-all sm:text-sm ${active ? "bg-gradient-pink text-primary-foreground glow-pink" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                <Icon className="h-4 w-4" /> <span className="hidden sm:inline">{m.label}</span><span className="sm:hidden">{m.id.toUpperCase()}</span>
-              </button>
-            );
-          })}
         </div>
-      </div>
 
-      <button
-        type="submit"
-        disabled={loading || !poppoValid}
-        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gradient-pink text-sm font-bold text-primary-foreground glow-pink disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : method === "upi" ? "Continue & Open UPI App →" : "Continue →"}
-      </button>
+        <div>
+          <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            🎮 Poppo/Vone Live ID <span className="text-primary">*</span>
+          </label>
+          <input
+            value={poppoId}
+            onChange={(e) => setPoppoId(e.target.value.replace(/[^\d]/g, "").slice(0, 10))}
+            required inputMode="numeric" pattern="\d{8,10}"
+            placeholder="e.g. 18592742"
+            className={`h-11 w-full rounded-lg border bg-input/50 px-3 text-sm focus:outline-none ${
+              poppoTouched && !poppoValid ? "border-destructive" : "border-input focus:border-primary"
+            }`}
+          />
+          {poppoTouched && !poppoValid ? (
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-destructive">
+              <AlertCircle className="h-3.5 w-3.5" /> Poppo/Vone ID must be 8–10 digits (numbers only).
+            </p>
+          ) : (
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Find it on your Poppo/Vone profile as <span className="font-mono">ID: XXXXXXXX</span>. This is permanent.
+            </p>
+          )}
+        </div>
 
-      <p className="text-center text-[11px] text-muted-foreground">
-        <ShieldCheck className="mr-1 inline h-3 w-3 text-primary" />
-        UPI payments are auto-verified by amount. Don't change the amount in your UPI app.
-      </p>
-      <p className="text-center text-[11px] text-muted-foreground">
-        By placing this order, you agree to our{" "}
-        <a href="/recharge-policy" target="_blank" rel="noreferrer" className="font-semibold text-gold hover:underline">
-          Recharge Policy
-        </a>
-        .
-      </p>
-    </form>
+        <div>
+          <label className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            💳 Payment method
+          </label>
+          <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border/60 bg-card/40 p-1.5">
+            {methods.map((m) => {
+              const Icon = m.icon;
+              const active = method === m.id;
+              return (
+                <button key={m.id} type="button" onClick={() => onMethodChange(m.id)}
+                  className={`flex items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-xs font-semibold transition-all sm:text-sm ${active ? "bg-gradient-pink text-primary-foreground glow-pink" : "text-muted-foreground hover:text-foreground"}`}>
+                  <Icon className="h-4 w-4" /> <span className="hidden sm:inline">{m.label}</span><span className="sm:hidden">{m.id.toUpperCase()}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <PremiumButton type="submit" disabled={loading || !poppoValid} className="w-full" size="lg" iconRight={loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}>
+          {loading ? "⏳ Processing..." : method === "upi" ? "🚀 Continue & Open UPI App" : "🚀 Continue"}
+        </PremiumButton>
+
+        <p className="text-center text-[11px] text-muted-foreground">
+          <ShieldCheck className="mr-1 inline h-3 w-3 text-primary" />
+          🔒 UPI payments are auto-verified by amount. Don't change the amount in your UPI app.
+        </p>
+        <p className="text-center text-[11px] text-muted-foreground">
+          By placing this order, you agree to our{" "}
+          <a href="/recharge-policy" target="_blank" rel="noreferrer" className="font-semibold text-gold hover:underline">Recharge Policy</a>.
+        </p>
+      </form>
+    </GlassCard>
   );
 }
 
@@ -566,11 +555,4 @@ function CopyRow({ label, value, k, copied, onCopy }: { label: string; value: st
   );
 }
 
-function FormField({ name, label, required, placeholder }: { name: string; label: string; required?: boolean; placeholder?: string; }) {
-  return (
-    <div>
-      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}{required && <span className="text-primary"> *</span>}</label>
-      <input name={name} required={required} placeholder={placeholder} className="h-11 w-full rounded-lg border border-input bg-input/50 px-3 text-sm focus:border-primary focus:outline-none focus-glow" />
-    </div>
-  );
-}
+

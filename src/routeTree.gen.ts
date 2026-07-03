@@ -48,6 +48,7 @@ import { Route as AdminHomepageRouteImport } from './routes/admin.homepage'
 import { Route as AdminCreatorLeadsRouteImport } from './routes/admin.creator-leads'
 import { Route as AdminCostsRouteImport } from './routes/admin.costs'
 import { Route as AdminContentRouteImport } from './routes/admin.content'
+import { Route as AdminBrandManagerRouteImport } from './routes/admin.brand-manager'
 import { Route as AcademyWhatIsPoppoLiveRouteImport } from './routes/academy.what-is-poppo-live'
 import { Route as AcademyVoneAppIndiaRouteImport } from './routes/academy.vone-app-india'
 import { Route as AcademyPoppoWithdrawalGuideRouteImport } from './routes/academy.poppo-withdrawal-guide'
@@ -259,6 +260,11 @@ const AdminContentRoute = AdminContentRouteImport.update({
   path: '/content',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminBrandManagerRoute = AdminBrandManagerRouteImport.update({
+  id: '/brand-manager',
+  path: '/brand-manager',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AcademyWhatIsPoppoLiveRoute = AcademyWhatIsPoppoLiveRouteImport.update({
   id: '/what-is-poppo-live',
   path: '/what-is-poppo-live',
@@ -360,6 +366,7 @@ export interface FileRoutesByFullPath {
   '/academy/poppo-withdrawal-guide': typeof AcademyPoppoWithdrawalGuideRoute
   '/academy/vone-app-india': typeof AcademyVoneAppIndiaRoute
   '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
+  '/admin/brand-manager': typeof AdminBrandManagerRoute
   '/admin/content': typeof AdminContentRoute
   '/admin/costs': typeof AdminCostsRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
@@ -413,6 +420,7 @@ export interface FileRoutesByTo {
   '/academy/poppo-withdrawal-guide': typeof AcademyPoppoWithdrawalGuideRoute
   '/academy/vone-app-india': typeof AcademyVoneAppIndiaRoute
   '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
+  '/admin/brand-manager': typeof AdminBrandManagerRoute
   '/admin/content': typeof AdminContentRoute
   '/admin/costs': typeof AdminCostsRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
@@ -469,6 +477,7 @@ export interface FileRoutesById {
   '/academy/poppo-withdrawal-guide': typeof AcademyPoppoWithdrawalGuideRoute
   '/academy/vone-app-india': typeof AcademyVoneAppIndiaRoute
   '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
+  '/admin/brand-manager': typeof AdminBrandManagerRoute
   '/admin/content': typeof AdminContentRoute
   '/admin/costs': typeof AdminCostsRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
@@ -526,6 +535,7 @@ export interface FileRouteTypes {
     | '/academy/poppo-withdrawal-guide'
     | '/academy/vone-app-india'
     | '/academy/what-is-poppo-live'
+    | '/admin/brand-manager'
     | '/admin/content'
     | '/admin/costs'
     | '/admin/creator-leads'
@@ -579,6 +589,7 @@ export interface FileRouteTypes {
     | '/academy/poppo-withdrawal-guide'
     | '/academy/vone-app-india'
     | '/academy/what-is-poppo-live'
+    | '/admin/brand-manager'
     | '/admin/content'
     | '/admin/costs'
     | '/admin/creator-leads'
@@ -634,6 +645,7 @@ export interface FileRouteTypes {
     | '/academy/poppo-withdrawal-guide'
     | '/academy/vone-app-india'
     | '/academy/what-is-poppo-live'
+    | '/admin/brand-manager'
     | '/admin/content'
     | '/admin/costs'
     | '/admin/creator-leads'
@@ -965,6 +977,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminContentRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/brand-manager': {
+      id: '/admin/brand-manager'
+      path: '/brand-manager'
+      fullPath: '/admin/brand-manager'
+      preLoaderRoute: typeof AdminBrandManagerRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/academy/what-is-poppo-live': {
       id: '/academy/what-is-poppo-live'
       path: '/what-is-poppo-live'
@@ -1094,6 +1113,7 @@ const AcademyRouteWithChildren =
   AcademyRoute._addFileChildren(AcademyRouteChildren)
 
 interface AdminRouteChildren {
+  AdminBrandManagerRoute: typeof AdminBrandManagerRoute
   AdminContentRoute: typeof AdminContentRoute
   AdminCostsRoute: typeof AdminCostsRoute
   AdminCreatorLeadsRoute: typeof AdminCreatorLeadsRoute
@@ -1115,6 +1135,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminBrandManagerRoute: AdminBrandManagerRoute,
   AdminContentRoute: AdminContentRoute,
   AdminCostsRoute: AdminCostsRoute,
   AdminCreatorLeadsRoute: AdminCreatorLeadsRoute,
