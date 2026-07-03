@@ -56,7 +56,6 @@ import { Route as AcademyPoppoDailyTasksRouteImport } from './routes/academy.pop
 import { Route as AcademyPkBattleGuideRouteImport } from './routes/academy.pk-battle-guide'
 import { Route as AcademyHowToBecomePoppoHostRouteImport } from './routes/academy.how-to-become-poppo-host'
 import { Route as AcademyCoinsPointsGiftsExplainedRouteImport } from './routes/academy.coins-points-gifts-explained'
-import { Route as ApiPublicZaakpayWebhookRouteImport } from './routes/api/public/zaakpay-webhook'
 import { Route as ApiPublicUpiWebhookRouteImport } from './routes/api/public/upi-webhook'
 import { Route as ApiPublicTelegramBotRouteImport } from './routes/api/public/telegram-bot'
 import { Route as ApiPublicOrderActionRouteImport } from './routes/api/public/order-action'
@@ -304,11 +303,6 @@ const AcademyCoinsPointsGiftsExplainedRoute =
     path: '/coins-points-gifts-explained',
     getParentRoute: () => AcademyRoute,
   } as any)
-const ApiPublicZaakpayWebhookRoute = ApiPublicZaakpayWebhookRouteImport.update({
-  id: '/api/public/zaakpay-webhook',
-  path: '/api/public/zaakpay-webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicUpiWebhookRoute = ApiPublicUpiWebhookRouteImport.update({
   id: '/api/public/upi-webhook',
   path: '/api/public/upi-webhook',
@@ -394,7 +388,6 @@ export interface FileRoutesByFullPath {
   '/api/public/order-action': typeof ApiPublicOrderActionRoute
   '/api/public/telegram-bot': typeof ApiPublicTelegramBotRoute
   '/api/public/upi-webhook': typeof ApiPublicUpiWebhookRoute
-  '/api/public/zaakpay-webhook': typeof ApiPublicZaakpayWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -448,7 +441,6 @@ export interface FileRoutesByTo {
   '/api/public/order-action': typeof ApiPublicOrderActionRoute
   '/api/public/telegram-bot': typeof ApiPublicTelegramBotRoute
   '/api/public/upi-webhook': typeof ApiPublicUpiWebhookRoute
-  '/api/public/zaakpay-webhook': typeof ApiPublicZaakpayWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -505,7 +497,6 @@ export interface FileRoutesById {
   '/api/public/order-action': typeof ApiPublicOrderActionRoute
   '/api/public/telegram-bot': typeof ApiPublicTelegramBotRoute
   '/api/public/upi-webhook': typeof ApiPublicUpiWebhookRoute
-  '/api/public/zaakpay-webhook': typeof ApiPublicZaakpayWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -563,7 +554,6 @@ export interface FileRouteTypes {
     | '/api/public/order-action'
     | '/api/public/telegram-bot'
     | '/api/public/upi-webhook'
-    | '/api/public/zaakpay-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -617,7 +607,6 @@ export interface FileRouteTypes {
     | '/api/public/order-action'
     | '/api/public/telegram-bot'
     | '/api/public/upi-webhook'
-    | '/api/public/zaakpay-webhook'
   id:
     | '__root__'
     | '/'
@@ -673,7 +662,6 @@ export interface FileRouteTypes {
     | '/api/public/order-action'
     | '/api/public/telegram-bot'
     | '/api/public/upi-webhook'
-    | '/api/public/zaakpay-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -700,7 +688,6 @@ export interface RootRouteChildren {
   ApiPublicOrderActionRoute: typeof ApiPublicOrderActionRoute
   ApiPublicTelegramBotRoute: typeof ApiPublicTelegramBotRoute
   ApiPublicUpiWebhookRoute: typeof ApiPublicUpiWebhookRoute
-  ApiPublicZaakpayWebhookRoute: typeof ApiPublicZaakpayWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1034,13 +1021,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AcademyCoinsPointsGiftsExplainedRouteImport
       parentRoute: typeof AcademyRoute
     }
-    '/api/public/zaakpay-webhook': {
-      id: '/api/public/zaakpay-webhook'
-      path: '/api/public/zaakpay-webhook'
-      fullPath: '/api/public/zaakpay-webhook'
-      preLoaderRoute: typeof ApiPublicZaakpayWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/upi-webhook': {
       id: '/api/public/upi-webhook'
       path: '/api/public/upi-webhook'
@@ -1204,7 +1184,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicOrderActionRoute: ApiPublicOrderActionRoute,
   ApiPublicTelegramBotRoute: ApiPublicTelegramBotRoute,
   ApiPublicUpiWebhookRoute: ApiPublicUpiWebhookRoute,
-  ApiPublicZaakpayWebhookRoute: ApiPublicZaakpayWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

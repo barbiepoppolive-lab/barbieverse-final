@@ -24,44 +24,6 @@ async function generateUniqueAmountPaise(basePrice: number, q: any): Promise<num
   return basePrice * 100 + Math.floor(Math.random() * 99) + 1;
 }
 
-// ─── NEW: create Zaakpay payment link for UPI orders ─────────────────────────
-
-export const createZaakpayLink = createServerFn({ method: "POST" })
-  .inputValidator((d) =>
-    z
-      .object({
-        order_id: z.string().uuid(),
-      })
-      .parse(d),
-  )
-  .handler(async ({ data }) => {
-    const { q1 } = await import("../db.server");
-    const { createZaakpayPaymentLink } = await import("../api/zaakpay");
-
-    const order = await q1<any>(
-      `SELECT id, name, whatsapp, poppo_id, package, coins, amount, quantity, expected_amount_paise, status
-       FROM orders WHERE id = $1`,
-      [data.order_id],
-    );
-
-    if (!order) return { ok: false, error: "Order not found" };
-    if (order.status !== "awaiting_payment") return { ok: false, error: "Order not awaiting payment" };
-
-    const result = await createZaakpayPaymentLink({
-      orderId: order.id,
-      amountPaise: order.expected_amount_paise,
-      customerName: order.name,
-      customerPhone: order.whatsapp,
-      description: `${order.package} - ${order.coins} coins`,
-    });
-
-    if (result.success && result.paymentUrl) {
-      return { ok: true, paymentUrl: result.paymentUrl };
-    }
-
-    return { ok: false, error: result.error || "Failed to create payment link" };
-  });
-
 // ─── submit order (unchanged from original) ─────────────────────────────────
 
 export const submitOrder = createServerFn({ method: "POST" })

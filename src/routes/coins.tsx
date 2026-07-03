@@ -7,7 +7,7 @@ import { StepProgress } from "@/components/ui/StepProgress";
 import { SmartPaymentVerification } from "@/components/SmartPaymentVerification";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { getPublicSettings } from "@/lib/api/settings.functions";
-import { submitOrder, createZaakpayLink } from "@/lib/api/orders.functions";
+import { submitOrder } from "@/lib/api/orders.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Coins, CheckCircle2, Copy, ShieldCheck, ArrowLeft, Smartphone, Bitcoin, Building2, Loader2, AlertCircle } from "lucide-react";
@@ -146,7 +146,7 @@ function CoinsPage() {
               </div>
               <div className="text-center card-lift rounded-2xl p-6">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-pink text-lg font-bold text-primary-foreground">2</div>
-                <p className="mt-3 text-sm text-muted-foreground">Pay via UPI on Zaakpay secure checkout — auto-verified</p>
+                <p className="mt-3 text-sm text-muted-foreground">Pay via UPI to our ID — enter your UTR number</p>
               </div>
               <div className="text-center card-lift rounded-2xl p-6">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-pink text-lg font-bold text-primary-foreground">3</div>
@@ -185,13 +185,6 @@ function CoinsPage() {
                 setOrderResult({ id: res.id, expected_amount_rupees: res.expected_amount_rupees, name: form.name, whatsapp: form.whatsapp, poppo_id: form.poppo_id });
 
                 if (method === "upi") {
-                  // Redirect to Zaakpay payment link
-                  const zaakpayResult: any = await createZaakpayLink({ data: { order_id: res.id } });
-                  if (zaakpayResult?.ok && zaakpayResult.paymentUrl) {
-                    window.location.href = zaakpayResult.paymentUrl;
-                    return;
-                  }
-                  // Fallback to manual flow if Zaakpay fails
                   setStep("pay");
                 } else {
                   setStep("pay");
