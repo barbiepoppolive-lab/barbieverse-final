@@ -64,6 +64,7 @@ import { Route as ApiPublicOrderActionRouteImport } from './routes/api/public/or
 import { Route as ApiPublicInteraktActionRouteImport } from './routes/api/public/interakt-action'
 import { Route as ApiPublicCronSocialRouteImport } from './routes/api/public/cron-social'
 import { Route as ApiPublicCronScrapeRouteImport } from './routes/api/public/cron-scrape'
+import { Route as ApiPublicChatRouteImport } from './routes/api/public/chat'
 import { Route as ApiBrandManagerCompareRouteImport } from './routes/api.brand-manager.compare'
 
 const VerifyRoute = VerifyRouteImport.update({
@@ -346,6 +347,11 @@ const ApiPublicCronScrapeRoute = ApiPublicCronScrapeRouteImport.update({
   path: '/api/public/cron-scrape',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicChatRoute = ApiPublicChatRouteImport.update({
+  id: '/api/public/chat',
+  path: '/api/public/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBrandManagerCompareRoute = ApiBrandManagerCompareRouteImport.update({
   id: '/api/brand-manager/compare',
   path: '/api/brand-manager/compare',
@@ -403,6 +409,7 @@ export interface FileRoutesByFullPath {
   '/academy/': typeof AcademyIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/api/brand-manager/compare': typeof ApiBrandManagerCompareRoute
+  '/api/public/chat': typeof ApiPublicChatRoute
   '/api/public/cron-scrape': typeof ApiPublicCronScrapeRoute
   '/api/public/cron-social': typeof ApiPublicCronSocialRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
@@ -459,6 +466,7 @@ export interface FileRoutesByTo {
   '/academy': typeof AcademyIndexRoute
   '/admin': typeof AdminIndexRoute
   '/api/brand-manager/compare': typeof ApiBrandManagerCompareRoute
+  '/api/public/chat': typeof ApiPublicChatRoute
   '/api/public/cron-scrape': typeof ApiPublicCronScrapeRoute
   '/api/public/cron-social': typeof ApiPublicCronSocialRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
@@ -518,6 +526,7 @@ export interface FileRoutesById {
   '/academy/': typeof AcademyIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/api/brand-manager/compare': typeof ApiBrandManagerCompareRoute
+  '/api/public/chat': typeof ApiPublicChatRoute
   '/api/public/cron-scrape': typeof ApiPublicCronScrapeRoute
   '/api/public/cron-social': typeof ApiPublicCronSocialRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
@@ -578,6 +587,7 @@ export interface FileRouteTypes {
     | '/academy/'
     | '/admin/'
     | '/api/brand-manager/compare'
+    | '/api/public/chat'
     | '/api/public/cron-scrape'
     | '/api/public/cron-social'
     | '/api/public/interakt-action'
@@ -634,6 +644,7 @@ export interface FileRouteTypes {
     | '/academy'
     | '/admin'
     | '/api/brand-manager/compare'
+    | '/api/public/chat'
     | '/api/public/cron-scrape'
     | '/api/public/cron-social'
     | '/api/public/interakt-action'
@@ -692,6 +703,7 @@ export interface FileRouteTypes {
     | '/academy/'
     | '/admin/'
     | '/api/brand-manager/compare'
+    | '/api/public/chat'
     | '/api/public/cron-scrape'
     | '/api/public/cron-social'
     | '/api/public/interakt-action'
@@ -719,6 +731,7 @@ export interface RootRouteChildren {
   TrackApplicationRoute: typeof TrackApplicationRoute
   VerifyRoute: typeof VerifyRoute
   ApiBrandManagerCompareRoute: typeof ApiBrandManagerCompareRoute
+  ApiPublicChatRoute: typeof ApiPublicChatRoute
   ApiPublicCronScrapeRoute: typeof ApiPublicCronScrapeRoute
   ApiPublicCronSocialRoute: typeof ApiPublicCronSocialRoute
   ApiPublicInteraktActionRoute: typeof ApiPublicInteraktActionRoute
@@ -1114,6 +1127,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronScrapeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/chat': {
+      id: '/api/public/chat'
+      path: '/api/public/chat'
+      fullPath: '/api/public/chat'
+      preLoaderRoute: typeof ApiPublicChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/brand-manager/compare': {
       id: '/api/brand-manager/compare'
       path: '/api/brand-manager/compare'
@@ -1241,6 +1261,7 @@ const rootRouteChildren: RootRouteChildren = {
   TrackApplicationRoute: TrackApplicationRoute,
   VerifyRoute: VerifyRoute,
   ApiBrandManagerCompareRoute: ApiBrandManagerCompareRoute,
+  ApiPublicChatRoute: ApiPublicChatRoute,
   ApiPublicCronScrapeRoute: ApiPublicCronScrapeRoute,
   ApiPublicCronSocialRoute: ApiPublicCronSocialRoute,
   ApiPublicInteraktActionRoute: ApiPublicInteraktActionRoute,
