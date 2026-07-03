@@ -104,7 +104,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           logo: "/__l5e/assets-v1/7e05a3d0-85cd-4fae-be66-47e973d674b6/og-home.jpg",
           description:
             "India's premier creator agency for Poppo/Vone Live — onboarding, ₹1,150+ first week bonus, and growth support.",
-          sameAs: [],
+          sameAs: [
+            "https://www.instagram.com/barbieverse",
+            "https://www.youtube.com/@barbieverse",
+          ],
         }),
       },
     ],

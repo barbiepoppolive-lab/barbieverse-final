@@ -156,6 +156,8 @@ export const getAllSettings = createServerFn({ method: "GET" })
 export const getSetting = createServerFn({ method: "GET" })
   .inputValidator((d) => settingKeySchema.parse(d))
   .handler(async ({ data }) => {
+    const { requireAdmin } = await import("../admin-session.server");
+    await requireAdmin();
     const { q1 } = await import("../db.server");
     const row = await q1<{ value: string }>(
       "SELECT value FROM settings WHERE key = $1",

@@ -1,19 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { pool } from "@/lib/db.server";
 import type { SocialLead, SocialPlatform, PostCategory, PostStatus } from "@/lib/social-monitor/types";
-
-let dbPool: any = null;
-
-async function getDb() {
-  if (!dbPool) {
-    const { Pool } = await import("pg");
-    dbPool = new Pool({
-      connectionString: process.env.SUPABASE_DB_URL,
-      ssl: process.env.DB_SSL_INSECURE === "true" ? { rejectUnauthorized: false } : undefined,
-    });
-  }
-  return dbPool;
-}
 
 async function requireAdmin() {
   const { useSession } = await import("@tanstack/react-start/server");
@@ -23,7 +11,7 @@ async function requireAdmin() {
 }
 
 async function q(text: string, params: any[] = []) {
-  const pool = await getDb();
+  const pool = pool;
   const res = await pool.query(text, params);
   return res.rows;
 }

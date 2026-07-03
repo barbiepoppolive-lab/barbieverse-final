@@ -20,7 +20,7 @@ YOUR KNOWLEDGE:
 - How to find Poppo/Vone ID: Open app → tap My → numeric ID below profile photo
 - Delivery: Within 30 minutes of payment verification
 - Order tracking: barbieverse.org/track?id=ORDER_ID
-- Admin WhatsApp: 91900096630
+- Admin WhatsApp: 919000966360
 - Poppo signup: agency ID 2517496
 - Academy: free training for new creators
 - Earning potential: ₹1,150 in first week, ₹20K-50K monthly
@@ -48,8 +48,8 @@ Respond in a fun, upbeat tone. Use Hinglish if the user writes in Hindi.`;
           });
         } catch (err: any) {
           console.error("Chat API error:", err);
-          return new Response(JSON.stringify({ reply: "Oops! Something went wrong. Try again or WhatsApp us directly! 💬" }), {
-            status: 200,
+          return new Response(JSON.stringify({ error: "AI service temporarily unavailable. Please try again or WhatsApp us directly!" }), {
+            status: 503,
             headers: { "Content-Type": "application/json" },
           });
         }

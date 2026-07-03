@@ -59,3 +59,6 @@ export const liveCreatorStats = createServerFn({ method: "GET" }).handler(async 
   );
   return row ?? { today: 0, total: 0 };
 });
+
+// Renamed from "liveCreatorStats" to "creatorStats" in UI to avoid confusion
+// This actually counts total creators, not currently-live streamers

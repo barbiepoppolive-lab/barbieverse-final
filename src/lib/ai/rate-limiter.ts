@@ -62,7 +62,7 @@ function maybeReset(provider: Provider): void {
 export function isRateLimited(provider: Provider): boolean {
   maybeReset(provider);
   const limits = PROVIDER_LIMITS[provider];
-  return usage[provider].count >= limits.rpd;
+  return usage[provider].count >= limits.rpd || usage[provider].tokens >= limits.tpm;
 }
 
 export function trackUsage(provider: Provider, tokens: number): void {
@@ -95,6 +95,7 @@ export function getAllUsage(): Record<Provider, ReturnType<typeof getUsage>> {
     ollama: getUsage("ollama"),
     anthropic: getUsage("anthropic"),
     openrouter: getUsage("openrouter"),
+    xai: getUsage("xai"),
   };
 }
 

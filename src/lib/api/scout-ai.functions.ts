@@ -2,6 +2,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { pool } from "@/lib/db.server";
 import {
   scoreLead,
   scoreLeadsBatch,
@@ -10,22 +11,6 @@ import {
   generateDailyBriefing,
   type LeadProfile,
 } from "@/lib/ai/modules/scout-ai";
-
-let dbPool: any = null;
-
-async function getDb() {
-  if (!dbPool) {
-    const { Pool } = await import("pg");
-    dbPool = new Pool({
-      connectionString: process.env.SUPABASE_DB_URL,
-      ssl:
-        process.env.DB_SSL_INSECURE === "true"
-          ? { rejectUnauthorized: false }
-          : undefined,
-    });
-  }
-  return dbPool;
-}
 
 // ── Score a Single Lead ────────────────────────────────
 
@@ -38,7 +23,7 @@ export const scoreCreatorLead = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const pool = await getDb();
+    const pool = pool;
 
     // Fetch lead from creator_leads table
     const leadResult = await pool.query(
@@ -87,7 +72,7 @@ export const scoreCreatorLead = createServerFn({ method: "POST" })
 
 export const scoreAllUnscoredLeads = createServerFn({ method: "POST" })
   .handler(async () => {
-    const pool = await getDb();
+    const pool = pool;
 
     // Get leads without scores
     const unscoredResult = await pool.query(`
@@ -153,7 +138,7 @@ export const getLeadScore = createServerFn({ method: "GET" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const pool = await getDb();
+    const pool = pool;
     const result = await pool.query(
       "SELECT * FROM lead_scores WHERE lead_id = $1",
       [data.lead_id],
@@ -170,7 +155,7 @@ export const getLeadScore = createServerFn({ method: "GET" })
 
 export const getScoutDashboard = createServerFn({ method: "GET" })
   .handler(async () => {
-    const pool = await getDb();
+    const pool = pool;
 
     // Get score distribution
     const distribution = await pool.query(`
@@ -244,7 +229,7 @@ export const getOutreachPlan = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const pool = await getDb();
+    const pool = pool;
 
     // Fetch lead
     const leadResult = await pool.query(
@@ -297,7 +282,7 @@ export const getOutreachPlan = createServerFn({ method: "POST" })
 
 export const getDailyBriefing = createServerFn({ method: "GET" })
   .handler(async () => {
-    const pool = await getDb();
+    const pool = pool;
 
     // Get recent leads with scores
     const result = await pool.query(`

@@ -15,6 +15,7 @@ export function FireFlames({ className = "" }: { className?: string }) {
     let animId: number;
     let W = 300;
     let H = 200;
+    let isVisible = true;
 
     interface FlameData {
       x: number;
@@ -105,6 +106,11 @@ export function FireFlames({ className = "" }: { className?: string }) {
     }
 
     function animate() {
+      if (!isVisible) {
+        animId = requestAnimationFrame(animate);
+        return;
+      }
+
       ctx.clearRect(0, 0, W, H);
 
       for (let i = 0; i < 4; i++) spawnFlame();
@@ -148,10 +154,17 @@ export function FireFlames({ className = "" }: { className?: string }) {
     };
     resize();
 
+    const observer = new IntersectionObserver(
+      ([entry]) => { isVisible = entry.isIntersecting; },
+      { threshold: 0 },
+    );
+    observer.observe(canvas);
+
     animId = requestAnimationFrame(animate);
 
     return () => {
       cancelAnimationFrame(animId);
+      observer.disconnect();
     };
   }, []);
 

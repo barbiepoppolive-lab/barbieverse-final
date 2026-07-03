@@ -50,7 +50,7 @@ export function BarbieAssistant() {
           className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-primary/40 shadow-[0_0_25px_oklch(0.72_0.25_350/0.3)] transition-all duration-300 hover:scale-110 hover:shadow-[0_0_40px_oklch(0.72_0.25_350/0.5)] active:scale-95 md:h-16 md:w-16"
           aria-label="Chat with Barbie"
         >
-          <img src="/barbie-avatar.jpg" alt="Barbie" className="h-full w-full object-cover" />
+          <img src="/barbie-avatar.jpg" alt="Barbie" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23ec4899'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='white' font-size='40'%3E%F0%9F%92%96%3C/text%3E%3C/svg%3E"; }} />
         </button>
 
         {/* Notification bubble */}
@@ -68,7 +68,7 @@ export function BarbieAssistant() {
             {/* Header */}
             <div className="flex items-center gap-3 bg-gradient-to-r from-primary/20 via-pink-500/10 to-gold/10 px-4 py-3">
               <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-primary/30">
-                <img src="/barbie-avatar.jpg" alt="Barbie" className="h-full w-full object-cover" />
+          <img src="/barbie-avatar.jpg" alt="Barbie" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23ec4899'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='white' font-size='40'%3E%F0%9F%92%96%3C/text%3E%3C/svg%3E"; }} />
                 <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-card bg-green-400" />
               </div>
               <div className="min-w-0 flex-1">
@@ -147,7 +147,7 @@ function ChatMessage({ from, text, time }: { from: "barbie" | "user"; text: stri
     <div className={`mb-3 flex ${isBarbie ? "justify-start" : "justify-end"}`}>
       {isBarbie && (
         <div className="mr-2 h-7 w-7 shrink-0 overflow-hidden rounded-full border border-primary/30">
-          <img src="/barbie-avatar.jpg" alt="Barbie" className="h-full w-full object-cover" />
+          <img src="/barbie-avatar.jpg" alt="Barbie" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23ec4899'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='white' font-size='40'%3E%F0%9F%92%96%3C/text%3E%3C/svg%3E"; }} />
         </div>
       )}
       <div

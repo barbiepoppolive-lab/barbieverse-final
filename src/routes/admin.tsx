@@ -103,22 +103,13 @@ function AdminLayout() {
               className="relative rounded-lg p-2 text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-foreground hover:scale-110"
             >
               <Bell className="h-5 w-5" />
-              <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-primary"></span>
-              </span>
             </button>
             {showNotifs && (
               <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-border/60 bg-card/95 p-4 shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-200">
                 <p className="mb-3 text-sm font-semibold text-foreground">Notifications</p>
                 <div className="space-y-2">
                   <div className="rounded-lg bg-primary/5 p-3 text-xs text-muted-foreground">
-                    <p className="font-medium text-foreground">System Online</p>
-                    <p>All services running normally.</p>
-                  </div>
-                  <div className="rounded-lg bg-primary/5 p-3 text-xs text-muted-foreground">
-                    <p className="font-medium text-foreground">Railway Deployed</p>
-                    <p>Latest build deployed successfully.</p>
+                    <p className="font-medium text-foreground">No new notifications</p>
                   </div>
                 </div>
               </div>

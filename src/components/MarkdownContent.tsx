@@ -77,7 +77,7 @@ function renderInline(text: string): ReactNode[] {
       if (linkM) {
         const [, label, url] = linkM;
         if (url.startsWith("/")) {
-          out.push(<Link key={key++} to={url as any} className="text-gold underline-offset-4 hover:underline">{label}</Link>);
+          out.push(<a key={key++} href={url} className="text-gold underline-offset-4 hover:underline">{label}</a>);
         } else {
           out.push(<a key={key++} href={url} target="_blank" rel="noreferrer" className="text-gold underline-offset-4 hover:underline">{label}</a>);
         }
