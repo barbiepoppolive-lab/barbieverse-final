@@ -48,11 +48,11 @@ export interface AIRouteResult {
 
 const TASK_ROUTES: Record<TaskType, RouteConfig> = {
   chat: {
-    primary: "gemini",
+    primary: "groq",
     fallback: "gemini",
-    model: "gemini-2.5-flash",
+    model: "llama-3.3-70b-versatile",
     maxTokens: 1024,
-    reason: "Gemini for real-time chat (only configured provider)",
+    reason: "Groq fastest for real-time chat, Gemini fallback",
   },
   analysis: {
     primary: "gemini",
