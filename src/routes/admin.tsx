@@ -38,6 +38,7 @@ function AdminLayout() {
     { to: "/admin/unmatched", label: "Unmatched", icon: AlertTriangle },
     { to: "/admin/marketing", label: "Marketing", icon: Megaphone },
     { to: "/admin/posts", label: "Posts", icon: FileText },
+    { to: "/admin/content", label: "Content AI", icon: Megaphone },
     { to: "/admin/upi-setup", label: "UPI Setup", icon: Smartphone },
     { to: "/admin/policies", label: "Policies", icon: ScrollText },
     { to: "/admin/settings", label: "Settings", icon: SettingsIcon },
