@@ -218,6 +218,8 @@ function HomePage() {
   const { t } = useLang();
 
   const announcement = settings.homepage_announcement?.trim();
+  const ctaPrimaryLink = settings.hero_cta_primary_link || "/join";
+  const ctaSecondaryLink = settings.hero_cta_secondary_link || "/join";
 
   const whySlides = [
     { title: t("carousel.slide1.title"), description: t("carousel.slide1.desc"), button_text: t("carousel.slide1.cta"), button_link: "/join" },
