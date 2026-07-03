@@ -1,4 +1,3 @@
-import { generateImage, type ImageGenInput, type ImageGenResult } from "../providers/fal-image";
 import { aiPremium, aiContent } from "../router";
 
 // ── Types ──────────────────────────────────────────────
