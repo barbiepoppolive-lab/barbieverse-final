@@ -48,7 +48,6 @@ import { Route as AdminLeadsRouteImport } from './routes/admin.leads'
 import { Route as AdminHomepageRouteImport } from './routes/admin.homepage'
 import { Route as AdminCreatorLeadsRouteImport } from './routes/admin.creator-leads'
 import { Route as AdminCostsRouteImport } from './routes/admin.costs'
-import { Route as AdminContentRouteImport } from './routes/admin.content'
 import { Route as AcademyWhatIsPoppoLiveRouteImport } from './routes/academy.what-is-poppo-live'
 import { Route as AcademyVoneAppIndiaRouteImport } from './routes/academy.vone-app-india'
 import { Route as AcademyPoppoWithdrawalGuideRouteImport } from './routes/academy.poppo-withdrawal-guide'
@@ -261,11 +260,6 @@ const AdminCostsRoute = AdminCostsRouteImport.update({
   path: '/costs',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminContentRoute = AdminContentRouteImport.update({
-  id: '/content',
-  path: '/content',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AcademyWhatIsPoppoLiveRoute = AcademyWhatIsPoppoLiveRouteImport.update({
   id: '/what-is-poppo-live',
   path: '/what-is-poppo-live',
@@ -372,7 +366,6 @@ export interface FileRoutesByFullPath {
   '/academy/poppo-withdrawal-guide': typeof AcademyPoppoWithdrawalGuideRoute
   '/academy/vone-app-india': typeof AcademyVoneAppIndiaRoute
   '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
-  '/admin/content': typeof AdminContentRoute
   '/admin/costs': typeof AdminCostsRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
@@ -427,7 +420,6 @@ export interface FileRoutesByTo {
   '/academy/poppo-withdrawal-guide': typeof AcademyPoppoWithdrawalGuideRoute
   '/academy/vone-app-india': typeof AcademyVoneAppIndiaRoute
   '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
-  '/admin/content': typeof AdminContentRoute
   '/admin/costs': typeof AdminCostsRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
@@ -485,7 +477,6 @@ export interface FileRoutesById {
   '/academy/poppo-withdrawal-guide': typeof AcademyPoppoWithdrawalGuideRoute
   '/academy/vone-app-india': typeof AcademyVoneAppIndiaRoute
   '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
-  '/admin/content': typeof AdminContentRoute
   '/admin/costs': typeof AdminCostsRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
@@ -544,7 +535,6 @@ export interface FileRouteTypes {
     | '/academy/poppo-withdrawal-guide'
     | '/academy/vone-app-india'
     | '/academy/what-is-poppo-live'
-    | '/admin/content'
     | '/admin/costs'
     | '/admin/creator-leads'
     | '/admin/homepage'
@@ -599,7 +589,6 @@ export interface FileRouteTypes {
     | '/academy/poppo-withdrawal-guide'
     | '/academy/vone-app-india'
     | '/academy/what-is-poppo-live'
-    | '/admin/content'
     | '/admin/costs'
     | '/admin/creator-leads'
     | '/admin/homepage'
@@ -656,7 +645,6 @@ export interface FileRouteTypes {
     | '/academy/poppo-withdrawal-guide'
     | '/academy/vone-app-india'
     | '/academy/what-is-poppo-live'
-    | '/admin/content'
     | '/admin/costs'
     | '/admin/creator-leads'
     | '/admin/homepage'
@@ -990,13 +978,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCostsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/content': {
-      id: '/admin/content'
-      path: '/content'
-      fullPath: '/admin/content'
-      preLoaderRoute: typeof AdminContentRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/academy/what-is-poppo-live': {
       id: '/academy/what-is-poppo-live'
       path: '/what-is-poppo-live'
@@ -1133,7 +1114,6 @@ const AcademyRouteWithChildren =
   AcademyRoute._addFileChildren(AcademyRouteChildren)
 
 interface AdminRouteChildren {
-  AdminContentRoute: typeof AdminContentRoute
   AdminCostsRoute: typeof AdminCostsRoute
   AdminCreatorLeadsRoute: typeof AdminCreatorLeadsRoute
   AdminHomepageRoute: typeof AdminHomepageRoute
@@ -1155,7 +1135,6 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
-  AdminContentRoute: AdminContentRoute,
   AdminCostsRoute: AdminCostsRoute,
   AdminCreatorLeadsRoute: AdminCreatorLeadsRoute,
   AdminHomepageRoute: AdminHomepageRoute,

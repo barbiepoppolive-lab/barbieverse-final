@@ -1,10 +1,6 @@
 {
   "provider": "node",
   "steps": {
-    "commands": [
-      "cp -r . /app",
-      "npm install",
-      "npm run build"
-    ]
+    "commands": ["cp -r . /app && npm install && npm run build"]
   }
 }
