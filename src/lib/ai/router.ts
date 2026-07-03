@@ -48,32 +48,32 @@ export interface AIRouteResult {
 
 const TASK_ROUTES: Record<TaskType, RouteConfig> = {
   chat: {
-    primary: "groq",
-    fallback: "openrouter",
-    model: "llama-3.3-70b-versatile",
+    primary: "gemini",
+    fallback: "gemini",
+    model: "gemini-2.5-flash",
     maxTokens: 1024,
-    reason: "Groq fastest for real-time chat, OpenRouter fallback for quality",
+    reason: "Gemini for real-time chat (only configured provider)",
   },
   analysis: {
     primary: "gemini",
-    fallback: "openrouter",
+    fallback: "gemini",
     model: "gemini-2.5-flash",
     maxTokens: 2048,
-    reason: "Gemini best reasoning, OpenRouter fallback for premium models",
+    reason: "Gemini best reasoning",
   },
   code: {
-    primary: "mistral",
-    fallback: "openrouter",
-    model: "codestral-latest",
+    primary: "gemini",
+    fallback: "gemini",
+    model: "gemini-2.5-flash",
     maxTokens: 4096,
     systemPrompt:
       "You are an expert TypeScript/React developer. Write clean, production-ready code.",
-    reason: "Codestral purpose-built for code, OpenRouter for Qwen Coder fallback",
+    reason: "Gemini for code (only configured provider)",
   },
   content: {
-    primary: "openrouter",
+    primary: "gemini",
     fallback: "gemini",
-    model: OPENROUTER_MODELS.creative,
+    model: "gemini-2.5-flash",
     maxTokens: 2048,
     systemPrompt: `You are a world-class content strategist and writer for BarbieVerse — a creator economy platform that helps people earn money through live streaming on Poppo Live and Vone Live.
 
@@ -113,9 +113,9 @@ Write like a human who genuinely cares about helping people succeed.`,
     reason: "Claude for premium content quality, Gemini free fallback",
   },
   premium: {
-    primary: "openrouter",
+    primary: "gemini",
     fallback: "gemini",
-    model: OPENROUTER_MODELS.best,
+    model: "gemini-2.5-flash",
     maxTokens: 2048,
     systemPrompt: `You are the world's best content writer. Every word you write feels human, authentic, and compelling. You write for BarbieVerse — a creator economy platform.
 
@@ -150,18 +150,18 @@ Write content that converts. Make them feel something.`,
     reason: "Ollama embeddings free and fast",
   },
   vision: {
-    primary: "openrouter",
+    primary: "gemini",
     fallback: "gemini",
-    model: OPENROUTER_MODELS.vision,
+    model: "gemini-2.5-flash",
     maxTokens: 1024,
-    reason: "OpenRouter Claude Vision for premium quality, Gemini fallback",
+    reason: "Gemini vision for image analysis",
   },
   fallback: {
-    primary: "openrouter",
-    fallback: "ollama",
-    model: OPENROUTER_MODELS.free,
+    primary: "gemini",
+    fallback: "gemini",
+    model: "gemini-2.5-flash",
     maxTokens: 1024,
-    reason: "OpenRouter free models, Ollama as last resort",
+    reason: "Gemini as last resort (only configured provider)",
   },
 };
 
@@ -351,7 +351,7 @@ export async function aiRoute(params: {
   try {
     const available = await ollamaIsAvailable();
     if (!available) {
-      throw new Error("Ollama not available");
+      throw new Error("All AI providers failed. AI features are temporarily unavailable.");
     }
 
     const text = await ollamaChat(prompt, {
