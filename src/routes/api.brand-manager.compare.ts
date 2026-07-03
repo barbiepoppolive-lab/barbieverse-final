@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { aiContent, aiRoute } from "@/lib/ai/router";
-import { OPENROUTER_MODELS } from "@/lib/ai/providers/openrouter";
+import { OPENROUTER_MODELS } from "@/lib/ai/providers";
 
 const json = (data: any, init?: ResponseInit) =>
   new Response(JSON.stringify(data), {

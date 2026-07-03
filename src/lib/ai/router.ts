@@ -1,18 +1,17 @@
-// AI Router — Quality-first dispatch to best provider per task
-// Primary: Free APIs (Gemini, Groq, Mistral, Cerebras)
-// Fallback: Local Ollama
+// AI Router — Config-driven dispatch to best provider per task
+// Reads provider priority from env vars, auto-skips unavailable providers.
 
-import type { Provider } from "./rate-limiter";
+import type { Provider, ChatOptions } from "./providers";
+import {
+  chat,
+  chatWithImage,
+  isAvailable,
+  PROVIDER_REGISTRY,
+  ollamaIsAvailable,
+  estimateCost,
+} from "./providers";
 import { isRateLimited, trackUsage } from "./rate-limiter";
 import { logUsage } from "./usage-tracker";
-import { geminiChat, geminiChatWithImage } from "./providers/gemini";
-import { groqChat } from "./providers/groq";
-import { mistralChat } from "./providers/mistral";
-import { cerebrasChat } from "./providers/cerebras";
-import { ollamaChat, ollamaIsAvailable } from "./providers/ollama";
-import { anthropicVision } from "./providers/anthropic";
-import { openrouterChat, openrouterChatWithImage, OPENROUTER_MODELS } from "./providers/openrouter";
-import { xaiChat, XAI_MODELS } from "./providers/xai";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -44,38 +43,46 @@ export interface AIRouteResult {
   latencyMs: number;
 }
 
-// ── Task Routing Table ─────────────────────────────────
+// ── Config-Driven Routing Table ────────────────────────
+// Override with env vars: AI_ROUTE_{TASK}_PRIMARY=groq, AI_ROUTE_{TASK}_FALLBACK=gemini
 
-const TASK_ROUTES: Record<TaskType, RouteConfig> = {
-  chat: {
-    primary: "groq",
-    fallback: "gemini",
-    model: "llama-3.3-70b-versatile",
-    maxTokens: 1024,
-    reason: "Groq fastest for real-time chat, Gemini fallback",
-  },
-  analysis: {
-    primary: "gemini",
-    fallback: "gemini",
-    model: "gemini-2.5-flash",
-    maxTokens: 2048,
-    reason: "Gemini best reasoning",
-  },
-  code: {
-    primary: "gemini",
-    fallback: "gemini",
-    model: "gemini-2.5-flash",
-    maxTokens: 4096,
-    systemPrompt:
-      "You are an expert TypeScript/React developer. Write clean, production-ready code.",
-    reason: "Gemini for code (only configured provider)",
-  },
-  content: {
-    primary: "gemini",
-    fallback: "gemini",
-    model: "gemini-2.5-flash",
-    maxTokens: 2048,
-    systemPrompt: `You are a world-class content strategist and writer for BarbieVerse — a creator economy platform that helps people earn money through live streaming on Poppo Live and Vone Live.
+function envProvider(envKey: string, defaultValue: Provider): Provider {
+  const val = process.env[envKey];
+  if (val && val in PROVIDER_REGISTRY) return val as Provider;
+  return defaultValue;
+}
+
+function getTaskRoutes(): Record<TaskType, RouteConfig> {
+  return {
+    chat: {
+      primary: envProvider("AI_ROUTE_CHAT_PRIMARY", "groq"),
+      fallback: envProvider("AI_ROUTE_CHAT_FALLBACK", "gemini"),
+      model: process.env.AI_ROUTE_CHAT_MODEL || "llama-3.3-70b-versatile",
+      maxTokens: 1024,
+      reason: "Groq fastest for real-time chat, Gemini fallback",
+    },
+    analysis: {
+      primary: envProvider("AI_ROUTE_ANALYSIS_PRIMARY", "gemini"),
+      fallback: envProvider("AI_ROUTE_ANALYSIS_FALLBACK", "gemini"),
+      model: process.env.AI_ROUTE_ANALYSIS_MODEL || "gemini-2.5-flash",
+      maxTokens: 2048,
+      reason: "Gemini best reasoning",
+    },
+    code: {
+      primary: envProvider("AI_ROUTE_CODE_PRIMARY", "openrouter"),
+      fallback: envProvider("AI_ROUTE_CODE_FALLBACK", "gemini"),
+      model: process.env.AI_ROUTE_CODE_MODEL || "qwen/qwen-2.5-coder-32b-instruct",
+      maxTokens: 4096,
+      systemPrompt:
+        "You are an expert TypeScript/React developer. Write clean, production-ready code. Follow existing code patterns and conventions. Never add comments unless asked.",
+      reason: "OpenRouter Qwen Coder for best code quality, Gemini fallback",
+    },
+    content: {
+      primary: envProvider("AI_ROUTE_CONTENT_PRIMARY", "gemini"),
+      fallback: envProvider("AI_ROUTE_CONTENT_FALLBACK", "gemini"),
+      model: process.env.AI_ROUTE_CONTENT_MODEL || "gemini-2.5-flash",
+      maxTokens: 2048,
+      systemPrompt: `You are a world-class content strategist and writer for BarbieVerse — a creator economy platform that helps people earn money through live streaming on Poppo Live and Vone Live.
 
 YOUR ROLE:
 - Write content that stops the scroll and starts conversations
@@ -110,14 +117,14 @@ BRAND VOICE:
 AUDIENCE: Young Indian creators (18-30) who want to earn money through live streaming. They're tech-savvy but skeptical of scams. They value authenticity over polish.
 
 Write like a human who genuinely cares about helping people succeed.`,
-    reason: "Claude for premium content quality, Gemini free fallback",
-  },
-  premium: {
-    primary: "gemini",
-    fallback: "gemini",
-    model: "gemini-2.5-flash",
-    maxTokens: 2048,
-    systemPrompt: `You are the world's best content writer. Every word you write feels human, authentic, and compelling. You write for BarbieVerse — a creator economy platform.
+      reason: "Gemini for content quality (free)",
+    },
+    premium: {
+      primary: envProvider("AI_ROUTE_PREMIUM_PRIMARY", "gemini"),
+      fallback: envProvider("AI_ROUTE_PREMIUM_FALLBACK", "gemini"),
+      model: process.env.AI_ROUTE_PREMIUM_MODEL || "gemini-2.5-flash",
+      maxTokens: 2048,
+      systemPrompt: `You are the world's best content writer. Every word you write feels human, authentic, and compelling. You write for BarbieVerse — a creator economy platform.
 
 CRITICAL RULES:
 1. This is HIGH-VALUE content — every word must earn its place
@@ -133,90 +140,37 @@ OUTPUT FORMAT:
 - Under 500 words for articles
 
 Write content that converts. Make them feel something.`,
-    reason: "Claude Sonnet for highest quality premium content",
-  },
-  reasoning: {
-    primary: "gemini",
-    fallback: "openrouter",
-    model: "gemini-2.5-flash",
-    maxTokens: 4096,
-    reason: "Gemini wins GPQA benchmark, OpenRouter for Claude/GPT-4 fallback",
-  },
-  embedding: {
-    primary: "ollama",
-    fallback: "ollama",
-    model: "nomic-embed-text",
-    maxTokens: 512,
-    reason: "Ollama embeddings free and fast",
-  },
-  vision: {
-    primary: "gemini",
-    fallback: "gemini",
-    model: "gemini-2.5-flash",
-    maxTokens: 1024,
-    reason: "Gemini vision for image analysis",
-  },
-  fallback: {
-    primary: "gemini",
-    fallback: "gemini",
-    model: "gemini-2.5-flash",
-    maxTokens: 1024,
-    reason: "Gemini as last resort (only configured provider)",
-  },
-};
-
-// ── Provider Callers ───────────────────────────────────
-
-async function callProvider(
-  provider: Provider,
-  prompt: string,
-  config: RouteConfig,
-  imageBase64?: string,
-  mimeType?: string,
-): Promise<string> {
-  const opts = {
-    maxTokens: config.maxTokens,
-    systemPrompt: config.systemPrompt,
-    model: config.model,
+      reason: "Gemini for highest quality premium content (free)",
+    },
+    reasoning: {
+      primary: envProvider("AI_ROUTE_REASONING_PRIMARY", "gemini"),
+      fallback: envProvider("AI_ROUTE_REASONING_FALLBACK", "gemini"),
+      model: process.env.AI_ROUTE_REASONING_MODEL || "gemini-2.5-flash",
+      maxTokens: 4096,
+      reason: "Gemini wins GPQA benchmark",
+    },
+    embedding: {
+      primary: envProvider("AI_ROUTE_EMBEDDING_PRIMARY", "ollama"),
+      fallback: envProvider("AI_ROUTE_EMBEDDING_FALLBACK", "gemini"),
+      model: process.env.AI_ROUTE_EMBEDDING_MODEL || "nomic-embed-text",
+      maxTokens: 512,
+      reason: "Ollama embeddings free and fast",
+    },
+    vision: {
+      primary: envProvider("AI_ROUTE_VISION_PRIMARY", "gemini"),
+      fallback: envProvider("AI_ROUTE_VISION_FALLBACK", "gemini"),
+      model: process.env.AI_ROUTE_VISION_MODEL || "gemini-2.5-flash",
+      maxTokens: 1024,
+      reason: "Gemini vision for image analysis",
+    },
+    fallback: {
+      primary: envProvider("AI_ROUTE_FALLBACK_PRIMARY", "gemini"),
+      fallback: envProvider("AI_ROUTE_FALLBACK_FALLBACK", "gemini"),
+      model: process.env.AI_ROUTE_FALLBACK_MODEL || "gemini-2.5-flash",
+      maxTokens: 1024,
+      reason: "Gemini as last resort",
+    },
   };
-
-  switch (provider) {
-    case "gemini":
-      if (imageBase64) {
-        return geminiChatWithImage(prompt, imageBase64, mimeType, opts);
-      }
-      return geminiChat(prompt, opts);
-
-    case "groq":
-      return groqChat(prompt, opts);
-
-    case "mistral":
-      return mistralChat(prompt, opts);
-
-    case "cerebras":
-      return cerebrasChat(prompt, opts);
-
-    case "ollama":
-      return ollamaChat(prompt, opts);
-
-    case "anthropic":
-      if (imageBase64) {
-        return anthropicVision(prompt, imageBase64, mimeType, opts);
-      }
-      throw new Error("Anthropic text-only not supported, use vision");
-
-    case "openrouter":
-      if (imageBase64) {
-        return openrouterChatWithImage(prompt, imageBase64, mimeType, opts);
-      }
-      return openrouterChat(prompt, opts);
-
-    case "xai":
-      return xaiChat(prompt, opts);
-
-    default:
-      throw new Error(`Unknown provider: ${provider}`);
-  }
 }
 
 // ── Token Estimation ───────────────────────────────────
@@ -238,7 +192,7 @@ export async function aiRoute(params: {
   const { prompt, taskType, maxTokens, systemPrompt, imageBase64, mimeType } =
     params;
 
-  // Override config with custom values
+  const TASK_ROUTES = getTaskRoutes();
   const baseConfig = TASK_ROUTES[taskType];
   const config: RouteConfig = {
     ...baseConfig,
@@ -251,23 +205,51 @@ export async function aiRoute(params: {
     throw new Error("Vision task requires imageBase64");
   }
 
-  // Try primary provider
-  if (!isRateLimited(config.primary)) {
+  const opts: ChatOptions = {
+    maxTokens: config.maxTokens,
+    systemPrompt: config.systemPrompt,
+    model: config.model,
+  };
+
+  // Build provider chain: primary → fallback → ollama (if available)
+  const providers: Provider[] = [];
+  if (isAvailable(config.primary) && !isRateLimited(config.primary)) {
+    providers.push(config.primary);
+  }
+  if (
+    config.fallback !== config.primary &&
+    isAvailable(config.fallback) &&
+    !isRateLimited(config.fallback)
+  ) {
+    providers.push(config.fallback);
+  }
+  // Ollama last resort
+  if (
+    config.primary !== "ollama" &&
+    config.fallback !== "ollama" &&
+    (await ollamaIsAvailable()) &&
+    !isRateLimited("ollama")
+  ) {
+    providers.push("ollama");
+  }
+
+  // Try each provider in order
+  for (const provider of providers) {
     const start = Date.now();
     try {
-      const text = await callProvider(
-        config.primary,
-        prompt,
-        config,
-        imageBase64,
-        mimeType,
-      );
+      let text: string;
+      if (imageBase64 && (taskType === "vision" || PROVIDER_REGISTRY[provider].supportsVision)) {
+        text = await chatWithImage(provider, prompt, imageBase64, mimeType || "image/jpeg", opts);
+      } else {
+        text = await chat(provider, prompt, opts);
+      }
+
       const latencyMs = Date.now() - start;
       const tokens = estimateTokens(text);
 
-      trackUsage(config.primary, tokens);
+      trackUsage(provider, tokens);
       logUsage({
-        provider: config.primary,
+        provider,
         task_type: taskType,
         model: config.model,
         input_tokens: estimateTokens(prompt),
@@ -276,17 +258,11 @@ export async function aiRoute(params: {
         success: true,
       });
 
-      return {
-        text,
-        provider: config.primary,
-        model: config.model,
-        tokens,
-        latencyMs,
-      };
+      return { text, provider, model: config.model, tokens, latencyMs };
     } catch (err: any) {
-      console.error(`[AIRouter] ${config.primary} failed:`, err.message);
+      console.error(`[AIRouter] ${provider} failed:`, err.message);
       logUsage({
-        provider: config.primary,
+        provider,
         task_type: taskType,
         model: config.model,
         input_tokens: estimateTokens(prompt),
@@ -295,104 +271,13 @@ export async function aiRoute(params: {
         success: false,
         error: err.message,
       });
-      // Fall through to fallback
+      // Continue to next provider
     }
   }
 
-  // Try fallback provider
-  if (!isRateLimited(config.fallback)) {
-    const start = Date.now();
-    try {
-      const text = await callProvider(
-        config.fallback,
-        prompt,
-        config,
-        imageBase64,
-        mimeType,
-      );
-      const latencyMs = Date.now() - start;
-      const tokens = estimateTokens(text);
-
-      trackUsage(config.fallback, tokens);
-      logUsage({
-        provider: config.fallback,
-        task_type: taskType,
-        model: config.model,
-        input_tokens: estimateTokens(prompt),
-        output_tokens: tokens,
-        latency_ms: latencyMs,
-        success: true,
-      });
-
-      return {
-        text,
-        provider: config.fallback,
-        model: config.model,
-        tokens,
-        latencyMs,
-      };
-    } catch (err: any) {
-      console.error(`[AIRouter] ${config.fallback} failed:`, err.message);
-      logUsage({
-        provider: config.fallback,
-        task_type: taskType,
-        model: config.model,
-        input_tokens: estimateTokens(prompt),
-        output_tokens: 0,
-        latency_ms: Date.now() - start,
-        success: false,
-        error: err.message,
-      });
-    }
-  }
-
-  // All providers failed — last resort Ollama
-  const start = Date.now();
-  try {
-    const available = await ollamaIsAvailable();
-    if (!available) {
-      throw new Error("All AI providers failed. AI features are temporarily unavailable.");
-    }
-
-    const text = await ollamaChat(prompt, {
-      maxTokens: config.maxTokens,
-      systemPrompt: config.systemPrompt,
-      model: "phi4-mini",
-    });
-    const latencyMs = Date.now() - start;
-    const tokens = estimateTokens(text);
-
-    trackUsage("ollama", tokens);
-    logUsage({
-      provider: "ollama",
-      task_type: taskType,
-      model: "phi4-mini",
-      input_tokens: estimateTokens(prompt),
-      output_tokens: tokens,
-      latency_ms: latencyMs,
-      success: true,
-    });
-
-    return {
-      text,
-      provider: "ollama",
-      model: "phi4-mini",
-      tokens,
-      latencyMs,
-    };
-  } catch (err: any) {
-    logUsage({
-      provider: "ollama",
-      task_type: taskType,
-      model: "phi4-mini",
-      input_tokens: estimateTokens(prompt),
-      output_tokens: 0,
-      latency_ms: Date.now() - start,
-      success: false,
-      error: err.message,
-    });
-    throw new Error(`All AI providers failed. Last error: ${err.message}`);
-  }
+  throw new Error(
+    `All AI providers failed for task "${taskType}". Available: ${providers.join(", ") || "none"}`,
+  );
 }
 
 // ── Convenience Functions ──────────────────────────────
@@ -443,8 +328,6 @@ export async function aiContent(
   });
 }
 
-// Premium content — uses Claude Sonnet for highest quality
-// Use for: outreach messages, captions, daily briefings, important copy
 export async function aiPremium(
   prompt: string,
   opts?: { systemPrompt?: string; maxTokens?: number },

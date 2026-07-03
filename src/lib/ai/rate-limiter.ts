@@ -1,15 +1,9 @@
 // Rate Limiter — Tracks daily usage per provider
-// Resets at midnight UTC
+// Provider type derived from registry, not hardcoded.
 
-export type Provider =
-  | "gemini"
-  | "groq"
-  | "mistral"
-  | "cerebras"
-  | "ollama"
-  | "anthropic"
-  | "openrouter"
-  | "xai";
+import { type Provider, PROVIDER_REGISTRY, isAvailable } from "./providers";
+
+export type { Provider };
 
 interface RateLimitConfig {
   rpm: number;
@@ -17,16 +11,16 @@ interface RateLimitConfig {
   tpm: number;
 }
 
-const PROVIDER_LIMITS: Record<Provider, RateLimitConfig> = {
-  gemini: { rpm: 10, rpd: 250, tpm: 250_000 },
-  groq: { rpm: 30, rpd: 14_400, tpm: 12_000 },
-  mistral: { rpm: 2, rpd: 999_999, tpm: 500_000 },
-  cerebras: { rpm: 30, rpd: 1000, tpm: 100_000 },
-  ollama: { rpm: 999, rpd: 999_999, tpm: 999_999 },
-  anthropic: { rpm: 50, rpd: 1000, tpm: 40_000 },
-  openrouter: { rpm: 20, rpd: 1000, tpm: 200_000 },
-  xai: { rpm: 10, rpd: 1000, tpm: 100_000 },
-};
+// Derive limits from registry
+function getProviderLimits(): Record<Provider, RateLimitConfig> {
+  const limits: any = {};
+  for (const [name, config] of Object.entries(PROVIDER_REGISTRY)) {
+    limits[name] = config.limits;
+  }
+  return limits;
+}
+
+const PROVIDER_LIMITS = getProviderLimits();
 
 interface UsageRecord {
   count: number;
@@ -35,16 +29,14 @@ interface UsageRecord {
 }
 
 // In-memory usage tracker (resets on server restart)
-const usage: Record<Provider, UsageRecord> = {
-  gemini: { count: 0, tokens: 0, resetAt: getResetTime() },
-  groq: { count: 0, tokens: 0, resetAt: getResetTime() },
-  mistral: { count: 0, tokens: 0, resetAt: getResetTime() },
-  cerebras: { count: 0, tokens: 0, resetAt: getResetTime() },
-  ollama: { count: 0, tokens: 0, resetAt: getResetTime() },
-  anthropic: { count: 0, tokens: 0, resetAt: getResetTime() },
-  openrouter: { count: 0, tokens: 0, resetAt: getResetTime() },
-  xai: { count: 0, tokens: 0, resetAt: getResetTime() },
-};
+const usage: Record<string, UsageRecord> = {};
+
+function getRecord(provider: Provider): UsageRecord {
+  if (!usage[provider]) {
+    usage[provider] = { count: 0, tokens: 0, resetAt: getResetTime() };
+  }
+  return usage[provider];
+}
 
 function getResetTime(): number {
   const now = new Date();
@@ -54,21 +46,26 @@ function getResetTime(): number {
 }
 
 function maybeReset(provider: Provider): void {
-  if (Date.now() >= usage[provider].resetAt) {
+  const record = getRecord(provider);
+  if (Date.now() >= record.resetAt) {
     usage[provider] = { count: 0, tokens: 0, resetAt: getResetTime() };
   }
 }
 
 export function isRateLimited(provider: Provider): boolean {
+  if (!isAvailable(provider)) return true;
   maybeReset(provider);
   const limits = PROVIDER_LIMITS[provider];
-  return usage[provider].count >= limits.rpd || usage[provider].tokens >= limits.tpm;
+  if (!limits) return true;
+  const record = getRecord(provider);
+  return record.count >= limits.rpd || record.tokens >= limits.tpm;
 }
 
 export function trackUsage(provider: Provider, tokens: number): void {
   maybeReset(provider);
-  usage[provider].count++;
-  usage[provider].tokens += tokens;
+  const record = getRecord(provider);
+  record.count++;
+  record.tokens += tokens;
 }
 
 export function getUsage(provider: Provider): {
@@ -78,27 +75,24 @@ export function getUsage(provider: Provider): {
   remaining: number;
 } {
   maybeReset(provider);
+  const limits = PROVIDER_LIMITS[provider] || { rpm: 0, rpd: 0, tpm: 0 };
+  const record = getRecord(provider);
   return {
-    requests: usage[provider].count,
-    tokens: usage[provider].tokens,
-    limits: PROVIDER_LIMITS[provider],
-    remaining: PROVIDER_LIMITS[provider].rpd - usage[provider].count,
+    requests: record.count,
+    tokens: record.tokens,
+    limits,
+    remaining: limits.rpd - record.count,
   };
 }
 
 export function getAllUsage(): Record<Provider, ReturnType<typeof getUsage>> {
-  return {
-    gemini: getUsage("gemini"),
-    groq: getUsage("groq"),
-    mistral: getUsage("mistral"),
-    cerebras: getUsage("cerebras"),
-    ollama: getUsage("ollama"),
-    anthropic: getUsage("anthropic"),
-    openrouter: getUsage("openrouter"),
-    xai: getUsage("xai"),
-  };
+  const result: any = {};
+  for (const name of Object.keys(PROVIDER_REGISTRY) as Provider[]) {
+    result[name] = getUsage(name);
+  }
+  return result;
 }
 
 export function getLimits(provider: Provider): RateLimitConfig {
-  return PROVIDER_LIMITS[provider];
+  return PROVIDER_LIMITS[provider] || { rpm: 0, rpd: 0, tpm: 0 };
 }

@@ -1,4 +1,5 @@
 import { aiPremium, aiContent } from "../router";
+import { generateBlogAudio, type AudioGenResult } from "../audio-gen";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -11,12 +12,14 @@ export type BlogPostContent = {
   content: string;
   category: string;
   tags: string[];
+  audio?: AudioGenResult;
 };
 
 export type SocialPostContent = {
   platform: string;
   caption: string;
   hashtags: string[];
+  audio?: AudioGenResult;
 };
 
 // ── Blog Post Generation ───────────────────────────────
@@ -25,6 +28,7 @@ export async function generateBlogPost(input: {
   topic: string;
   format?: "guide" | "listicle" | "story" | "how-to" | "news";
   word_count?: number;
+  withAudio?: boolean;
 }): Promise<BlogPostContent> {
   const format = input.format || "guide";
   const wordCount = input.word_count || 800;
@@ -60,7 +64,7 @@ Return EXACTLY this JSON:
   if (!jsonMatch) throw new Error("Failed to parse blog content");
   const parsed = JSON.parse(jsonMatch[0]);
 
-  return {
+  const blog: BlogPostContent = {
     title: parsed.title || input.topic,
     slug: parsed.slug || input.topic.toLowerCase().replace(/\s+/g, "-"),
     excerpt: parsed.excerpt || "",
@@ -68,6 +72,17 @@ Return EXACTLY this JSON:
     category: parsed.category || "Poppo Tips",
     tags: parsed.tags || [],
   };
+
+  // Generate read-aloud audio if requested
+  if (input.withAudio && blog.content) {
+    try {
+      blog.audio = await generateBlogAudio(blog.content);
+    } catch (err) {
+      console.error("[ContentAI] Blog audio generation failed:", err);
+    }
+  }
+
+  return blog;
 }
 
 // ── Social Post Generation ─────────────────────────────
@@ -76,6 +91,7 @@ export async function generateSocialPost(input: {
   platform: "instagram" | "twitter" | "linkedin" | "facebook";
   topic: string;
   goal?: "engagement" | "traffic" | "sales" | "awareness";
+  withAudio?: boolean;
 }): Promise<SocialPostContent> {
   const goal = input.goal || "engagement";
 
@@ -111,9 +127,21 @@ Return EXACTLY this JSON:
   if (!jsonMatch) throw new Error("Failed to parse social content");
   const parsed = JSON.parse(jsonMatch[0]);
 
-  return {
+  const post: SocialPostContent = {
     platform: input.platform,
     caption: parsed.caption || "",
     hashtags: parsed.hashtags || [],
   };
+
+  // Generate audio if requested
+  if (input.withAudio && post.caption) {
+    try {
+      const { generateSocialAudio } = await import("../audio-gen");
+      post.audio = await generateSocialAudio(post.caption);
+    } catch (err) {
+      console.error("[ContentAI] Social audio generation failed:", err);
+    }
+  }
+
+  return post;
 }

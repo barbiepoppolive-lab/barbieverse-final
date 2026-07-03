@@ -23,8 +23,6 @@ export const scoreCreatorLead = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const pool = pool;
-
     // Fetch lead from creator_leads table
     const leadResult = await pool.query(
       "SELECT * FROM creator_leads WHERE id = $1",
@@ -72,7 +70,7 @@ export const scoreCreatorLead = createServerFn({ method: "POST" })
 
 export const scoreAllUnscoredLeads = createServerFn({ method: "POST" })
   .handler(async () => {
-    const pool = pool;
+
 
     // Get leads without scores
     const unscoredResult = await pool.query(`
@@ -138,7 +136,7 @@ export const getLeadScore = createServerFn({ method: "GET" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const pool = pool;
+
     const result = await pool.query(
       "SELECT * FROM lead_scores WHERE lead_id = $1",
       [data.lead_id],
@@ -155,7 +153,7 @@ export const getLeadScore = createServerFn({ method: "GET" })
 
 export const getScoutDashboard = createServerFn({ method: "GET" })
   .handler(async () => {
-    const pool = pool;
+
 
     // Get score distribution
     const distribution = await pool.query(`
@@ -229,7 +227,7 @@ export const getOutreachPlan = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const pool = pool;
+
 
     // Fetch lead
     const leadResult = await pool.query(
@@ -282,7 +280,7 @@ export const getOutreachPlan = createServerFn({ method: "POST" })
 
 export const getDailyBriefing = createServerFn({ method: "GET" })
   .handler(async () => {
-    const pool = pool;
+
 
     // Get recent leads with scores
     const result = await pool.query(`

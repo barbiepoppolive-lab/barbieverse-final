@@ -1,10 +1,14 @@
 // Embedding Utilities — Vector operations for lead dedup, RAG, etc.
 
-import { ollamaEmbed } from "../providers/ollama";
-import { geminiEmbed } from "../providers/gemini";
-import { mistralEmbed } from "../providers/mistral";
+import { embed, isAvailable, type Provider } from "../providers";
 
 export type EmbeddingProvider = "ollama" | "gemini" | "mistral";
+
+const EMBEDDING_PROVIDER_MAP: Record<EmbeddingProvider, Provider> = {
+  ollama: "ollama",
+  gemini: "gemini",
+  mistral: "mistral",
+};
 
 /**
  * Generate embedding vector for text
@@ -14,27 +18,21 @@ export async function generateEmbedding(
   text: string,
   provider: EmbeddingProvider = "ollama",
 ): Promise<number[]> {
-  try {
-    switch (provider) {
-      case "ollama":
-        return await ollamaEmbed(text);
-      case "gemini":
-        return await geminiEmbed(text);
-      case "mistral":
-        return await mistralEmbed(text);
-      default:
-        return await ollamaEmbed(text);
+  const providers: EmbeddingProvider[] = [provider, "ollama", "gemini", "mistral"];
+  const unique = [...new Set(providers)];
+
+  for (const p of unique) {
+    const mappedProvider = EMBEDDING_PROVIDER_MAP[p];
+    if (isAvailable(mappedProvider)) {
+      try {
+        return await embed(mappedProvider, text);
+      } catch {
+        // Try next provider
+      }
     }
-  } catch (err) {
-    // Fallback to next provider
-    if (provider === "ollama") {
-      return generateEmbedding(text, "gemini");
-    }
-    if (provider === "gemini") {
-      return generateEmbedding(text, "mistral");
-    }
-    throw err;
   }
+
+  throw new Error("No embedding provider available");
 }
 
 /**

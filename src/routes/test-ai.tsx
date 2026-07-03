@@ -3,8 +3,7 @@
 
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
-import { aiRoute, aiChat, aiCode, aiAnalyze, aiContent } from "@/lib/ai";
-import { ollamaIsAvailable } from "@/lib/ai/providers/ollama";
+import { aiRoute, aiChat, aiCode, aiAnalyze, aiContent, ollamaIsAvailable } from "@/lib/ai";
 import { getAllUsage } from "@/lib/ai/rate-limiter";
 
 export const Route = createFileRoute("/test-ai")({

@@ -11,7 +11,6 @@ async function requireAdmin() {
 }
 
 async function q(text: string, params: any[] = []) {
-  const pool = pool;
   const res = await pool.query(text, params);
   return res.rows;
 }

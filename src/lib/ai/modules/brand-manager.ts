@@ -3,6 +3,18 @@
 
 import { aiContent, aiPremium } from "../router";
 import { generateImageUrl, SIZES } from "../providers/pollinations";
+import {
+  generateImage as generateImageFull,
+  getProviderStatus,
+  type ImageGenInput,
+} from "../image-gen";
+import {
+  generateAudio,
+  generateCarouselAudio,
+  generateStoryAudio,
+  type AudioGenResult,
+  type CarouselAudio,
+} from "../audio-gen";
 
 // ── Helper: Choose provider based on user selection ────
 
@@ -54,12 +66,24 @@ export interface CarouselSlide {
   image_prompt: string;
 }
 
+export interface CarouselWithAudio {
+  title: string;
+  slides: CarouselSlide[];
+  caption: string;
+  hashtags: string[];
+  audio?: CarouselAudio;
+}
+
 export interface ReelScript {
   hook: string;
   scenes: { duration: string; visual: string; audio: string; text_overlay: string }[];
   caption: string;
   hashtags: string[];
   music_suggestion: string;
+}
+
+export interface ReelScriptWithAudio extends ReelScript {
+  audio?: { scenes: AudioGenResult[]; full: AudioGenResult };
 }
 
 export interface ContentCalendarEntry {
@@ -105,7 +129,8 @@ export async function generateCarousel(input: {
   slides?: number;
   style?: "educational" | "storytelling" | "listicle" | "tips";
   provider?: ProviderChoice;
-}): Promise<{ title: string; slides: CarouselSlide[]; caption: string; hashtags: string[] }> {
+  withAudio?: boolean;
+}): Promise<CarouselWithAudio> {
   const numSlides = input.slides || 7;
   const style = input.style || "educational";
   const provider = input.provider || "free";
@@ -145,12 +170,24 @@ Return EXACTLY this JSON:
   if (!jsonMatch) throw new Error("Failed to parse carousel content");
   const parsed = JSON.parse(jsonMatch[0]);
 
-  return {
+  const carousel: CarouselWithAudio = {
     title: parsed.title || input.topic,
     slides: parsed.slides || [],
     caption: parsed.caption || "",
     hashtags: parsed.hashtags || [],
   };
+
+  // Generate audio narration if requested
+  if (input.withAudio && carousel.slides.length > 0) {
+    try {
+      carousel.audio = await generateCarouselAudio(carousel.slides);
+    } catch (err) {
+      console.error("[BrandManager] Audio generation failed:", err);
+      // Continue without audio — don't fail the whole generation
+    }
+  }
+
+  return carousel;
 }
 
 // ── Reel Script Generator ──────────────────────────────
@@ -160,7 +197,8 @@ export async function generateReelScript(input: {
   duration?: "15s" | "30s" | "60s" | "90s";
   style?: "educational" | "entertaining" | "inspirational" | "behind-the-scenes";
   provider?: ProviderChoice;
-}): Promise<ReelScript> {
+  withAudio?: boolean;
+}): Promise<ReelScriptWithAudio> {
   const duration = input.duration || "30s";
   const style = input.style || "educational";
   const provider = input.provider || "free";
@@ -202,13 +240,47 @@ Return EXACTLY this JSON:
   if (!jsonMatch) throw new Error("Failed to parse reel script");
   const parsed = JSON.parse(jsonMatch[0]);
 
-  return {
+  const reel: ReelScriptWithAudio = {
     hook: parsed.hook || "",
     scenes: parsed.scenes || [],
     caption: parsed.caption || "",
     hashtags: parsed.hashtags || [],
     music_suggestion: parsed.music_suggestion || "",
   };
+
+  // Generate voiceover audio if requested
+  if (input.withAudio && reel.scenes.length > 0) {
+    try {
+      const sceneTexts = reel.scenes
+        .map((s) => s.audio)
+        .filter((a) => a && !a.startsWith("[") && !a.toLowerCase().includes("music"));
+
+      if (sceneTexts.length > 0) {
+        const fullText = sceneTexts.join(". ");
+        const fullAudio = await generateAudio({
+          text: fullText,
+          voice: "reel-voiceover",
+          rate: "+10%",
+        });
+
+        const sceneResults: AudioGenResult[] = [];
+        for (const text of sceneTexts) {
+          const audio = await generateAudio({
+            text,
+            voice: "reel-voiceover",
+            rate: "+10%",
+          });
+          sceneResults.push(audio);
+        }
+
+        reel.audio = { scenes: sceneResults, full: fullAudio };
+      }
+    } catch (err) {
+      console.error("[BrandManager] Reel audio generation failed:", err);
+    }
+  }
+
+  return reel;
 }
 
 // ── Thumbnail Generator ────────────────────────────────
@@ -262,7 +334,8 @@ export async function generateStory(input: {
   topic: string;
   slides?: number;
   provider?: ProviderChoice;
-}): Promise<{ slides: { text: string; image_prompt: string; cta?: string }[] }> {
+  withAudio?: boolean;
+}): Promise<{ slides: { text: string; image_prompt: string; cta?: string }[]; audio?: { slides: AudioGenResult[]; full: AudioGenResult } }> {
   const numSlides = input.slides || 3;
   const provider = input.provider || "free";
 
@@ -298,7 +371,19 @@ Return EXACTLY this JSON:
   if (!jsonMatch) throw new Error("Failed to parse story content");
   const parsed = JSON.parse(jsonMatch[0]);
 
-  return { slides: parsed.slides || [] };
+  const storySlides = parsed.slides || [];
+  const storyResult: { slides: typeof storySlides; audio?: { slides: AudioGenResult[]; full: AudioGenResult } } = { slides: storySlides };
+
+  // Generate audio if requested
+  if (input.withAudio && storySlides.length > 0) {
+    try {
+      storyResult.audio = await generateStoryAudio(storySlides);
+    } catch (err) {
+      console.error("[BrandManager] Story audio generation failed:", err);
+    }
+  }
+
+  return storyResult;
 }
 
 // ── Thread Generator (Twitter/LinkedIn) ────────────────
@@ -439,11 +524,15 @@ Return EXACTLY this JSON:
 
 // ── Generate Image for Content ─────────────────────────
 
-export function generateContentImage(
+/**
+ * Generate image for content — uses ComfyUI locally if available, falls back to Pollinations.
+ * For photorealistic portraits, use generateContentImagePhotorealistic() instead.
+ */
+export async function generateContentImage(
   prompt: string,
   platform: ContentPlatform,
   type: ContentType,
-): string {
+): Promise<string> {
   let size: keyof typeof SIZES = "square";
 
   if (type === "story") size = "story";
@@ -453,6 +542,53 @@ export function generateContentImage(
   else if (platform === "linkedin") size = "landscape";
   else if (platform === "youtube") size = "thumbnail";
 
-  const result = generateImageUrl({ prompt, size, model: "flux" });
-  return result.url;
+  try {
+    const result = await generateImageFull({
+      prompt,
+      size,
+      provider: "auto",
+      useFaceDetailer: false,
+    });
+    return result.url;
+  } catch {
+    // Fallback to Pollinations
+    const fallback = generateImageUrl({ prompt, size, model: "flux" });
+    return fallback.url;
+  }
+}
+
+/**
+ * Generate photorealistic portrait image — uses ComfyUI + FaceDetailer when available.
+ * Best for: avatar images, creator photos, premium content.
+ */
+export async function generateContentImagePhotorealistic(
+  prompt: string,
+  size: keyof typeof SIZES = "portrait",
+): Promise<string> {
+  const enhancedPrompt = `photorealistic, high quality, detailed, professional photography, ${prompt}`;
+
+  try {
+    const result = await generateImageFull({
+      prompt: enhancedPrompt,
+      size,
+      provider: "auto",
+      useFaceDetailer: true,
+    });
+    return result.url;
+  } catch {
+    // Fallback to Pollinations
+    const fallback = generateImageUrl({
+      prompt: enhancedPrompt,
+      size,
+      model: "flux",
+    });
+    return fallback.url;
+  }
+}
+
+/**
+ * Get status of available image generation providers.
+ */
+export async function getImageGenStatus() {
+  return getProviderStatus();
 }

@@ -1,6 +1,6 @@
 // Usage Tracker — Logs AI usage to Supabase
 
-import type { Provider } from "./rate-limiter";
+import type { Provider } from "./providers";
 
 export interface UsageLogEntry {
   provider: Provider;
@@ -33,7 +33,7 @@ export async function logUsage(entry: UsageLogEntry): Promise<void> {
   try {
     const pool = await getDb();
     await pool.query(
-      `INSERT INTO ai_usage_logs 
+      `INSERT INTO ai_usage_logs
        (provider, task_type, model, input_tokens, output_tokens, latency_ms, success, error)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
@@ -58,8 +58,18 @@ export async function getUsageStats(
 ): Promise<any> {
   try {
     const pool = await getDb();
+
+    // Build parameterized query — no string interpolation
+    const params: any[] = [days];
+    let whereClause = `WHERE created_at >= NOW() - ($1 || ' days')::interval`;
+
+    if (provider) {
+      params.push(provider);
+      whereClause += ` AND provider = $${params.length}`;
+    }
+
     const result = await pool.query(
-      `SELECT 
+      `SELECT
          provider,
          task_type,
          COUNT(*) as total_requests,
@@ -69,10 +79,10 @@ export async function getUsageStats(
          SUM(CASE WHEN success THEN 1 ELSE 0 END) as successful,
          SUM(CASE WHEN NOT success THEN 1 ELSE 0 END) as failed
        FROM ai_usage_logs
-       WHERE created_at >= NOW() - INTERVAL '${days} days'
-       ${provider ? `AND provider = '${provider}'` : ""}
+       ${whereClause}
        GROUP BY provider, task_type
        ORDER BY total_requests DESC`,
+      params,
     );
     return result.rows;
   } catch (err) {
