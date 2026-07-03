@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth.server";
+import { requireAdmin } from "@/lib/admin-session.server";
 import { q } from "@/lib/db.server";
 import type { SocialLead, SocialPlatform, PostCategory, PostStatus } from "@/lib/social-monitor/types";
 
