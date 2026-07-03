@@ -117,19 +117,23 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
 
           <Reveal variant="fade-up" delay={360}>
             <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-              <PremiumButton
-                variant="primary"
-                size="lg"
-                iconRight={<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
-              >
-                {ctaPrimaryText}
-              </PremiumButton>
-              <PremiumButton
-                variant="secondary"
-                size="lg"
-              >
-                {ctaSecondaryText}
-              </PremiumButton>
+              <Link to={ctaPrimaryLink}>
+                <PremiumButton
+                  variant="primary"
+                  size="lg"
+                  iconRight={<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
+                >
+                  {ctaPrimaryText}
+                </PremiumButton>
+              </Link>
+              <Link to={ctaSecondaryLink}>
+                <PremiumButton
+                  variant="secondary"
+                  size="lg"
+                >
+                  {ctaSecondaryText}
+                </PremiumButton>
+              </Link>
             </div>
           </Reveal>
 
@@ -339,19 +343,23 @@ function HomePage() {
             </h2>
             <p className="mt-3 text-sm text-muted-foreground">{t("cta.join")}</p>
             <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <PremiumButton
-                variant="primary"
-                size="lg"
-                iconRight={<ArrowRight className="h-4 w-4" />}
-              >
-                {t("hero.cta.primary")}
-              </PremiumButton>
-              <PremiumButton
-                variant="secondary"
-                size="lg"
-              >
-                {t("hero.cta.secondary")}
-              </PremiumButton>
+              <Link to={ctaPrimaryLink}>
+                <PremiumButton
+                  variant="primary"
+                  size="lg"
+                  iconRight={<ArrowRight className="h-4 w-4" />}
+                >
+                  {t("hero.cta.primary")}
+                </PremiumButton>
+              </Link>
+              <Link to={ctaSecondaryLink}>
+                <PremiumButton
+                  variant="secondary"
+                  size="lg"
+                >
+                  {t("hero.cta.secondary")}
+                </PremiumButton>
+              </Link>
             </div>
           </Reveal>
         </div>
