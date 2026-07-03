@@ -1,5 +1,5 @@
 import { aiPremium, aiContent } from "../router";
-import { generateBlogAudio, type AudioGenResult } from "../audio-gen";
+import { generateBlogAudio, type AudioGenResult } from "../audio-gen.server";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -136,7 +136,7 @@ Return EXACTLY this JSON:
   // Generate audio if requested
   if (input.withAudio && post.caption) {
     try {
-      const { generateSocialAudio } = await import("../audio-gen");
+      const { generateSocialAudio } = await import("../audio-gen.server");
       post.audio = await generateSocialAudio(post.caption);
     } catch (err) {
       console.error("[ContentAI] Social audio generation failed:", err);

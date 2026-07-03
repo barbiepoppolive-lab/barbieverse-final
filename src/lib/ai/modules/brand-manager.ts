@@ -14,7 +14,7 @@ import {
   generateStoryAudio,
   type AudioGenResult,
   type CarouselAudio,
-} from "../audio-gen";
+} from "../audio-gen.server";
 import {
   recommendMusic,
   type MusicTrack,

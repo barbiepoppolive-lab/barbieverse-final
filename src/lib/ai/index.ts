@@ -37,17 +37,8 @@ export {
 } from "./image-gen";
 export type { ImageGenResult, ImageSize } from "./image-gen";
 
-// Audio generation (Edge TTS — free, neural voices)
-export {
-  generateAudio,
-  generateCarouselAudio,
-  generateBlogAudio,
-  generateSocialAudio,
-  generateStoryAudio,
-  listVoices,
-  cleanupAudioFiles,
-} from "./audio-gen";
-export type { VoicePreset, AudioGenInput, AudioGenResult, CarouselAudio } from "./audio-gen";
+// Audio generation (Edge TTS — free, neural voices) — server-only, import directly
+// export { ... } from "./audio-gen.server";
 
 // Music recommendation (AI-powered music selection)
 export {
