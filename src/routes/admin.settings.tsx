@@ -54,6 +54,14 @@ const PACKAGES = [
   { key: "coin_package_4", label: "Package 4 (JSON)" },
 ];
 
+const SCRAPER_FIELDS = [
+  { key: "scraper_keywords", label: "Search Keywords (all platforms)", placeholder: "poppo live\nvone live\nlive streaming earn money" },
+  { key: "scraper_reddit_subreddits", label: "Reddit Subreddits", placeholder: "WorkOnline\nbeermoney\nbeermoneyindia" },
+  { key: "scraper_facebook_queries", label: "Facebook Search Queries", placeholder: "poppo live\nvone live" },
+  { key: "scraper_twitter_queries", label: "Twitter Search Queries", placeholder: "poppo live\nvone live" },
+  { key: "scraper_youtube_queries", label: "YouTube Search Queries", placeholder: "poppo live earn money\nvone live india" },
+];
+
 function SettingsPage() {
   const { data } = useSuspenseQuery(settingsQO);
   const qc = useQueryClient();
@@ -183,6 +191,14 @@ function SettingsPage() {
           <Row key={f.key} field={f} value={draft[f.key]} onChange={(v) => setDraft({ ...draft, [f.key]: v })} onSave={() => save(f.key)} saving={saving === f.key} mono />
         ))}
       </section>
+
+      <section className="mt-10 space-y-4">
+        <h2 className="font-display text-lg font-bold">Scraper Keywords</h2>
+        <p className="text-xs text-muted-foreground">One keyword per line. Used to find leads on Reddit, Facebook, Twitter, YouTube.</p>
+        {SCRAPER_FIELDS.map((f) => (
+          <TextareaRow key={f.key} field={f} value={draft[f.key]} onChange={(v) => setDraft({ ...draft, [f.key]: v })} onSave={() => save(f.key)} saving={saving === f.key} />
+        ))}
+      </section>
     </div>
   );
 }
@@ -236,6 +252,34 @@ function ToggleRow({
           <ToggleLeft className="h-10 w-10 text-muted-foreground" />
         )}
       </button>
+    </div>
+  );
+}
+
+function TextareaRow({
+  field, value, onChange, onSave, saving,
+}: {
+  field: { key: string; label: string; placeholder?: string };
+  value: string | undefined;
+  onChange: (v: string) => void;
+  onSave: () => void;
+  saving: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-card/40 p-4">
+      <label className="text-xs font-medium text-muted-foreground">{field.label}</label>
+      <div className="mt-2 flex gap-2">
+        <textarea
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder}
+          rows={4}
+          className="flex-1 rounded-lg border border-input bg-input/40 px-3 py-2 text-sm font-mono focus:border-primary focus:outline-none resize-none"
+        />
+        <button onClick={onSave} disabled={saving} className="inline-flex h-10 items-center gap-1 rounded-lg bg-gradient-pink px-4 text-xs font-bold text-primary-foreground disabled:opacity-60 self-start">
+          <Save className="h-3.5 w-3.5" /> {saving ? "Saving..." : "Save"}
+        </button>
+      </div>
     </div>
   );
 }

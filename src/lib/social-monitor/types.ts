@@ -114,3 +114,37 @@ export const DEFAULT_MONITOR_CONFIG: MonitorConfig = {
   maxResultsPerPlatform: 20,
   minEngagement: 2,
 };
+
+// ── Load config from database (with fallback to defaults) ──
+
+export async function loadMonitorConfig(): Promise<MonitorConfig> {
+  try {
+    const { q } = await import("../db.server");
+    const rows = await q(
+      `SELECT key, value FROM settings WHERE key LIKE 'scraper_%'`,
+      []
+    );
+
+    const db: Record<string, string> = {};
+    for (const row of rows) {
+      db[row.key] = row.value || "";
+    }
+
+    const parseList = (val: string, fallback: string[]): string[] => {
+      if (!val) return fallback;
+      return val.split("\n").map(s => s.trim()).filter(Boolean);
+    };
+
+    return {
+      keywords: parseList(db.scraper_keywords, DEFAULT_MONITOR_CONFIG.keywords),
+      redditSubreddits: parseList(db.scraper_reddit_subreddits, DEFAULT_MONITOR_CONFIG.redditSubreddits),
+      facebookQueries: parseList(db.scraper_facebook_queries, DEFAULT_MONITOR_CONFIG.facebookQueries),
+      twitterQueries: parseList(db.scraper_twitter_queries, DEFAULT_MONITOR_CONFIG.twitterQueries),
+      youtubeQueries: parseList(db.scraper_youtube_queries, DEFAULT_MONITOR_CONFIG.youtubeQueries),
+      maxResultsPerPlatform: parseInt(db.scraper_max_results || "") || DEFAULT_MONITOR_CONFIG.maxResultsPerPlatform,
+      minEngagement: parseInt(db.scraper_min_engagement || "") || DEFAULT_MONITOR_CONFIG.minEngagement,
+    };
+  } catch {
+    return DEFAULT_MONITOR_CONFIG;
+  }
+}

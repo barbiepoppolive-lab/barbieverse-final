@@ -12,7 +12,7 @@ import { monitorTwitter } from "./twitter";
 import { monitorYouTube } from "./youtube";
 import { generateComment } from "./ai-comment";
 import { sendSocialLeadAlert, sendSocialDigest } from "./telegram-alert";
-import { DEFAULT_MONITOR_CONFIG } from "./types";
+import { DEFAULT_MONITOR_CONFIG, loadMonitorConfig } from "./types";
 import type { SocialPost, MonitorConfig } from "./types";
 
 // ── Database operations ────────────────────────────────
@@ -67,7 +67,8 @@ async function storeSocialLead(post: SocialPost, aiResult: {
 // ── Main monitoring function ───────────────────────────
 
 export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
-  const cfg = { ...DEFAULT_MONITOR_CONFIG, ...config };
+  const dbConfig = await loadMonitorConfig();
+  const cfg = { ...dbConfig, ...config };
 
   const results = {
     facebook: { found: 0, stored: 0, errors: 0 },
