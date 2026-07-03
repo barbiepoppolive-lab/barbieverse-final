@@ -41,25 +41,22 @@ export function BarbieAssistant() {
     <>
       {/* Floating Avatar */}
       <div className="fixed bottom-[5.5rem] left-4 z-50 md:bottom-6 md:left-6">
-        {/* Ping ring */}
-        <span className="absolute inset-0 animate-ping rounded-full bg-primary/25 [animation-duration:2s]" />
-
-        {/* Glow */}
-        <span className="absolute inset-[-6px] rounded-full bg-gradient-to-br from-primary via-pink-400 to-gold opacity-50 blur-[8px] animate-pulse [animation-duration:3s]" />
+        {/* Static glow */}
+        <span className="absolute inset-[-6px] rounded-full bg-gradient-to-br from-primary via-pink-400 to-gold opacity-40 blur-[8px]" />
 
         {/* Avatar */}
         <button
           onClick={() => { setIsOpen((v) => !v); setShowBubble(false); }}
-          className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary via-pink-500 to-gold shadow-[0_0_30px_oklch(0.72_0.25_350/0.5)] transition-all duration-300 hover:scale-110 hover:shadow-[0_0_50px_oklch(0.72_0.25_350/0.7)] active:scale-95 md:h-16 md:w-16"
+          className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-primary/40 shadow-[0_0_25px_oklch(0.72_0.25_350/0.3)] transition-all duration-300 hover:scale-110 hover:shadow-[0_0_40px_oklch(0.72_0.25_350/0.5)] active:scale-95 md:h-16 md:w-16"
           aria-label="Chat with Barbie"
         >
-          <BarbieSilhouette className="h-8 w-8 text-white drop-shadow-lg md:h-9 md:w-9" />
+          <img src="/barbie-avatar.jpg" alt="Barbie" className="h-full w-full object-cover" />
         </button>
 
         {/* Notification bubble */}
         {showBubble && !isOpen && (
-          <div className="absolute -top-1 -right-1 flex h-7 items-center gap-1 rounded-full bg-gold px-2 text-[11px] font-bold text-black shadow-lg animate-bounce-in">
-            💬 Hi!
+          <div className="absolute -top-1 -right-1 flex h-7 items-center gap-1 rounded-full bg-gold px-2 text-[11px] font-bold text-black shadow-lg">
+            Hi! 💬
           </div>
         )}
       </div>
@@ -70,14 +67,14 @@ export function BarbieAssistant() {
           <div className="overflow-hidden rounded-2xl border border-primary/20 bg-card/95 shadow-[0_20px_60px_-15px_oklch(0.72_0.25_350/0.3)] backdrop-blur-xl">
             {/* Header */}
             <div className="flex items-center gap-3 bg-gradient-to-r from-primary/20 via-pink-500/10 to-gold/10 px-4 py-3">
-              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-pink-500 shadow-[0_0_15px_oklch(0.72_0.25_350/0.3)]">
-                <BarbieSilhouette className="h-5 w-5 text-white" />
+              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-primary/30">
+                <img src="/barbie-avatar.jpg" alt="Barbie" className="h-full w-full object-cover" />
                 <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-card bg-green-400" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-bold text-foreground">Barbie Assistant</div>
                 <div className="flex items-center gap-1 text-[11px] text-green-400">
-                  <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-400" />
                   Online — Ask me anything!
                 </div>
               </div>
@@ -149,8 +146,8 @@ function ChatMessage({ from, text, time }: { from: "barbie" | "user"; text: stri
   return (
     <div className={`mb-3 flex ${isBarbie ? "justify-start" : "justify-end"}`}>
       {isBarbie && (
-        <div className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-pink-500">
-          <BarbieSilhouette className="h-3.5 w-3.5 text-white" />
+        <div className="mr-2 h-7 w-7 shrink-0 overflow-hidden rounded-full border border-primary/30">
+          <img src="/barbie-avatar.jpg" alt="Barbie" className="h-full w-full object-cover" />
         </div>
       )}
       <div
@@ -170,8 +167,8 @@ function ChatMessage({ from, text, time }: { from: "barbie" | "user"; text: stri
 function TypingIndicator() {
   return (
     <div className="mb-3 flex justify-start">
-      <div className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-pink-500">
-        <BarbieSilhouette className="h-3.5 w-3.5 text-white" />
+      <div className="mr-2 h-7 w-7 shrink-0 overflow-hidden rounded-full border border-primary/30">
+        <img src="/barbie-avatar.jpg" alt="Barbie" className="h-full w-full object-cover" />
       </div>
       <div className="flex items-center gap-1 rounded-2xl rounded-tl-md bg-secondary/60 px-4 py-3">
         <span className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:0ms]" />
@@ -179,18 +176,6 @@ function TypingIndicator() {
         <span className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:300ms]" />
       </div>
     </div>
-  );
-}
-
-function BarbieSilhouette({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <path d="M12 2l2.5 3.5L18 3l-1.5 4h-9L6 3l3.5 2.5z" fill="currentColor" opacity="0.9" />
-      <circle cx="12" cy="9" r="3.5" fill="currentColor" />
-      <path d="M7.5 14c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5v4c0 .5-.5 1-1 1h-7c-.5 0-1-.5-1-1v-4z" fill="currentColor" />
-      <path d="M3 8l1 1-1 1-1-1z" fill="currentColor" opacity="0.6" />
-      <path d="M21 8l1 1-1 1-1-1z" fill="currentColor" opacity="0.6" />
-    </svg>
   );
 }
 
