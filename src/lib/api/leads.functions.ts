@@ -54,6 +54,14 @@ export const submitLead = createServerFn({ method: "POST" })
           });
         })(),
       ]);
+
+      // Auto-enrich Instagram profile if provided
+      if (data.instagram) {
+        const { enrichLead } = await import("@/lib/automation/lead-enrichment");
+        enrichLead(row!.id, data.instagram).catch((err: any) =>
+          console.error("[lead enrichment]", err.message)
+        );
+      }
     } catch (e) {
       console.error("[lead automations]", e);
     }

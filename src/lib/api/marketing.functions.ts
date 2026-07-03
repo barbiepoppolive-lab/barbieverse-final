@@ -48,9 +48,36 @@ export const sendBulkPromo = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("../admin-session.server");
     await requireAdmin();
 
-    // WhatsApp bulk messaging requires an API (Interakt/Meta/AiSensy) — not configured.
-    // Messages are logged but not sent. Use manual WhatsApp from admin panel instead.
-    console.warn("[marketing] bulk WhatsApp not configured — messages logged only");
-    const results = data.numbers.map((to) => ({ to, ok: false, skipped: true }));
-    return { ok: true, sent: 0, failed: data.numbers.length, results };
+    // Generate WhatsApp click-to-chat URLs for each number
+    // Admin can open these to send messages manually
+    const results = data.numbers.map((to) => {
+      const encoded = encodeURIComponent(data.message);
+      const url = `https://wa.me/${to}?text=${encoded}`;
+      return { to, ok: true, url };
+    });
+
+    // Log to Telegram for tracking
+    try {
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      const chatId = process.env.TELEGRAM_CHAT_ID;
+      if (botToken && chatId) {
+        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text:
+              `📢 <b>BULK PROMO READY</b>\n\n` +
+              `Numbers: ${data.numbers.length}\n` +
+              `Message: ${data.message.slice(0, 100)}...\n\n` +
+              `Admin panel → Marketing to send.`,
+            parse_mode: "HTML",
+          }),
+        });
+      }
+    } catch (e) {
+      // Non-critical
+    }
+
+    return { ok: true, sent: 0, failed: 0, results, message: "WhatsApp URLs generated. Open admin panel → Marketing to send." };
   });
