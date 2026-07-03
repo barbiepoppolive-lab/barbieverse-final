@@ -222,8 +222,6 @@ function BrandManagerPage() {
                     <option value="storytelling">Storytelling</option>
                     <option value="listicle">Listicle</option>
                     <option value="tips">Tips</option>
-                    <option value="entertaining">Entertaining</option>
-                    <option value="inspirational">Inspirational</option>
                   </select>
                 </div>
               </div>
