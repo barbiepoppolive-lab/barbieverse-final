@@ -1,7 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { json } from "@tanstack/react-start/server";
 import { aiContent, aiRoute } from "@/lib/ai/router";
 import { OPENROUTER_MODELS } from "@/lib/ai/providers/openrouter";
+
+const json = (data: any, init?: ResponseInit) =>
+  new Response(JSON.stringify(data), {
+    headers: { "Content-Type": "application/json", ...init?.headers },
+    ...init,
+  });
 
 export const Route = createFileRoute("/api/brand-manager/compare")({
   server: {
@@ -43,7 +48,6 @@ Return EXACTLY this JSON:
 
         try {
           if (provider === "premium") {
-            // Claude Sonnet 4 via OpenRouter (paid, best quality)
             const result = await aiRoute({
               prompt,
               taskType: "premium",
@@ -67,7 +71,6 @@ Return EXACTLY this JSON:
               },
             });
           } else {
-            // Llama 3.3 70B via OpenRouter (free)
             const result = await aiRoute({
               prompt,
               taskType: "content",

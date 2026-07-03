@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+const providerSchema = z.enum(["premium", "free"]).default("free");
+
 // ── Generate Carousel ──────────────────────────────────
 
 export const generateCarousel = createServerFn({ method: "POST" })
@@ -11,6 +13,7 @@ export const generateCarousel = createServerFn({ method: "POST" })
           topic: z.string().min(1),
           slides: z.number().min(3).max(10).default(7),
           style: z.enum(["educational", "storytelling", "listicle", "tips"]).default("educational"),
+          provider: providerSchema,
         })
         .parse(d),
   )
@@ -19,17 +22,18 @@ export const generateCarousel = createServerFn({ method: "POST" })
     await requireAdmin();
 
     const { generateCarousel: gen } = await import("../ai/modules/brand-manager");
-    const result = await gen({ topic: data.topic, slides: data.slides, style: data.style });
+    const result = await gen({ topic: data.topic, slides: data.slides, style: data.style, provider: data.provider });
 
+    const cost = data.provider === "premium" ? 0.003 : 0;
     const { q1 } = await import("../db.server");
     const job = await q1(
       `INSERT INTO content_generation_jobs (job_type, input_params, output_data, status, total_cost_usd, completed_at)
-       VALUES ('carousel', $1, $2, 'completed', 0, NOW())
+       VALUES ('carousel', $1, $2, 'completed', $3, NOW())
        RETURNING *`,
-      [JSON.stringify(data), JSON.stringify(result)]
+      [JSON.stringify(data), JSON.stringify(result), cost]
     );
 
-    return { job, content: result };
+    return { job, content: result, provider: data.provider, cost };
   });
 
 // ── Generate Reel Script ───────────────────────────────

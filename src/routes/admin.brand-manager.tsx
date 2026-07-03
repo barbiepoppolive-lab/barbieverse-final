@@ -27,6 +27,7 @@ export const Route = createFileRoute("/admin/brand-manager")({
 
 type Tab = "generators" | "queue" | "calendar" | "stats";
 type GeneratorType = "carousel" | "reel" | "thumbnail" | "story" | "thread" | "poll";
+type ProviderChoice = "premium" | "free";
 
 function BrandManagerPage() {
   const [tab, setTab] = useState<Tab>("generators");
@@ -34,6 +35,7 @@ function BrandManagerPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
+  const [provider, setProvider] = useState<ProviderChoice>("free");
 
   // Form states
   const [topic, setTopic] = useState("");
@@ -66,22 +68,22 @@ function BrandManagerPage() {
       let res;
       switch (activeGen) {
         case "carousel":
-          res = await generateCarousel({ data: { topic, slides, style: style as any } });
+          res = await generateCarousel({ data: { topic, slides, style: style as any, provider } });
           break;
         case "reel":
-          res = await generateReelScript({ data: { topic, duration, style: style as any } });
+          res = await generateReelScript({ data: { topic, duration, style: style as any, provider } });
           break;
         case "thumbnail":
-          res = await generateThumbnail({ data: { title: topic, style: style as any } });
+          res = await generateThumbnail({ data: { title: topic, style: style as any, provider } });
           break;
         case "story":
-          res = await generateStory({ data: { topic, slides: 3 } });
+          res = await generateStory({ data: { topic, slides: 3, provider } });
           break;
         case "thread":
-          res = await generateThread({ data: { topic, platform, tweets: 5 } });
+          res = await generateThread({ data: { topic, platform, tweets: 5, provider } });
           break;
         case "poll":
-          res = await generatePoll({ data: { topic, platform: platform as any } });
+          res = await generatePoll({ data: { topic, platform: platform as any, provider } });
           break;
       }
       setResult((res as any)?.content || res);
@@ -211,13 +213,57 @@ function BrandManagerPage() {
                 </div>
               </div>
 
+              {/* Provider Toggle */}
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">AI Provider</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setProvider("free")}
+                    className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-all ${
+                      provider === "free"
+                        ? "border-green-500/50 bg-green-500/10 text-green-600"
+                        : "border-border/60 bg-muted/30 text-muted-foreground hover:bg-muted/50"
+                    }`}
+                  >
+                    <Zap className="h-4 w-4" />
+                    <div className="text-left">
+                      <p>Free — Llama 3.3</p>
+                      <p className="text-[10px] opacity-60">$0.00 • Good quality</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setProvider("premium")}
+                    className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-all ${
+                      provider === "premium"
+                        ? "border-amber-500/50 bg-amber-500/10 text-amber-600"
+                        : "border-border/60 bg-muted/30 text-muted-foreground hover:bg-muted/50"
+                    }`}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <div className="text-left">
+                      <p>Premium — Claude</p>
+                      <p className="text-[10px] opacity-60">~$0.003 • Best quality</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               <button
                 onClick={handleGenerate}
                 disabled={loading || !topic.trim()}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
+                className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-all disabled:opacity-50 ${
+                  provider === "premium"
+                    ? "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+                    : "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                }`}
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                {loading ? "Generating..." : "Generate Content (FREE)"}
+                {loading
+                  ? "Generating..."
+                  : provider === "premium"
+                    ? "Generate with Claude (~$0.003)"
+                    : "Generate with Llama (FREE)"
+                }
               </button>
 
               {error && (

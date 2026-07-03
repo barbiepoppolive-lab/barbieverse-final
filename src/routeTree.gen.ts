@@ -47,6 +47,7 @@ import { Route as AdminLeadsRouteImport } from './routes/admin.leads'
 import { Route as AdminHomepageRouteImport } from './routes/admin.homepage'
 import { Route as AdminCreatorLeadsRouteImport } from './routes/admin.creator-leads'
 import { Route as AdminCostsRouteImport } from './routes/admin.costs'
+import { Route as AdminContentCompareRouteImport } from './routes/admin.content-compare'
 import { Route as AdminContentRouteImport } from './routes/admin.content'
 import { Route as AdminBrandManagerRouteImport } from './routes/admin.brand-manager'
 import { Route as AcademyWhatIsPoppoLiveRouteImport } from './routes/academy.what-is-poppo-live'
@@ -63,6 +64,7 @@ import { Route as ApiPublicOrderActionRouteImport } from './routes/api/public/or
 import { Route as ApiPublicInteraktActionRouteImport } from './routes/api/public/interakt-action'
 import { Route as ApiPublicCronSocialRouteImport } from './routes/api/public/cron-social'
 import { Route as ApiPublicCronScrapeRouteImport } from './routes/api/public/cron-scrape'
+import { Route as ApiBrandManagerCompareRouteImport } from './routes/api.brand-manager.compare'
 
 const VerifyRoute = VerifyRouteImport.update({
   id: '/verify',
@@ -255,6 +257,11 @@ const AdminCostsRoute = AdminCostsRouteImport.update({
   path: '/costs',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminContentCompareRoute = AdminContentCompareRouteImport.update({
+  id: '/content-compare',
+  path: '/content-compare',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminContentRoute = AdminContentRouteImport.update({
   id: '/content',
   path: '/content',
@@ -339,6 +346,11 @@ const ApiPublicCronScrapeRoute = ApiPublicCronScrapeRouteImport.update({
   path: '/api/public/cron-scrape',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiBrandManagerCompareRoute = ApiBrandManagerCompareRouteImport.update({
+  id: '/api/brand-manager/compare',
+  path: '/api/brand-manager/compare',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -368,6 +380,7 @@ export interface FileRoutesByFullPath {
   '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
   '/admin/brand-manager': typeof AdminBrandManagerRoute
   '/admin/content': typeof AdminContentRoute
+  '/admin/content-compare': typeof AdminContentCompareRoute
   '/admin/costs': typeof AdminCostsRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
@@ -389,6 +402,7 @@ export interface FileRoutesByFullPath {
   '/join/wobb': typeof JoinWobbRoute
   '/academy/': typeof AcademyIndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/api/brand-manager/compare': typeof ApiBrandManagerCompareRoute
   '/api/public/cron-scrape': typeof ApiPublicCronScrapeRoute
   '/api/public/cron-social': typeof ApiPublicCronSocialRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
@@ -422,6 +436,7 @@ export interface FileRoutesByTo {
   '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
   '/admin/brand-manager': typeof AdminBrandManagerRoute
   '/admin/content': typeof AdminContentRoute
+  '/admin/content-compare': typeof AdminContentCompareRoute
   '/admin/costs': typeof AdminCostsRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
@@ -443,6 +458,7 @@ export interface FileRoutesByTo {
   '/join/wobb': typeof JoinWobbRoute
   '/academy': typeof AcademyIndexRoute
   '/admin': typeof AdminIndexRoute
+  '/api/brand-manager/compare': typeof ApiBrandManagerCompareRoute
   '/api/public/cron-scrape': typeof ApiPublicCronScrapeRoute
   '/api/public/cron-social': typeof ApiPublicCronSocialRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
@@ -479,6 +495,7 @@ export interface FileRoutesById {
   '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
   '/admin/brand-manager': typeof AdminBrandManagerRoute
   '/admin/content': typeof AdminContentRoute
+  '/admin/content-compare': typeof AdminContentCompareRoute
   '/admin/costs': typeof AdminCostsRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
@@ -500,6 +517,7 @@ export interface FileRoutesById {
   '/join/wobb': typeof JoinWobbRoute
   '/academy/': typeof AcademyIndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/api/brand-manager/compare': typeof ApiBrandManagerCompareRoute
   '/api/public/cron-scrape': typeof ApiPublicCronScrapeRoute
   '/api/public/cron-social': typeof ApiPublicCronSocialRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
@@ -537,6 +555,7 @@ export interface FileRouteTypes {
     | '/academy/what-is-poppo-live'
     | '/admin/brand-manager'
     | '/admin/content'
+    | '/admin/content-compare'
     | '/admin/costs'
     | '/admin/creator-leads'
     | '/admin/homepage'
@@ -558,6 +577,7 @@ export interface FileRouteTypes {
     | '/join/wobb'
     | '/academy/'
     | '/admin/'
+    | '/api/brand-manager/compare'
     | '/api/public/cron-scrape'
     | '/api/public/cron-social'
     | '/api/public/interakt-action'
@@ -591,6 +611,7 @@ export interface FileRouteTypes {
     | '/academy/what-is-poppo-live'
     | '/admin/brand-manager'
     | '/admin/content'
+    | '/admin/content-compare'
     | '/admin/costs'
     | '/admin/creator-leads'
     | '/admin/homepage'
@@ -612,6 +633,7 @@ export interface FileRouteTypes {
     | '/join/wobb'
     | '/academy'
     | '/admin'
+    | '/api/brand-manager/compare'
     | '/api/public/cron-scrape'
     | '/api/public/cron-social'
     | '/api/public/interakt-action'
@@ -647,6 +669,7 @@ export interface FileRouteTypes {
     | '/academy/what-is-poppo-live'
     | '/admin/brand-manager'
     | '/admin/content'
+    | '/admin/content-compare'
     | '/admin/costs'
     | '/admin/creator-leads'
     | '/admin/homepage'
@@ -668,6 +691,7 @@ export interface FileRouteTypes {
     | '/join/wobb'
     | '/academy/'
     | '/admin/'
+    | '/api/brand-manager/compare'
     | '/api/public/cron-scrape'
     | '/api/public/cron-social'
     | '/api/public/interakt-action'
@@ -694,6 +718,7 @@ export interface RootRouteChildren {
   TrackRoute: typeof TrackRoute
   TrackApplicationRoute: typeof TrackApplicationRoute
   VerifyRoute: typeof VerifyRoute
+  ApiBrandManagerCompareRoute: typeof ApiBrandManagerCompareRoute
   ApiPublicCronScrapeRoute: typeof ApiPublicCronScrapeRoute
   ApiPublicCronSocialRoute: typeof ApiPublicCronSocialRoute
   ApiPublicInteraktActionRoute: typeof ApiPublicInteraktActionRoute
@@ -970,6 +995,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCostsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/content-compare': {
+      id: '/admin/content-compare'
+      path: '/content-compare'
+      fullPath: '/admin/content-compare'
+      preLoaderRoute: typeof AdminContentCompareRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/content': {
       id: '/admin/content'
       path: '/content'
@@ -1082,6 +1114,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronScrapeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/brand-manager/compare': {
+      id: '/api/brand-manager/compare'
+      path: '/api/brand-manager/compare'
+      fullPath: '/api/brand-manager/compare'
+      preLoaderRoute: typeof ApiBrandManagerCompareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1115,6 +1154,7 @@ const AcademyRouteWithChildren =
 interface AdminRouteChildren {
   AdminBrandManagerRoute: typeof AdminBrandManagerRoute
   AdminContentRoute: typeof AdminContentRoute
+  AdminContentCompareRoute: typeof AdminContentCompareRoute
   AdminCostsRoute: typeof AdminCostsRoute
   AdminCreatorLeadsRoute: typeof AdminCreatorLeadsRoute
   AdminHomepageRoute: typeof AdminHomepageRoute
@@ -1137,6 +1177,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBrandManagerRoute: AdminBrandManagerRoute,
   AdminContentRoute: AdminContentRoute,
+  AdminContentCompareRoute: AdminContentCompareRoute,
   AdminCostsRoute: AdminCostsRoute,
   AdminCreatorLeadsRoute: AdminCreatorLeadsRoute,
   AdminHomepageRoute: AdminHomepageRoute,
@@ -1199,6 +1240,7 @@ const rootRouteChildren: RootRouteChildren = {
   TrackRoute: TrackRoute,
   TrackApplicationRoute: TrackApplicationRoute,
   VerifyRoute: VerifyRoute,
+  ApiBrandManagerCompareRoute: ApiBrandManagerCompareRoute,
   ApiPublicCronScrapeRoute: ApiPublicCronScrapeRoute,
   ApiPublicCronSocialRoute: ApiPublicCronSocialRoute,
   ApiPublicInteraktActionRoute: ApiPublicInteraktActionRoute,
