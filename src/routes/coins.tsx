@@ -1,5 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { PremiumButton } from "@/components/ui/PremiumButton";
+import { FaqAccordion } from "@/components/ui/FaqAccordion";
+import { StepProgress } from "@/components/ui/StepProgress";
 import { SmartPaymentVerification } from "@/components/SmartPaymentVerification";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { getPublicSettings } from "@/lib/api/settings.functions";
@@ -103,6 +107,19 @@ function CoinsPage() {
             {t("coins.page.sub")}
           </p>
         </div>
+
+        {step !== "done" && (
+          <StepProgress
+            className="mt-8"
+            steps={[
+              { label: "Pick Package" },
+              { label: "Details" },
+              { label: "Payment" },
+              { label: "Done" },
+            ]}
+            current={step === "pick" ? 0 : step === "form" ? 1 : step === "pay" ? 2 : 3}
+          />
+        )}
 
         {step === "pick" && (
           <div className="mx-auto mt-8 grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -237,28 +254,16 @@ function CoinsPage() {
         {step === "pick" && (
           <div className="mx-auto mt-16 max-w-2xl">
             <h2 className="text-center font-display text-2xl font-bold">Frequently Asked Questions</h2>
-            <div className="mt-8 space-y-4">
-              <FaqItem
-                q="Is it safe to recharge here?"
-                a="Yes. We only need your Poppo/Vone User ID. We never ask for your password or login credentials."
-              />
-              <FaqItem
-                q="How long does delivery take?"
-                a="Within 30 minutes of payment verification during business hours."
-              />
-              <FaqItem
-                q="What if I enter the wrong Poppo/Vone ID?"
-                a="Double-check your ID before submitting. We cannot reverse transactions with incorrect IDs."
-              />
-              <FaqItem
-                q="What payment methods are accepted?"
-                a="UPI only. Scan our QR code or use our UPI ID directly."
-              />
-              <FaqItem
-                q="How do I find my Poppo/Vone User ID?"
-                a="Open Poppo/Vone app → tap My → your numeric ID is below your profile photo."
-              />
-            </div>
+            <FaqAccordion
+              className="mt-8"
+              items={[
+                { q: "Is it safe to recharge here?", a: "Yes. We only need your Poppo/Vone User ID. We never ask for your password or login credentials." },
+                { q: "How long does delivery take?", a: "Within 30 minutes of payment verification during business hours." },
+                { q: "What if I enter the wrong Poppo/Vone ID?", a: "Double-check your ID before submitting. We cannot reverse transactions with incorrect IDs." },
+                { q: "What payment methods are accepted?", a: "UPI only. Scan our QR code or use our UPI ID directly." },
+                { q: "How do I find my Poppo/Vone User ID?", a: "Open Poppo/Vone app → tap My → your numeric ID is below your profile photo." },
+              ]}
+            />
           </div>
         )}
       </section>
@@ -572,24 +577,7 @@ function FormField({ name, label, required, placeholder }: { name: string; label
   return (
     <div>
       <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}{required && <span className="text-primary"> *</span>}</label>
-      <input name={name} required={required} placeholder={placeholder} className="h-11 w-full rounded-lg border border-input bg-input/50 px-3 text-sm focus:border-primary focus:outline-none" />
-    </div>
-  );
-}
-
-function FaqItem({ q, a }: { q: string; a: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="rounded-xl border border-border/60 bg-card/40 backdrop-blur-md card-glow transition-all">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between p-4 text-left text-sm font-semibold"
-      >
-        <span>{q}</span>
-        <span className={`ml-2 text-lg text-muted-foreground transition-transform duration-300 ${open ? "rotate-45" : ""}`}>{open ? "−" : "+"}</span>
-      </button>
-      {open && <div className="px-4 pb-4 text-sm text-muted-foreground">{a}</div>}
+      <input name={name} required={required} placeholder={placeholder} className="h-11 w-full rounded-lg border border-input bg-input/50 px-3 text-sm focus:border-primary focus:outline-none focus-glow" />
     </div>
   );
 }

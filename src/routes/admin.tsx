@@ -1,7 +1,8 @@
 import { createFileRoute, Link, Outlet, redirect, useRouter } from "@tanstack/react-router";
 import { adminStatus, adminLogout } from "@/lib/api/admin.functions";
 import { useServerFn } from "@tanstack/react-start";
-import { Sparkles, LayoutDashboard, Users, ShoppingCart, Settings as SettingsIcon, FileText, LogOut, Home, Megaphone, AlertTriangle, Smartphone, UserPlus, ScrollText, IndianRupee, Radar, Globe, MessageCircle, BarChart3 } from "lucide-react";
+import { Sparkles, LayoutDashboard, Users, ShoppingCart, Settings as SettingsIcon, FileText, LogOut, Home, Megaphone, AlertTriangle, Smartphone, UserPlus, ScrollText, IndianRupee, Radar, Globe, MessageCircle, BarChart3, Bell } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -46,7 +47,7 @@ function AdminLayout() {
     <div className="flex min-h-screen flex-col lg:flex-row">
       <aside className="border-b border-border/60 bg-card/40 backdrop-blur-md lg:w-60 lg:border-b-0 lg:border-r">
         <div className="flex items-center gap-2 px-5 py-5">
-          <Sparkles className="h-5 w-5 text-primary" />
+          <Sparkles className="h-5 w-5 text-primary animate-ambient-float" />
           <div className="font-display font-bold text-gradient-pink">Barbieverse</div>
           <div className="ml-auto rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold uppercase text-primary lg:ml-0">Admin</div>
         </div>
@@ -56,8 +57,8 @@ function AdminLayout() {
               key={n.to}
               to={n.to}
               activeOptions={{ exact: n.exact }}
-              className="inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
-              activeProps={{ className: "bg-primary/15 text-foreground" }}
+              className="inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-foreground hover:translate-x-1"
+              activeProps={{ className: "bg-primary/15 text-foreground shadow-[0_0_15px_oklch(0.72_0.25_350/0.08)]" }}
             >
               <n.icon className="h-4 w-4" /> {n.label}
             </Link>
@@ -74,6 +75,23 @@ function AdminLayout() {
         </nav>
       </aside>
       <main className="flex-1 px-4 py-6 sm:px-8 sm:py-10">
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Link to="/admin" className="hover:text-foreground transition-colors">Admin</Link>
+            <span>/</span>
+            <span className="text-foreground font-medium">{nav.find(n => {
+              const path = router.state.location.pathname;
+              return n.exact ? path === n.to : path.startsWith(n.to);
+            })?.label || "Overview"}</span>
+          </div>
+          <button className="relative rounded-lg p-2 text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-foreground hover:scale-110">
+            <Bell className="h-5 w-5" />
+            <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-primary"></span>
+            </span>
+          </button>
+        </div>
         <Outlet />
       </main>
     </div>

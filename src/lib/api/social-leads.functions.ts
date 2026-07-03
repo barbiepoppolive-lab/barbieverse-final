@@ -1,97 +1,112 @@
-import { requireAdmin } from "@/lib/admin-session.server";
-import { q } from "@/lib/db.server";
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import type { SocialLead, SocialPlatform, PostCategory, PostStatus } from "@/lib/social-monitor/types";
 
-export async function listSocialLeads(params: {
-  platform?: SocialPlatform;
-  category?: PostCategory;
-  status?: PostStatus;
-  page?: number;
-  limit?: number;
-}): Promise<{ leads: SocialLead[]; total: number }> {
+let dbPool: any = null;
+
+async function getDb() {
+  if (!dbPool) {
+    const { Pool } = await import("pg");
+    dbPool = new Pool({
+      connectionString: process.env.SUPABASE_DB_URL,
+      ssl: process.env.DB_SSL_INSECURE === "true" ? { rejectUnauthorized: false } : undefined,
+    });
+  }
+  return dbPool;
+}
+
+async function requireAdmin() {
+  const { useSession } = await import("@tanstack/react-start/server");
+  const { verifyAdminSession } = await import("@/lib/admin-session.server");
+  const session = await useSession({ password: process.env.ADMIN_SESSION_SECRET || "" });
+  if (!session?.data?.isAdmin) throw new Error("Unauthorized");
+}
+
+async function q(text: string, params: any[] = []) {
+  const pool = await getDb();
+  const res = await pool.query(text, params);
+  return res.rows;
+}
+
+export const listSocialLeads = createServerFn({ validator: z.object({
+  platform: z.enum(["facebook", "reddit", "twitter", "youtube", "telegram"]).optional(),
+  category: z.enum(["hot", "warm", "cold"]).optional(),
+  status: z.enum(["discovered", "commented", "replied", "dismissed"]).optional(),
+  page: z.number().optional(),
+  limit: z.number().optional(),
+})}).handler(async ({ data }) => {
   await requireAdmin();
 
-  const page = params.page || 1;
-  const limit = Math.min(params.limit || 50, 100);
+  const page = data.page || 1;
+  const limit = Math.min(data.limit || 50, 100);
   const offset = (page - 1) * limit;
 
   const conditions: string[] = [];
   const values: any[] = [];
   let idx = 1;
 
-  if (params.platform) {
+  if (data.platform) {
     conditions.push(`platform = $${idx++}`);
-    values.push(params.platform);
+    values.push(data.platform);
   }
-  if (params.category) {
+  if (data.category) {
     conditions.push(`ai_category = $${idx++}`);
-    values.push(params.category);
+    values.push(data.category);
   }
-  if (params.status) {
+  if (data.status) {
     conditions.push(`status = $${idx++}`);
-    values.push(params.status);
+    values.push(data.status);
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   const [countResult, leadsResult] = await Promise.all([
-    q<{ count: number }>(`SELECT count(*) as count FROM social_leads ${where}`, values),
-    q<SocialLead>(
+    q(`SELECT count(*) as count FROM social_leads ${where}`, values),
+    q(
       `SELECT * FROM social_leads ${where} ORDER BY discovered_at DESC LIMIT $${idx++} OFFSET $${idx++}`,
       [...values, limit, offset]
     ),
   ]);
 
   return {
-    leads: leadsResult,
+    leads: leadsResult as SocialLead[],
     total: Number(countResult[0]?.count || 0),
   };
-}
+});
 
-export async function updateSocialLeadStatus(
-  leadId: string,
-  status: PostStatus
-): Promise<{ ok: boolean }> {
+export const updateSocialLeadStatus = createServerFn({ validator: z.object({
+  leadId: z.string(),
+  status: z.enum(["discovered", "commented", "replied", "dismissed"]),
+})}).handler(async ({ data }) => {
   await requireAdmin();
 
   await q(
     `UPDATE social_leads SET status = $1, commented_at = CASE WHEN $1 = 'commented' THEN now() ELSE commented_at END WHERE id = $2`,
-    [status, leadId]
+    [data.status, data.leadId]
   );
 
   return { ok: true };
-}
+});
 
-export async function getSocialLeadStats(): Promise<{
-  total: number;
-  hot: number;
-  warm: number;
-  cold: number;
-  commented: number;
-  discovered: number;
-  byPlatform: Record<string, number>;
-}> {
+export const runSocialMonitor = createServerFn().handler(async () => {
+  await requireAdmin();
+  const { monitorAllPlatforms } = await import("@/lib/social-monitor/index");
+  return monitorAllPlatforms();
+});
+
+export const getSocialLeadStats = createServerFn().handler(async () => {
   await requireAdmin();
 
   const [total, byCategory, byStatus, byPlatform] = await Promise.all([
-    q<{ count: number }>(`SELECT count(*) as count FROM social_leads`, []),
-    q<{ ai_category: string; count: number }>(
-      `SELECT ai_category, count(*) as count FROM social_leads GROUP BY ai_category`,
-      []
-    ),
-    q<{ status: string; count: number }>(
-      `SELECT status, count(*) as count FROM social_leads GROUP BY status`,
-      []
-    ),
-    q<{ platform: string; count: number }>(
-      `SELECT platform, count(*) as count FROM social_leads GROUP BY platform`,
-      []
-    ),
+    q(`SELECT count(*) as count FROM social_leads`, []),
+    q(`SELECT ai_category, count(*) as count FROM social_leads GROUP BY ai_category`, []),
+    q(`SELECT status, count(*) as count FROM social_leads GROUP BY status`, []),
+    q(`SELECT platform, count(*) as count FROM social_leads GROUP BY platform`, []),
   ]);
 
-  const catMap = Object.fromEntries(byCategory.map((r) => [r.ai_category, Number(r.count)]));
-  const statusMap = Object.fromEntries(byStatus.map((r) => [r.status, Number(r.count)]));
-  const platMap = Object.fromEntries(byPlatform.map((r) => [r.platform, Number(r.count)]));
+  const catMap = Object.fromEntries(byCategory.map((r: any) => [r.ai_category, Number(r.count)]));
+  const statusMap = Object.fromEntries(byStatus.map((r: any) => [r.status, Number(r.count)]));
+  const platMap = Object.fromEntries(byPlatform.map((r: any) => [r.platform, Number(r.count)]));
 
   return {
     total: Number(total[0]?.count || 0),
@@ -102,4 +117,4 @@ export async function getSocialLeadStats(): Promise<{
     discovered: statusMap.discovered || 0,
     byPlatform: platMap,
   };
-}
+});

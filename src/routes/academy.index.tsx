@@ -223,7 +223,7 @@ function AcademyIndex() {
   return (
     <SiteLayout>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#1a0a1e] via-[#0d0d1a] to-[#0a0a14]">
+      <section className="relative overflow-hidden bg-gradient-noir">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -top-40 right-0 h-[600px] w-[600px] rounded-full bg-primary/20 blur-[180px]" />
           <div className="absolute bottom-0 left-0 h-[400px] w-[400px] rounded-full bg-accent/10 blur-[140px]" />
@@ -271,14 +271,14 @@ function AcademyIndex() {
           </p>
 
           {/* Published Lessons */}
-          <div className="mt-10 space-y-4">
+          <div className="mt-10 space-y-4 stagger-grid">
             {published.map((lesson) => {
               const Icon = lesson.icon;
               return (
                 <Link
                   key={lesson.num}
                   to={lesson.slug as any}
-                  className="group flex items-start gap-5 rounded-2xl border border-border/40 bg-card/30 p-5 backdrop-blur-md transition-all hover:border-primary/40 hover:bg-card/50 sm:p-6"
+                  className="glass-card group flex items-start gap-5 rounded-2xl p-5 backdrop-blur-md transition-all duration-300 hover:border-primary/40 hover:bg-card/50 hover:shadow-[0_0_30px_oklch(0.72_0.25_350/0.08)] sm:p-6"
                 >
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-pink text-sm font-bold text-primary-foreground">
                     {lesson.num}
@@ -306,13 +306,13 @@ function AcademyIndex() {
             <p className="mt-2 text-sm text-muted-foreground">
               These lessons are in development. Want early access?
             </p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 stagger-grid">
               {comingSoon.map((lesson) => {
                 const Icon = lesson.icon;
                 return (
                   <div
                     key={lesson.num}
-                    className="flex items-center gap-3 rounded-xl border border-border/30 bg-card/20 p-4 opacity-60"
+                    className="glass-card flex items-center gap-3 rounded-xl p-4 opacity-60 transition-all duration-300 hover:opacity-80"
                   >
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary/40 text-xs font-bold text-muted-foreground">
                       {lesson.num}
@@ -338,13 +338,13 @@ function AcademyIndex() {
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <Link
                 to="/join"
-                className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-gradient-pink px-8 text-sm font-bold text-primary-foreground glow-pink"
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-gradient-pink px-8 text-sm font-bold text-primary-foreground glow-pink transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_40px_oklch(0.72_0.25_350/0.4)]"
               >
                 Join BarbieVerse — Free
               </Link>
               <Link
                 to="/coins"
-                className="inline-flex h-14 items-center justify-center gap-2 rounded-full border border-border bg-card/40 px-8 text-sm font-semibold backdrop-blur-md hover:border-gold/60"
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-full border border-border bg-card/40 px-8 text-sm font-semibold backdrop-blur-md transition-all duration-300 hover:border-gold/60 hover:shadow-[0_0_30px_oklch(0.82_0.13_75/0.15)]"
               >
                 Buy Coins
               </Link>

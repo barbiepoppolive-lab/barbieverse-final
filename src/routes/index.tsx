@@ -1,5 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { FaqAccordion } from "@/components/ui/FaqAccordion";
+import { PremiumButton } from "@/components/ui/PremiumButton";
 import { ArrowRight, Crown, ChevronDown, Gem } from "lucide-react";
 import { getPublicSettings, localizedSetting } from "@/lib/api/settings.functions";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
@@ -37,19 +40,6 @@ type Badge = { icon: string; label: string };
 function safeParse<T>(v: string | undefined, fallback: T): T {
   if (!v) return fallback;
   try { return JSON.parse(v) as T; } catch { return fallback; }
-}
-
-function FaqItem({ q, a }: { q: string; a: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-md overflow-hidden">
-      <button onClick={() => setOpen(!open)} className="flex w-full items-center justify-between px-5 py-4 text-left text-sm font-medium text-foreground">
-        {q}
-        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && <div className="px-5 pb-4 text-sm text-muted-foreground leading-relaxed">{a}</div>}
-    </div>
-  );
 }
 
 function HeroSection({ settings }: { settings: Record<string, string> }) {
@@ -127,28 +117,28 @@ function HeroSection({ settings }: { settings: Record<string, string> }) {
 
           <Reveal variant="fade-up" delay={360}>
             <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-              <Link
-                to={ctaPrimaryLink}
-                className="group inline-flex h-14 items-center justify-center gap-2 rounded-full bg-gradient-pink px-7 text-sm font-semibold tracking-wide text-primary-foreground glow-pink transition-all hover:scale-[1.02]"
+              <PremiumButton
+                variant="primary"
+                size="lg"
+                iconRight={<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
               >
                 {ctaPrimaryText}
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-              <Link
-                to={"/earnings" as any}
-                className="inline-flex h-14 items-center justify-center gap-2 rounded-full border border-border bg-card/40 px-7 text-sm font-semibold backdrop-blur-md transition-all hover:border-gold/60 hover:bg-card/70"
+              </PremiumButton>
+              <PremiumButton
+                variant="secondary"
+                size="lg"
               >
                 {ctaSecondaryText}
-              </Link>
+              </PremiumButton>
             </div>
           </Reveal>
 
           <Reveal variant="fade-up" delay={440}>
-            <div className="mt-8 grid grid-cols-2 gap-2 sm:max-w-lg stagger-children">
+            <div className="mt-8 grid grid-cols-2 gap-2 sm:max-w-lg stagger-grid">
               {badges.map((b) => (
                 <div
                   key={b.label}
-                  className="flex items-center gap-2 rounded-xl border border-border/60 bg-card/30 px-3 py-2.5 backdrop-blur-md transition-all duration-200 hover:border-primary/40 hover:bg-card/50"
+                  className="glass-card flex items-center gap-2 rounded-xl px-3 py-2.5 transition-all duration-300 hover:border-primary/40 hover:bg-card/50 hover:shadow-[0_0_20px_oklch(0.72_0.25_350/0.08)]"
                 >
                   <span className="text-base">{b.icon}</span>
                   <span className="text-[11px] font-medium text-muted-foreground sm:text-xs">{b.label}</span>
@@ -274,20 +264,20 @@ function HomePage() {
             </h2>
           </Reveal>
           <Reveal variant="fade-up" delay={120}>
-            <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3">
+            <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3 stagger-grid">
               {[
                 { step: "1", icon: "📱", title: t("section.how.step1.title"), desc: t("section.how.step1.desc") },
                 { step: "2", icon: "💳", title: t("section.how.step2.title"), desc: t("section.how.step2.desc") },
                 { step: "3", icon: "🪙", title: t("section.how.step3.title"), desc: t("section.how.step3.desc") },
               ].map((s) => (
-                <div key={s.step} className="relative rounded-2xl border border-border/60 bg-card/40 p-6 text-center backdrop-blur-md transition-all duration-200 hover:border-primary/40 hover:bg-card/60">
+                <GlassCard key={s.step} hover="lift" className="relative p-6 text-center">
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-pink text-[11px] font-bold text-primary-foreground">
                     {s.step}
                   </div>
                   <div className="mt-4 text-4xl">{s.icon}</div>
                   <h3 className="mt-4 font-display text-lg font-medium">{s.title}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{s.desc}</p>
-                </div>
+                </GlassCard>
               ))}
             </div>
           </Reveal>
@@ -302,26 +292,26 @@ function HomePage() {
           </h2>
         </Reveal>
         <Reveal variant="fade-up" delay={120}>
-          <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3">
-            <div className="rounded-2xl border border-primary/20 bg-card/40 p-6 text-center backdrop-blur-xl transition-all duration-200 hover:border-primary/40 hover:bg-card/60">
+          <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3 stagger-grid">
+            <GlassCard hover="glow" glow="pink" className="p-6 text-center">
               <div className="text-4xl">🎯</div>
               <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">{t("earnings.week.title")}</div>
               <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">{t("earnings.week.female")}</div>
               <div className="font-display text-lg font-bold text-foreground/80">{t("earnings.week.male")}</div>
               <p className="mt-3 text-xs text-muted-foreground">{t("earnings.week.desc")}</p>
-            </div>
-            <div className="rounded-2xl border border-gold/20 bg-card/40 p-6 text-center backdrop-blur-xl transition-all duration-200 hover:border-gold/40 hover:bg-card/60">
+            </GlassCard>
+            <GlassCard hover="glow" glow="gold" className="p-6 text-center">
               <div className="text-4xl">📈</div>
               <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">{t("earnings.month.title")}</div>
               <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">{t("earnings.month.range")}</div>
               <p className="mt-3 text-xs text-muted-foreground">{t("earnings.month.desc")}</p>
-            </div>
-            <div className="rounded-2xl border border-accent/20 bg-card/40 p-6 text-center backdrop-blur-xl transition-all duration-200 hover:border-accent/40 hover:bg-card/60">
+            </GlassCard>
+            <GlassCard hover="glow" className="p-6 text-center">
               <div className="text-4xl">💎</div>
               <div className="mt-3 text-xs font-semibold uppercase tracking-wider text-gold">{t("earnings.consistent.title")}</div>
               <div className="mt-2 font-display text-2xl font-bold text-gradient-pink">{t("earnings.consistent.range")}</div>
               <p className="mt-3 text-xs text-muted-foreground">{t("earnings.consistent.desc")}</p>
-            </div>
+            </GlassCard>
           </div>
           <p className="mt-6 text-center text-xs text-muted-foreground">
             {t("earnings.footer")}
@@ -337,11 +327,7 @@ function HomePage() {
           </h2>
         </Reveal>
         <Reveal variant="fade-up" delay={120}>
-          <div className="mx-auto max-w-2xl space-y-3">
-            {faqs.map((f, i) => (
-              <FaqItem key={i} q={f.q} a={f.a} />
-            ))}
-          </div>
+          <FaqAccordion items={faqs} className="mx-auto max-w-2xl" />
         </Reveal>
       </section>
 
@@ -353,19 +339,19 @@ function HomePage() {
             </h2>
             <p className="mt-3 text-sm text-muted-foreground">{t("cta.join")}</p>
             <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <Link
-                to="/join"
-                className="group inline-flex h-14 items-center justify-center gap-2 rounded-full bg-gradient-pink px-8 text-sm font-semibold tracking-wide text-primary-foreground glow-pink transition-all hover:scale-[1.02]"
+              <PremiumButton
+                variant="primary"
+                size="lg"
+                iconRight={<ArrowRight className="h-4 w-4" />}
               >
                 {t("hero.cta.primary")}
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-              <Link
-                to={"/earnings" as any}
-                className="inline-flex h-14 items-center justify-center rounded-full border border-border bg-card/40 px-8 text-sm font-semibold backdrop-blur-md transition-all hover:border-gold/60 hover:bg-card/70"
+              </PremiumButton>
+              <PremiumButton
+                variant="secondary"
+                size="lg"
               >
                 {t("hero.cta.secondary")}
-              </Link>
+              </PremiumButton>
             </div>
           </Reveal>
         </div>

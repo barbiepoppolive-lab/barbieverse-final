@@ -414,6 +414,243 @@
   }
 }
 
+/* ─── Page Transition Animations ─────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes float-up {
+  from { opacity: 0; transform: translateY(40px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes float-down {
+  from { opacity: 0; transform: translateY(-30px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes rotate-in {
+  from { opacity: 0; transform: rotate(-8deg) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes blur-in {
+  from { opacity: 0; filter: blur(8px); }
+  to { opacity: 1; filter: none; }
+}
+
+@keyframes bounce-in {
+  0% { opacity: 0; transform: scale(0.3); }
+  50% { opacity: 1; transform: scale(1.08); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+@keyframes elastic-in {
+  0% { opacity: 0; transform: scale(0); }
+  55% { opacity: 1; transform: scale(1.15); }
+  70% { transform: scale(0.92); }
+  85% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes flip-in-x {
+  from { opacity: 0; transform: perspective(400px) rotateX(90deg); }
+  to { opacity: 1; transform: perspective(400px) rotateX(0deg); }
+}
+
+@keyframes typewriter-cursor {
+  0%, 100% { border-right-color: var(--primary); }
+  50% { border-right-color: transparent; }
+}
+
+/* ─── Particle trail effect ─────────────────────────────── */
+@keyframes particle-trail {
+  0% { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--tx, 20px), var(--ty, -20px)) scale(0); }
+}
+
+/* ─── Gradient text reveal ──────────────────────────────── */
+@keyframes gradient-text-reveal {
+  0% { background-size: 0% 100%; }
+  100% { background-size: 200% 100%; }
+}
+
+/* ─── Magnetic hover effect ─────────────────────────────── */
+.magnetic-hover {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.magnetic-hover:hover {
+  transform: translate(var(--mx, 0), var(--my, 0));
+}
+
+/* ─── Glow border animation ─────────────────────────────── */
+@keyframes glow-rotate {
+  0% { --angle: 0deg; }
+  100% { --angle: 360deg; }
+}
+
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.glow-border-animated {
+  position: relative;
+  overflow: hidden;
+}
+.glow-border-animated::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--angle), oklch(0.72 0.25 350), oklch(0.82 0.13 75), oklch(0.72 0.25 350));
+  animation: glow-rotate 4s linear infinite;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.glow-border-animated:hover::before {
+  opacity: 1;
+}
+
+/* ─── Counting number animation ──────────────────────────── */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+.animate-count-up {
+  animation: count-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ─── Stagger grid children ──────────────────────────────── */
+.stagger-grid > * {
+  animation: float-up 0.6s cubic-bezier(.22,1,.36,1) both;
+}
+.stagger-grid > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-grid > *:nth-child(2) { animation-delay: 80ms; }
+.stagger-grid > *:nth-child(3) { animation-delay: 160ms; }
+.stagger-grid > *:nth-child(4) { animation-delay: 240ms; }
+.stagger-grid > *:nth-child(5) { animation-delay: 320ms; }
+.stagger-grid > *:nth-child(6) { animation-delay: 400ms; }
+.stagger-grid > *:nth-child(7) { animation-delay: 480ms; }
+.stagger-grid > *:nth-child(8) { animation-delay: 560ms; }
+
+/* ─── Ambient floating animation ──────────────────────────── */
+@keyframes ambient-float {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(5px, -8px) rotate(1deg); }
+  50% { transform: translate(-3px, -12px) rotate(-1deg); }
+  75% { transform: translate(-6px, -5px) rotate(0.5deg); }
+}
+
+.animate-ambient-float {
+  animation: ambient-float 6s ease-in-out infinite;
+}
+
+/* ─── Pulse ring animation ───────────────────────────────── */
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.pulse-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid currentColor;
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+/* ─── Typing effect for text ─────────────────────────────── */
+.animate-typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid var(--primary);
+  animation: typewriter-cursor 0.8s step-end infinite;
+  width: fit-content;
+}
+
+/* ─── Hero background aurora ──────────────────────────────── */
+@keyframes aurora {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-aurora {
+  background-size: 400% 400%;
+  animation: aurora 15s ease infinite;
+}
+
+/* ─── Sparkle burst on click ─────────────────────────────── */
+@keyframes sparkle-burst {
+  0% { transform: scale(0) rotate(0deg); opacity: 1; }
+  100% { transform: scale(1) rotate(180deg); opacity: 0; }
+}
+
+/* ─── Horizontal line scan ───────────────────────────────── */
+@keyframes line-scan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.line-scan {
+  position: relative;
+  overflow: hidden;
+}
+.line-scan::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, oklch(0.72 0.25 350 / 0.08), transparent);
+  animation: line-scan 3s ease-in-out infinite;
+}
+
+/* ─── Scroll indicator ───────────────────────────────────── */
+@keyframes scroll-bounce {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(8px); opacity: 0.5; }
+}
+
+.animate-scroll-bounce {
+  animation: scroll-bounce 2s ease-in-out infinite;
+}
+
+/* ─── Border glow on focus ───────────────────────────────── */
+.focus-glow:focus {
+  box-shadow: 0 0 0 2px oklch(0.72 0.25 350 / 0.3), 0 0 20px oklch(0.72 0.25 350 / 0.1);
+}
+
+/* ─── Page enter animation ───────────────────────────────── */
+@layer base {
+  main {
+    animation: float-up 0.4s cubic-bezier(.22,1,.36,1) both;
+  }
+}
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: oklch(0.09 0.02 350); }
 ::-webkit-scrollbar-thumb {
@@ -428,15 +665,23 @@
 
 @media (prefers-reduced-motion: reduce) {
   .stagger-children > *,
+  .stagger-grid > *,
   .neon-pulse,
   .pulse-subtle,
-  .diamond-sparkle {
+  .diamond-sparkle,
+  .animate-ambient-float,
+  .animate-scroll-bounce,
+  .animate-typewriter,
+  .animate-aurora,
+  .animate-count-up {
     animation: none !important;
   }
+  main { animation: none !important; }
   .card-lift:hover,
   .card-glow:hover,
   .hover-lift:hover,
-  .hover-scale-sm:hover {
+  .hover-scale-sm:hover,
+  .magnetic-hover:hover {
     transform: none !important;
   }
 }

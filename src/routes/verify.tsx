@@ -78,7 +78,7 @@ function VerifyPage() {
         <div className="mx-auto max-w-lg">
           {/* Header */}
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-purple-600">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-pink">
               <Shield className="h-8 w-8 text-white" />
             </div>
             <h1 className="font-display text-3xl font-bold">Verify Your Story</h1>
@@ -198,7 +198,7 @@ function VerifyPage() {
               <button
                 onClick={handleSubmit}
                 disabled={submitting || !mobile.trim() || !screenshotUrl.trim()}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 px-6 py-3 font-semibold text-white shadow-lg shadow-pink-500/25 transition-all hover:shadow-pink-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-pink px-6 py-3 font-semibold text-white shadow-lg shadow-pink-500/25 transition-all hover:shadow-pink-500/40 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? (
                   <>

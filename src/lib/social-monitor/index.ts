@@ -2,12 +2,14 @@ export * from "./types";
 export * from "./facebook";
 export * from "./reddit";
 export * from "./twitter";
+export * from "./youtube";
 export * from "./ai-comment";
 export * from "./telegram-alert";
 
 import { monitorFacebook } from "./facebook";
 import { monitorReddit } from "./reddit";
 import { monitorTwitter } from "./twitter";
+import { monitorYouTube } from "./youtube";
 import { generateComment } from "./ai-comment";
 import { sendSocialLeadAlert, sendSocialDigest } from "./telegram-alert";
 import { DEFAULT_MONITOR_CONFIG } from "./types";
@@ -71,6 +73,7 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
     facebook: { found: 0, stored: 0, errors: 0 },
     reddit: { found: 0, stored: 0, errors: 0 },
     twitter: { found: 0, stored: 0, errors: 0 },
+    youtube: { found: 0, stored: 0, errors: 0 },
     total: 0,
     hotAlerts: 0,
     warmAlerts: 0,
@@ -107,6 +110,16 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
   } catch (e: any) {
     console.error("[social-monitor] Twitter error:", e?.message);
     results.twitter.errors++;
+  }
+
+  // YouTube
+  try {
+    const ytPosts = await monitorYouTube(cfg.youtubeQueries, cfg.maxResultsPerPlatform);
+    results.youtube.found = ytPosts.length;
+    allPosts.push(...ytPosts);
+  } catch (e: any) {
+    console.error("[social-monitor] YouTube error:", e?.message);
+    results.youtube.errors++;
   }
 
   // Filter by minimum engagement
@@ -154,6 +167,7 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
         if (post.platform === "facebook") results.facebook.stored++;
         if (post.platform === "reddit") results.reddit.stored++;
         if (post.platform === "twitter") results.twitter.stored++;
+        if (post.platform === "youtube") results.youtube.stored++;
       }
     } catch (e: any) {
       console.error(`[social-monitor] Error processing ${post.postUrl}:`, e?.message);

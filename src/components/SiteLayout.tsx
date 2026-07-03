@@ -1,6 +1,8 @@
 import { SiteHeader } from "./SiteHeader";
 import { SiteFooter } from "./SiteFooter";
 import type { ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
+import { Crown } from "lucide-react";
 
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
@@ -10,18 +12,39 @@ function WhatsAppIcon({ className }: { className?: string }) {
   );
 }
 
+function MobileFooter() {
+  return (
+    <footer className="border-t border-border/60 bg-card/40 backdrop-blur-md py-6 px-4 md:hidden">
+      <div className="flex items-center justify-center gap-2 mb-3">
+        <Crown className="h-4 w-4 text-gold" />
+        <span className="font-display text-sm font-bold text-gradient-pink">Barbieverse</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+        <Link to="/join" className="rounded-lg bg-card/40 px-3 py-2 text-center hover:text-foreground transition-colors">Join Agency</Link>
+        <Link to="/coins" className="rounded-lg bg-card/40 px-3 py-2 text-center hover:text-foreground transition-colors">Recharge</Link>
+        <Link to="/academy" className="rounded-lg bg-card/40 px-3 py-2 text-center hover:text-foreground transition-colors">Academy</Link>
+        <Link to="/contact" className="rounded-lg bg-card/40 px-3 py-2 text-center hover:text-foreground transition-colors">Contact</Link>
+      </div>
+      <div className="mt-3 text-center text-[10px] text-muted-foreground">
+        © {new Date().getFullYear()} Barbieverse. All rights reserved.
+      </div>
+    </footer>
+  );
+}
+
 export function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
-      <main className="flex-1 pb-20 md:pb-0">{children}</main>
-      <div className="hidden md:block"><SiteFooter /></div>
+      <main className="flex-1 pb-24 md:pb-0">{children}</main>
+      <SiteFooter />
+      <MobileFooter />
 
       <a
         href="https://wa.me/919000966360"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-24 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] shadow-lg transition-all duration-200 hover:scale-110 hover:shadow-[0_0_20px_oklch(0.5_0.25_145/0.3)] active:scale-95 md:bottom-6 md:right-6 md:h-14 md:w-14"
+        className="fixed bottom-[5.5rem] right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-[0_0_20px_oklch(0.5_0.25_145/0.3)] active:scale-95 md:bottom-6 md:right-6 md:h-14 md:w-14 animate-ambient-float"
         aria-label="Chat on WhatsApp"
       >
         <WhatsAppIcon className="h-6 w-6 text-white md:h-7 md:w-7" />

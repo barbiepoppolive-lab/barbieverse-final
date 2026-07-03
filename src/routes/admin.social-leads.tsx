@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
-import { listSocialLeads, getSocialLeadStats, updateSocialLeadStatus } from "@/lib/api/social-leads.functions";
+import { listSocialLeads, getSocialLeadStats, updateSocialLeadStatus, runSocialMonitor } from "@/lib/api/social-leads.functions";
 import {
   Globe, Facebook, Twitter, Youtube, MessageCircle,
   ExternalLink, Copy, CheckCircle, Flame, Sun, Snowflake,
@@ -37,20 +37,27 @@ function SocialLeadsDashboard() {
   const [monitoring, setMonitoring] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  const fetchLeads = useServerFn(listSocialLeads);
+  const fetchStats = useServerFn(getSocialLeadStats);
+  const runMonitorFn = useServerFn(runSocialMonitor);
+  const updateStatusFn = useServerFn(updateSocialLeadStatus);
+
   const fetchData = async () => {
     setLoading(true);
     try {
       const [leadsResult, statsResult] = await Promise.all([
-        listSocialLeads({
-          platform: ["facebook", "reddit", "twitter"].includes(filter) ? filter as any : undefined,
-          category: ["hot", "warm", "cold"].includes(filter) ? filter as any : undefined,
-          page,
-          limit: 20,
+        fetchLeads({
+          data: {
+            platform: ["facebook", "reddit", "twitter"].includes(filter) ? filter as any : undefined,
+            category: ["hot", "warm", "cold"].includes(filter) ? filter as any : undefined,
+            page,
+            limit: 20,
+          },
         }),
-        getSocialLeadStats(),
+        fetchStats(),
       ]);
-      setLeads(leadsResult.leads);
-      setTotal(leadsResult.total);
+      setLeads(leadsResult?.leads || []);
+      setTotal(leadsResult?.total || 0);
       setStats(statsResult);
     } catch (e: any) {
       console.error("[social-leads] fetch error:", e);
@@ -66,13 +73,8 @@ function SocialLeadsDashboard() {
   const runMonitor = async () => {
     setMonitoring(true);
     try {
-      const res = await fetch("/api/public/cron-social", {
-        headers: { "x-cron-secret": "" },
-      });
-      const data = await res.json();
-      if (data.ok) {
-        await fetchData();
-      }
+      await runMonitorFn();
+      await fetchData();
     } catch (e) {
       console.error("[social-leads] monitor error:", e);
     } finally {
@@ -81,7 +83,7 @@ function SocialLeadsDashboard() {
   };
 
   const markCommented = async (id: string) => {
-    await updateSocialLeadStatus(id, "commented");
+    await updateStatusFn({ data: { leadId: id, status: "commented" } });
     await fetchData();
   };
 

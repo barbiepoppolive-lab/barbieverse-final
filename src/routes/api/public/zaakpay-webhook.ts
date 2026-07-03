@@ -35,10 +35,17 @@ export const Route = createFileRoute("/api/public/zaakpay-webhook")({
           return new Response("Webhook not configured", { status: 503 });
         }
 
+        // Parse body once (Request body stream can only be consumed once)
+        let body: any;
+        try {
+          body = await request.json();
+        } catch {
+          return new Response("Bad request", { status: 400 });
+        }
+
         const authHeader = request.headers.get("x-webhook-secret");
         if (authHeader !== webhookSecret) {
           // Try signature verification as fallback
-          const body = await request.json();
           const providedSig = body.signature;
 
           if (providedSig) {
@@ -64,13 +71,6 @@ export const Route = createFileRoute("/api/public/zaakpay-webhook")({
           } else {
             return new Response("Unauthorized", { status: 401 });
           }
-        }
-
-        let body: any;
-        try {
-          body = await request.json();
-        } catch {
-          return new Response("Bad request", { status: 400 });
         }
 
         const parsed = WebhookSchema.safeParse(body);
