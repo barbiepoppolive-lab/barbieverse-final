@@ -177,20 +177,48 @@ export async function recommendOutreach(
   score: LeadScore,
 ): Promise<OutreachPlan> {
   const result = await aiChat(
-    `Based on this lead profile and score, create an outreach plan:
+    `You are an expert at crafting personalized outreach messages that get responses. Create an outreach plan for this lead.
 
-Lead: ${lead.name || "Unknown"} | Platform: ${lead.platform || "Unknown"} | Intent: ${lead.intent || "Unknown"}
-Score: ${score.score}/100 (${score.category})
-City: ${lead.city || "Unknown"} | Followers: ${lead.follower_count || "Unknown"}
+LEAD PROFILE:
+Name: ${lead.name || "Unknown"}
+Platform: ${lead.platform || "Unknown"}
+Intent: ${lead.intent || "Unknown"}
+City: ${lead.city || "Unknown"}
+Followers: ${lead.follower_count || "Unknown"}
+Instagram: ${lead.instagram || "Not provided"}
+Notes: ${lead.notes || "None"}
 
-Create a personalized outreach plan. Return JSON:
+SCORE: ${score.score}/100 (${score.category})
+REASONING: ${score.reasoning}
+
+OUTREACH PRINCIPLES:
+1. Personalize the FIRST line — reference something specific about THEM
+2. Keep it SHORT — under 100 words
+3. Lead with VALUE to THEM, not what you want
+4. Be honest about who you are
+5. Make it easy to say yes (low commitment ask)
+6. End with a question (invites response)
+
+NEVER USE:
+- "I hope this message finds you well"
+- "I came across your profile and was impressed"
+- "We are looking for talented creators"
+- More than 1 emoji
+- More than 4 short sentences
+
+ALWAYS:
+- Include a specific detail about THEM
+- Make the ask small and specific
+- Sound like a real person, not a brand
+
+Return JSON:
 {
-  "channel": "whatsapp" or "instagram" or "email",
-  "message_template": "personalized first message (2-3 sentences)",
-  "talking_points": ["point 1", "point 2", "point 3"],
-  "best_time": "best time to contact",
-  "follow_up_days": number of days before follow-up,
-  "priority": "immediate" or "this_week" or "this_month"
+  "channel": "whatsapp" | "instagram" | "email",
+  "message_template": "personalized first message (2-3 sentences max, under 100 words)",
+  "talking_points": ["specific point 1", "specific point 2", "specific point 3"],
+  "best_time": "best time to contact based on their activity",
+  "follow_up_days": number,
+  "priority": "immediate" | "this_week" | "this_month"
 }`,
     { maxTokens: 768 },
   );
@@ -233,27 +261,34 @@ export async function generateDailyBriefing(
   const coldLeads = leads.filter((l) => scores.get(l.id)?.category === "cold");
 
   const result = await aiChat(
-    `Generate a concise daily scouting briefing for a solo founder running a creator economy platform.
+    `Generate a daily scouting briefing for a solo founder running a creator economy platform (BarbieVerse).
 
-Today's lead summary:
-- Hot leads (score 70+): ${hotLeads.length}
-- Warm leads (score 40-69): ${warmLeads.length}
-- Cold leads (score <40): ${coldLeads.length}
+TODAY'S LEAD SUMMARY:
+- Hot leads (score 70+): ${hotLeads.length} — These need IMMEDIATE action
+- Warm leads (score 40-69): ${warmLeads.length} — Nurture these this week
+- Cold leads (score <40): ${coldLeads.length} — Monitor, don't spend time yet
 - Total leads: ${leads.length}
 
-Top hot leads:
+TOP HOT LEADS (priority contacts):
 ${hotLeads
   .slice(0, 5)
-  .map((l) => `- ${l.name || l.instagram || "Unknown"} (${l.platform || "?"}) - Score: ${scores.get(l.id)?.score}`)
+  .map((l) => `- ${l.name || l.instagram || "Unknown"} (${l.platform || "?"}) — Score: ${scores.get(l.id)?.score} — ${scores.get(l.id)?.reasoning || ""}`)
   .join("\n")}
 
-Generate a brief daily briefing with:
-1. Priority actions for today
-2. Top 3 leads to contact immediately
-3. Any trends or patterns noticed
-4. Motivation/energy boost for the solo founder
+GENERATE BRIEFING WITH:
+1. PRIORITY ACTIONS (top 3 things to do TODAY — be specific with names)
+2. OUTREACH FOCUS (who to contact first, what to say)
+3. TRENDS (any patterns in the leads — platforms, locations, intent)
+4. METRICS (conversion potential, estimated revenue from hot leads)
+5. ENERGY CHECK (solo founder motivation — be real, not fake positive)
 
-Keep it under 200 words, casual tone, use emojis sparingly.`,
+RULES:
+- Under 250 words
+- Use specific names and numbers (not vague)
+- Be direct about what matters most
+- Use emojis sparingly (1-3 max)
+- Sound like a sharp analyst, not a motivational poster
+- If nothing is urgent, say so honestly`,
     { maxTokens: 512 },
   );
 
@@ -323,9 +358,16 @@ function getDefaultMessage(lead: LeadProfile): string {
   const name = lead.name || "there";
   const platform = lead.platform === "poppo" ? "Poppo Live" : lead.platform === "vone" ? "Vone Live" : "live streaming";
 
-  return `Hey ${name}! 👋
+  // Multiple variants to avoid repetition
+  const variants = [
+    `Hey ${name}! Saw your content on ${platform} — really solid stuff. We're building a creator community at BarbieVerse where people share tips and earn together. Would love to have you. Mind if I share more?`,
 
-I noticed you're interested in ${platform}. We're building something special at BarbieVerse — a community of creators who earn together.
+    `${name}! Your ${platform} content caught my eye. We've got a small group of creators at BarbieVerse who are actually making it work — sharing strategies, helping each other grow. Interested in joining?`,
 
-Would love to have you on board. Can we chat for 2 minutes?`;
+    `Hey ${name}, been seeing your ${platform} posts around. We're putting together a creator collective at BarbieVerse — think of it as a support network for people who are serious about streaming. Worth a quick chat?`,
+  ];
+
+  // Pick variant based on name hash for consistency
+  const hash = name.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  return variants[hash % variants.length];
 }

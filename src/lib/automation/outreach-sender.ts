@@ -72,11 +72,7 @@ export async function autoNotifyHotLeads(
     const instagram = lead.instagram || "";
 
     // Build WhatsApp message
-    const waMessage = `Hey ${name}! 👋
-
-I noticed you're interested in live streaming. We're building something special at BarbieVerse — a community of creators who earn together.
-
-Would love to have you on board. Can we chat for 2 minutes?`;
+    const waMessage = `Hey ${name}! Your content caught my eye. We're building a creator community at BarbieVerse where people share tips and earn together through live streaming. Would love to have you. Mind if I share more?`;
 
     const waUrl = whatsapp ? generateWhatsAppUrl(whatsapp, waMessage) : "";
 
