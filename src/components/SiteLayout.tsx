@@ -1,6 +1,5 @@
 import { SiteHeader } from "./SiteHeader";
 import { SiteFooter } from "./SiteFooter";
-import { BarbieAssistant } from "./BarbieAssistant";
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { Crown } from "lucide-react";
@@ -50,8 +49,6 @@ export function SiteLayout({ children }: { children: ReactNode }) {
       >
         <WhatsAppIcon className="h-6 w-6 text-white md:h-7 md:w-7" />
       </a>
-
-      <BarbieAssistant />
     </div>
   );
 }
