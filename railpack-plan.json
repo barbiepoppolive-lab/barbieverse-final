@@ -1,0 +1,10 @@
+{
+  "steps": {
+    "install": {
+      "commands": ["npm install --ignore-scripts", "npm approve-scripts --all"]
+    },
+    "build": {
+      "commands": ["npm run build"]
+    }
+  }
+}
