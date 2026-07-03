@@ -49,6 +49,24 @@ export {
 } from "./audio-gen";
 export type { VoicePreset, AudioGenInput, AudioGenResult, CarouselAudio } from "./audio-gen";
 
+// Music recommendation (AI-powered music selection)
+export {
+  recommendMusic,
+  getContentTypeMusic,
+  searchMusic,
+  getAllTracks,
+  getTracksByMood,
+  getTracksByGenre,
+  getContentMusicPlan,
+} from "./music";
+export type {
+  MusicTrack,
+  MusicRecommendation,
+  MusicMood,
+  MusicGenre,
+  ContentType as MusicContentType,
+} from "./music";
+
 // ComfyUI (direct access if needed)
 export {
   isComfyUIAvailable,

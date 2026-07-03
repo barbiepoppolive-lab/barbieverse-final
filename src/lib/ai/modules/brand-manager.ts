@@ -15,6 +15,13 @@ import {
   type AudioGenResult,
   type CarouselAudio,
 } from "../audio-gen";
+import {
+  recommendMusic,
+  type MusicTrack,
+  type MusicRecommendation,
+  type MusicMood,
+  type MusicGenre,
+} from "../music";
 
 // ── Helper: Choose provider based on user selection ────
 
@@ -72,6 +79,7 @@ export interface CarouselWithAudio {
   caption: string;
   hashtags: string[];
   audio?: CarouselAudio;
+  music?: MusicRecommendation;
 }
 
 export interface ReelScript {
@@ -84,6 +92,7 @@ export interface ReelScript {
 
 export interface ReelScriptWithAudio extends ReelScript {
   audio?: { scenes: AudioGenResult[]; full: AudioGenResult };
+  music?: MusicRecommendation;
 }
 
 export interface ContentCalendarEntry {
@@ -187,6 +196,17 @@ Return EXACTLY this JSON:
     }
   }
 
+  // Get AI music recommendation
+  try {
+    carousel.music = await recommendMusic({
+      contentType: "carousel",
+      topic: input.topic,
+      platform: "instagram",
+    });
+  } catch (err) {
+    console.error("[BrandManager] Music recommendation failed:", err);
+  }
+
   return carousel;
 }
 
@@ -278,6 +298,17 @@ Return EXACTLY this JSON:
     } catch (err) {
       console.error("[BrandManager] Reel audio generation failed:", err);
     }
+  }
+
+  // Get AI music recommendation
+  try {
+    reel.music = await recommendMusic({
+      contentType: "reel",
+      topic: input.topic,
+      platform: "instagram",
+    });
+  } catch (err) {
+    console.error("[BrandManager] Music recommendation failed:", err);
   }
 
   return reel;
@@ -372,7 +403,7 @@ Return EXACTLY this JSON:
   const parsed = JSON.parse(jsonMatch[0]);
 
   const storySlides = parsed.slides || [];
-  const storyResult: { slides: typeof storySlides; audio?: { slides: AudioGenResult[]; full: AudioGenResult } } = { slides: storySlides };
+  const storyResult: { slides: typeof storySlides; audio?: { slides: AudioGenResult[]; full: AudioGenResult }; music?: MusicRecommendation } = { slides: storySlides };
 
   // Generate audio if requested
   if (input.withAudio && storySlides.length > 0) {
@@ -381,6 +412,17 @@ Return EXACTLY this JSON:
     } catch (err) {
       console.error("[BrandManager] Story audio generation failed:", err);
     }
+  }
+
+  // Get AI music recommendation
+  try {
+    storyResult.music = await recommendMusic({
+      contentType: "story",
+      topic: input.topic,
+      platform: "instagram",
+    });
+  } catch (err) {
+    console.error("[BrandManager] Music recommendation failed:", err);
   }
 
   return storyResult;
