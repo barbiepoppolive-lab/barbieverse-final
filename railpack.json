@@ -1,6 +1,15 @@
 {
   "provider": "node",
   "steps": {
+    "copy": {
+      "commands": [
+        {
+          "path": ".",
+          "src": ".",
+          "dest": "/app"
+        }
+      ]
+    },
     "install": {
       "commands": ["npm install"]
     },
