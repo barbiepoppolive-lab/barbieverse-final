@@ -12,6 +12,7 @@ import { cerebrasChat } from "./providers/cerebras";
 import { ollamaChat, ollamaIsAvailable } from "./providers/ollama";
 import { anthropicVision } from "./providers/anthropic";
 import { openrouterChat, openrouterChatWithImage, OPENROUTER_MODELS } from "./providers/openrouter";
+import { xaiChat, XAI_MODELS } from "./providers/xai";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -209,6 +210,9 @@ async function callProvider(
         return openrouterChatWithImage(prompt, imageBase64, mimeType, opts);
       }
       return openrouterChat(prompt, opts);
+
+    case "xai":
+      return xaiChat(prompt, opts);
 
     default:
       throw new Error(`Unknown provider: ${provider}`);

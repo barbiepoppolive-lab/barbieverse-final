@@ -8,7 +8,8 @@ export type Provider =
   | "cerebras"
   | "ollama"
   | "anthropic"
-  | "openrouter";
+  | "openrouter"
+  | "xai";
 
 interface RateLimitConfig {
   rpm: number;
@@ -24,6 +25,7 @@ const PROVIDER_LIMITS: Record<Provider, RateLimitConfig> = {
   ollama: { rpm: 999, rpd: 999_999, tpm: 999_999 },
   anthropic: { rpm: 50, rpd: 1000, tpm: 40_000 },
   openrouter: { rpm: 20, rpd: 1000, tpm: 200_000 },
+  xai: { rpm: 10, rpd: 1000, tpm: 100_000 },
 };
 
 interface UsageRecord {
@@ -41,6 +43,7 @@ const usage: Record<Provider, UsageRecord> = {
   ollama: { count: 0, tokens: 0, resetAt: getResetTime() },
   anthropic: { count: 0, tokens: 0, resetAt: getResetTime() },
   openrouter: { count: 0, tokens: 0, resetAt: getResetTime() },
+  xai: { count: 0, tokens: 0, resetAt: getResetTime() },
 };
 
 function getResetTime(): number {

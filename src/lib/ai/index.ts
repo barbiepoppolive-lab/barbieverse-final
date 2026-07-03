@@ -21,6 +21,7 @@ export { cerebrasChat } from "./providers/cerebras";
 export { ollamaChat, ollamaEmbed, ollamaIsAvailable } from "./providers/ollama";
 export { anthropicChat, anthropicVision } from "./providers/anthropic";
 export { openrouterChat, openrouterChatWithImage, openrouterListModels, OPENROUTER_MODELS } from "./providers/openrouter";
+export { xaiChat, XAI_MODELS } from "./providers/xai";
 
 // Brand Manager (free content creation)
 export {
