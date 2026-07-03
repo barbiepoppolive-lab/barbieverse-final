@@ -1,8 +1,19 @@
 // AI Brand Manager — Virtual social media manager for BarbieVerse
-// Generates ALL content types using FREE providers
+// Generates ALL content types — choose Free or Premium provider
 
-import { aiContent, aiRoute } from "../router";
+import { aiContent, aiPremium } from "../router";
 import { generateImageUrl, SIZES } from "../providers/pollinations";
+
+// ── Helper: Choose provider based on user selection ────
+
+export type ProviderChoice = "premium" | "free";
+
+function aiGenerate(prompt: string, systemPrompt: string, provider: ProviderChoice = "free") {
+  if (provider === "premium") {
+    return aiPremium(prompt, { systemPrompt, maxTokens: 4096 });
+  }
+  return aiContent(prompt, { systemPrompt, maxTokens: 4096 });
+}
 
 // ── Types ──────────────────────────────────────────────
 
@@ -93,11 +104,13 @@ export async function generateCarousel(input: {
   topic: string;
   slides?: number;
   style?: "educational" | "storytelling" | "listicle" | "tips";
+  provider?: ProviderChoice;
 }): Promise<{ title: string; slides: CarouselSlide[]; caption: string; hashtags: string[] }> {
   const numSlides = input.slides || 7;
   const style = input.style || "educational";
+  const provider = input.provider || "free";
 
-  const result = await aiContent(
+  const result = await aiGenerate(
     `Create an Instagram carousel post about: ${input.topic}
 
 STYLE: ${style}
@@ -124,7 +137,8 @@ Return EXACTLY this JSON:
   "caption": "Instagram caption for this carousel",
   "hashtags": ["relevant", "hashtags"]
 }`,
-    { maxTokens: 4096 }
+    BRAND_VOICE,
+    provider
   );
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
@@ -145,11 +159,13 @@ export async function generateReelScript(input: {
   topic: string;
   duration?: "15s" | "30s" | "60s" | "90s";
   style?: "educational" | "entertaining" | "inspirational" | "behind-the-scenes";
+  provider?: ProviderChoice;
 }): Promise<ReelScript> {
   const duration = input.duration || "30s";
   const style = input.style || "educational";
+  const provider = input.provider || "free";
 
-  const result = await aiContent(
+  const result = await aiGenerate(
     `Write a reel/video script about: ${input.topic}
 
 DURATION: ${duration}
@@ -178,7 +194,8 @@ Return EXACTLY this JSON:
   "hashtags": ["relevant", "hashtags"],
   "music_suggestion": "trending audio style"
 }`,
-    { maxTokens: 2048 }
+    BRAND_VOICE,
+    provider
   );
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
@@ -199,10 +216,12 @@ Return EXACTLY this JSON:
 export async function generateThumbnail(input: {
   title: string;
   style?: "bold" | "clean" | "dramatic" | "playful";
+  provider?: ProviderChoice;
 }): Promise<{ image_url: string; image_prompt: string }> {
   const style = input.style || "bold";
+  const provider = input.provider || "free";
 
-  const result = await aiContent(
+  const result = await aiGenerate(
     `Create an image prompt for a YouTube/blog thumbnail about: ${input.title}
 
 STYLE: ${style}
@@ -217,7 +236,8 @@ Return EXACTLY this JSON:
 {
   "image_prompt": "detailed image generation prompt, photorealistic, vibrant"
 }`,
-    { maxTokens: 512 }
+    BRAND_VOICE,
+    provider
   );
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
@@ -241,10 +261,12 @@ Return EXACTLY this JSON:
 export async function generateStory(input: {
   topic: string;
   slides?: number;
+  provider?: ProviderChoice;
 }): Promise<{ slides: { text: string; image_prompt: string; cta?: string }[] }> {
   const numSlides = input.slides || 3;
+  const provider = input.provider || "free";
 
-  const result = await aiContent(
+  const result = await aiGenerate(
     `Create an Instagram story sequence about: ${input.topic}
 
 NUMBER OF SLIDES: ${numSlides}
@@ -268,7 +290,8 @@ Return EXACTLY this JSON:
     }
   ]
 }`,
-    { maxTokens: 2048 }
+    BRAND_VOICE,
+    provider
   );
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
@@ -284,11 +307,13 @@ export async function generateThread(input: {
   topic: string;
   platform?: "twitter" | "linkedin";
   tweets?: number;
+  provider?: ProviderChoice;
 }): Promise<{ tweets: string[]; hashtags: string[] }> {
   const platform = input.platform || "twitter";
   const numTweets = input.tweets || 5;
+  const provider = input.provider || "free";
 
-  const result = await aiContent(
+  const result = await aiGenerate(
     `Write a ${platform} thread about: ${input.topic}
 
 NUMBER OF TWEETS: ${numTweets}
@@ -306,7 +331,8 @@ Return EXACTLY this JSON:
   "tweets": ["tweet 1", "tweet 2", "tweet 3"],
   "hashtags": ["relevant", "hashtags"]
 }`,
-    { maxTokens: 2048 }
+    BRAND_VOICE,
+    provider
   );
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
@@ -324,10 +350,12 @@ Return EXACTLY this JSON:
 export async function generatePoll(input: {
   topic: string;
   platform?: "twitter" | "linkedin" | "instagram";
+  provider?: ProviderChoice;
 }): Promise<{ question: string; options: string[]; caption: string }> {
   const platform = input.platform || "twitter";
+  const provider = input.provider || "free";
 
-  const result = await aiContent(
+  const result = await aiGenerate(
     `Create an engaging ${platform} poll about: ${input.topic}
 
 REQUIREMENTS:
@@ -342,7 +370,8 @@ Return EXACTLY this JSON:
   "options": ["Option 1", "Option 2", "Option 3"],
   "caption": "caption to post with the poll"
 }`,
-    { maxTokens: 1024 }
+    BRAND_VOICE,
+    provider
   );
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);

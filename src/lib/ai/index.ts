@@ -33,7 +33,7 @@ export {
   generateWeeklyPlan,
   generateContentImage,
 } from "./modules/brand-manager";
-export type { ContentPlatform, ContentType, ContentStatus, ContentItem, CarouselSlide, ReelScript, ContentCalendarEntry } from "./modules/brand-manager";
+export type { ContentPlatform, ContentType, ContentStatus, ContentItem, CarouselSlide, ReelScript, ContentCalendarEntry, ProviderChoice } from "./modules/brand-manager";
 
 // Pollinations (free image generation)
 export { generateImageUrl, downloadImage, SIZES } from "./providers/pollinations";

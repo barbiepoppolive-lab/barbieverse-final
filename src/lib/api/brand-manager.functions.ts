@@ -46,6 +46,7 @@ export const generateReelScript = createServerFn({ method: "POST" })
           topic: z.string().min(1),
           duration: z.enum(["15s", "30s", "60s", "90s"]).default("30s"),
           style: z.enum(["educational", "entertaining", "inspirational", "behind-the-scenes"]).default("educational"),
+          provider: providerSchema,
         })
         .parse(d),
   )
@@ -54,17 +55,18 @@ export const generateReelScript = createServerFn({ method: "POST" })
     await requireAdmin();
 
     const { generateReelScript: gen } = await import("../ai/modules/brand-manager");
-    const result = await gen({ topic: data.topic, duration: data.duration, style: data.style });
+    const result = await gen({ topic: data.topic, duration: data.duration, style: data.style, provider: data.provider });
 
+    const cost = data.provider === "premium" ? 0.003 : 0;
     const { q1 } = await import("../db.server");
     const job = await q1(
       `INSERT INTO content_generation_jobs (job_type, input_params, output_data, status, total_cost_usd, completed_at)
-       VALUES ('reel_script', $1, $2, 'completed', 0, NOW())
+       VALUES ('reel_script', $1, $2, 'completed', $3, NOW())
        RETURNING *`,
-      [JSON.stringify(data), JSON.stringify(result)]
+      [JSON.stringify(data), JSON.stringify(result), cost]
     );
 
-    return { job, content: result };
+    return { job, content: result, provider: data.provider, cost };
   });
 
 // ── Generate Thumbnail ─────────────────────────────────
@@ -76,6 +78,7 @@ export const generateThumbnail = createServerFn({ method: "POST" })
         .object({
           title: z.string().min(1),
           style: z.enum(["bold", "clean", "dramatic", "playful"]).default("bold"),
+          provider: providerSchema,
         })
         .parse(d),
   )
@@ -84,17 +87,18 @@ export const generateThumbnail = createServerFn({ method: "POST" })
     await requireAdmin();
 
     const { generateThumbnail: gen } = await import("../ai/modules/brand-manager");
-    const result = await gen({ title: data.title, style: data.style });
+    const result = await gen({ title: data.title, style: data.style, provider: data.provider });
 
+    const cost = data.provider === "premium" ? 0.003 : 0;
     const { q1 } = await import("../db.server");
     const job = await q1(
       `INSERT INTO content_generation_jobs (job_type, input_params, output_data, status, total_cost_usd, completed_at)
-       VALUES ('thumbnail', $1, $2, 'completed', 0, NOW())
+       VALUES ('thumbnail', $1, $2, 'completed', $3, NOW())
        RETURNING *`,
-      [JSON.stringify(data), JSON.stringify(result)]
+      [JSON.stringify(data), JSON.stringify(result), cost]
     );
 
-    return { job, content: result };
+    return { job, content: result, provider: data.provider, cost };
   });
 
 // ── Generate Story ─────────────────────────────────────
@@ -106,6 +110,7 @@ export const generateStory = createServerFn({ method: "POST" })
         .object({
           topic: z.string().min(1),
           slides: z.number().min(2).max(5).default(3),
+          provider: providerSchema,
         })
         .parse(d),
   )
@@ -114,17 +119,18 @@ export const generateStory = createServerFn({ method: "POST" })
     await requireAdmin();
 
     const { generateStory: gen } = await import("../ai/modules/brand-manager");
-    const result = await gen({ topic: data.topic, slides: data.slides });
+    const result = await gen({ topic: data.topic, slides: data.slides, provider: data.provider });
 
+    const cost = data.provider === "premium" ? 0.003 : 0;
     const { q1 } = await import("../db.server");
     const job = await q1(
       `INSERT INTO content_generation_jobs (job_type, input_params, output_data, status, total_cost_usd, completed_at)
-       VALUES ('story', $1, $2, 'completed', 0, NOW())
+       VALUES ('story', $1, $2, 'completed', $3, NOW())
        RETURNING *`,
-      [JSON.stringify(data), JSON.stringify(result)]
+      [JSON.stringify(data), JSON.stringify(result), cost]
     );
 
-    return { job, content: result };
+    return { job, content: result, provider: data.provider, cost };
   });
 
 // ── Generate Thread ────────────────────────────────────
@@ -137,6 +143,7 @@ export const generateThread = createServerFn({ method: "POST" })
           topic: z.string().min(1),
           platform: z.enum(["twitter", "linkedin"]).default("twitter"),
           tweets: z.number().min(3).max(10).default(5),
+          provider: providerSchema,
         })
         .parse(d),
   )
@@ -145,17 +152,18 @@ export const generateThread = createServerFn({ method: "POST" })
     await requireAdmin();
 
     const { generateThread: gen } = await import("../ai/modules/brand-manager");
-    const result = await gen({ topic: data.topic, platform: data.platform, tweets: data.tweets });
+    const result = await gen({ topic: data.topic, platform: data.platform, tweets: data.tweets, provider: data.provider });
 
+    const cost = data.provider === "premium" ? 0.003 : 0;
     const { q1 } = await import("../db.server");
     const job = await q1(
       `INSERT INTO content_generation_jobs (job_type, input_params, output_data, status, total_cost_usd, completed_at)
-       VALUES ('thread', $1, $2, 'completed', 0, NOW())
+       VALUES ('thread', $1, $2, 'completed', $3, NOW())
        RETURNING *`,
-      [JSON.stringify(data), JSON.stringify(result)]
+      [JSON.stringify(data), JSON.stringify(result), cost]
     );
 
-    return { job, content: result };
+    return { job, content: result, provider: data.provider, cost };
   });
 
 // ── Generate Poll ──────────────────────────────────────
@@ -167,6 +175,7 @@ export const generatePoll = createServerFn({ method: "POST" })
         .object({
           topic: z.string().min(1),
           platform: z.enum(["twitter", "linkedin", "instagram"]).default("twitter"),
+          provider: providerSchema,
         })
         .parse(d),
   )
@@ -175,17 +184,18 @@ export const generatePoll = createServerFn({ method: "POST" })
     await requireAdmin();
 
     const { generatePoll: gen } = await import("../ai/modules/brand-manager");
-    const result = await gen({ topic: data.topic, platform: data.platform });
+    const result = await gen({ topic: data.topic, platform: data.platform, provider: data.provider });
 
+    const cost = data.provider === "premium" ? 0.003 : 0;
     const { q1 } = await import("../db.server");
     const job = await q1(
       `INSERT INTO content_generation_jobs (job_type, input_params, output_data, status, total_cost_usd, completed_at)
-       VALUES ('poll', $1, $2, 'completed', 0, NOW())
+       VALUES ('poll', $1, $2, 'completed', $3, NOW())
        RETURNING *`,
-      [JSON.stringify(data), JSON.stringify(result)]
+      [JSON.stringify(data), JSON.stringify(result), cost]
     );
 
-    return { job, content: result };
+    return { job, content: result, provider: data.provider, cost };
   });
 
 // ── Generate Weekly Plan ───────────────────────────────
