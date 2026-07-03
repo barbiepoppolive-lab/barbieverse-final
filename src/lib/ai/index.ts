@@ -22,6 +22,22 @@ export { ollamaChat, ollamaEmbed, ollamaIsAvailable } from "./providers/ollama";
 export { anthropicChat, anthropicVision } from "./providers/anthropic";
 export { openrouterChat, openrouterChatWithImage, openrouterListModels, OPENROUTER_MODELS } from "./providers/openrouter";
 
+// Brand Manager (free content creation)
+export {
+  generateCarousel,
+  generateReelScript,
+  generateThumbnail,
+  generateStory,
+  generateThread,
+  generatePoll,
+  generateWeeklyPlan,
+  generateContentImage,
+} from "./modules/brand-manager";
+export type { ContentPlatform, ContentType, ContentStatus, ContentItem, CarouselSlide, ReelScript, ContentCalendarEntry } from "./modules/brand-manager";
+
+// Pollinations (free image generation)
+export { generateImageUrl, downloadImage, SIZES } from "./providers/pollinations";
+
 // Utilities
 export { generateEmbedding, cosineSimilarity, findSimilar } from "./utils/embeddings";
 export { PROMPTS } from "./utils/prompts";

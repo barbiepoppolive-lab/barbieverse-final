@@ -127,7 +127,7 @@ REMEMBER:
 Write the comment and classify the post intent.`;
 
   try {
-    const result = await aiPremium(prompt, SYSTEM_PROMPT);
+    const result = await aiPremium(prompt, { systemPrompt: SYSTEM_PROMPT });
 
     // Parse JSON response
     const jsonMatch = result.text.match(/\{[\s\S]*\}/);
