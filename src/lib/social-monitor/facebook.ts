@@ -54,10 +54,10 @@ export async function searchFacebookPosts(
       return [];
     }
 
-    // Poll for completion (max 60 seconds)
+    // Poll for completion (max 18 seconds)
     let status = "RUNNING";
     let attempts = 0;
-    while (status === "RUNNING" && attempts < 20) {
+    while (status === "RUNNING" && attempts < 6) {
       await new Promise((r) => setTimeout(r, 3000));
       const statusResponse = await fetch(
         `${APIFY_BASE_URL}/actor-runs/${runId}?token=${token}`
@@ -117,7 +117,10 @@ export async function monitorFacebook(
   const allPosts: SocialPost[] = [];
   const seenUrls = new Set<string>();
 
-  for (const keyword of keywords) {
+  // Limit to top 3 keywords — Apify is slow
+  const kws = keywords.slice(0, 3);
+
+  for (const keyword of kws) {
     const posts = await searchFacebookPosts(keyword, maxResults);
 
     for (const post of posts) {
@@ -129,7 +132,7 @@ export async function monitorFacebook(
     }
 
     // Rate limit: Apify free tier = 1 request every few seconds
-    await new Promise((r) => setTimeout(r, 5000));
+    await new Promise((r) => setTimeout(r, 2000));
   }
 
   // Sort by engagement

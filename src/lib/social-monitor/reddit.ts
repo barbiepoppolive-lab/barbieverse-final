@@ -115,7 +115,11 @@ export async function monitorReddit(
   const allPosts: SocialPost[] = [];
   const seenUrls = new Set<string>();
 
-  for (const keyword of keywords) {
+  // Limit to top 5 keywords and top 5 subreddits to stay fast
+  const kws = keywords.slice(0, 5);
+  const subs = subreddits.slice(0, 5);
+
+  for (const keyword of kws) {
     // Search across all subreddits
     const posts = await searchReddit(keyword, undefined, maxResults, "day");
 
@@ -126,8 +130,8 @@ export async function monitorReddit(
       }
     }
 
-    // Also search specific subreddits
-    for (const sub of subreddits) {
+    // Also search specific subreddits (limited set)
+    for (const sub of subs) {
       const subPosts = await searchReddit(keyword, sub, 10, "day");
       for (const post of subPosts) {
         if (!seenUrls.has(post.postUrl)) {
@@ -138,7 +142,7 @@ export async function monitorReddit(
     }
 
     // Rate limit: Reddit allows ~60 requests/min for unauthenticated
-    await new Promise((r) => setTimeout(r, 1200));
+    await new Promise((r) => setTimeout(r, 1100));
   }
 
   // Sort by engagement (score + comments)

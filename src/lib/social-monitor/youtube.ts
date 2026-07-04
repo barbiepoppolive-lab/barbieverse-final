@@ -84,7 +84,10 @@ export async function monitorYouTube(
   const allPosts: SocialPost[] = [];
   const seenIds = new Set<string>();
 
-  for (const keyword of keywords) {
+  // Limit to top 5 keywords to stay fast
+  const kws = keywords.slice(0, 5);
+
+  for (const keyword of kws) {
     const posts = await searchYouTube(keyword, maxResults);
 
     for (const post of posts) {

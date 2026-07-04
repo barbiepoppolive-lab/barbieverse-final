@@ -15,6 +15,19 @@ import { sendSocialLeadAlert, sendSocialDigest } from "./telegram-alert";
 import { DEFAULT_MONITOR_CONFIG, loadMonitorConfig } from "./types";
 import type { SocialPost, MonitorConfig } from "./types";
 
+// ── Timeout helper ──────────────────────────────────────
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
+const PLATFORM_TIMEOUT = 20_000; // 20s per platform
+
 // ── Database operations ────────────────────────────────
 
 async function storeSocialLead(post: SocialPost, aiResult: {
@@ -80,56 +93,52 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
     warmAlerts: 0,
   };
 
-  // Collect posts from all platforms
+  // Run all platforms in parallel with per-platform timeouts
+  const [fbPosts, redditPosts, twitterPosts, ytPosts] = await Promise.allSettled([
+    withTimeout(
+      monitorFacebook(cfg.facebookQueries, cfg.maxResultsPerPlatform),
+      PLATFORM_TIMEOUT,
+      "Facebook"
+    ).catch((e) => { console.error("[social-monitor] Facebook error:", e?.message); return []; }),
+    withTimeout(
+      monitorReddit(cfg.keywords, cfg.redditSubreddits, cfg.maxResultsPerPlatform),
+      PLATFORM_TIMEOUT,
+      "Reddit"
+    ).catch((e) => { console.error("[social-monitor] Reddit error:", e?.message); return []; }),
+    withTimeout(
+      monitorTwitter(cfg.twitterQueries, cfg.maxResultsPerPlatform),
+      PLATFORM_TIMEOUT,
+      "Twitter"
+    ).catch((e) => { console.error("[social-monitor] Twitter error:", e?.message); return []; }),
+    withTimeout(
+      monitorYouTube(cfg.youtubeQueries, cfg.maxResultsPerPlatform),
+      PLATFORM_TIMEOUT,
+      "YouTube"
+    ).catch((e) => { console.error("[social-monitor] YouTube error:", e?.message); return []; }),
+  ]);
+
   const allPosts: SocialPost[] = [];
 
-  // Facebook
-  try {
-    const fbPosts = await monitorFacebook(cfg.facebookQueries, cfg.maxResultsPerPlatform);
-    results.facebook.found = fbPosts.length;
-    allPosts.push(...fbPosts);
-  } catch (e: any) {
-    console.error("[social-monitor] Facebook error:", e?.message);
-    results.facebook.errors++;
-  }
+  // Unwrap settled results
+  const fb = fbPosts.status === "fulfilled" ? fbPosts.value : [];
+  const reddit = redditPosts.status === "fulfilled" ? redditPosts.value : [];
+  const twitter = twitterPosts.status === "fulfilled" ? twitterPosts.value : [];
+  const youtube = ytPosts.status === "fulfilled" ? ytPosts.value : [];
 
-  // Reddit
-  try {
-    const redditPosts = await monitorReddit(cfg.keywords, cfg.redditSubreddits, cfg.maxResultsPerPlatform);
-    results.reddit.found = redditPosts.length;
-    allPosts.push(...redditPosts);
-  } catch (e: any) {
-    console.error("[social-monitor] Reddit error:", e?.message);
-    results.reddit.errors++;
-  }
+  results.facebook.found = fb.length;
+  results.reddit.found = reddit.length;
+  results.twitter.found = twitter.length;
+  results.youtube.found = youtube.length;
 
-  // Twitter
-  try {
-    const twitterPosts = await monitorTwitter(cfg.twitterQueries, cfg.maxResultsPerPlatform);
-    results.twitter.found = twitterPosts.length;
-    allPosts.push(...twitterPosts);
-  } catch (e: any) {
-    console.error("[social-monitor] Twitter error:", e?.message);
-    results.twitter.errors++;
-  }
-
-  // YouTube
-  try {
-    const ytPosts = await monitorYouTube(cfg.youtubeQueries, cfg.maxResultsPerPlatform);
-    results.youtube.found = ytPosts.length;
-    allPosts.push(...ytPosts);
-  } catch (e: any) {
-    console.error("[social-monitor] YouTube error:", e?.message);
-    results.youtube.errors++;
-  }
+  allPosts.push(...fb, ...reddit, ...twitter, ...youtube);
 
   // Filter by minimum engagement
   const filteredPosts = allPosts.filter(
     (p) => (p.likes + p.comments + p.shares) >= cfg.minEngagement
   );
 
-  // Generate AI comments and store leads
-  for (const post of filteredPosts.slice(0, 30)) {
+  // Generate AI comments and store leads (max 15 per run to stay fast)
+  for (const post of filteredPosts.slice(0, 15)) {
     try {
       const aiResult = await generateComment(
         post.postText,
