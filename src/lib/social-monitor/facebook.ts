@@ -54,10 +54,10 @@ export async function searchFacebookPosts(
       return [];
     }
 
-    // Poll for completion (max 18 seconds)
+    // Poll for completion (max 24 seconds — 8 attempts × 3s)
     let status = "RUNNING";
     let attempts = 0;
-    while (status === "RUNNING" && attempts < 6) {
+    while (status === "RUNNING" && attempts < 8) {
       await new Promise((r) => setTimeout(r, 3000));
       const statusResponse = await fetch(
         `${APIFY_BASE_URL}/actor-runs/${runId}?token=${token}`
