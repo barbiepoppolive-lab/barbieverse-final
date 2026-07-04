@@ -29,10 +29,10 @@ export const generateBlogPost = createServerFn({ method: "POST" })
 
     const { q1 } = await import("../db.server");
     const job = await q1(
-      `INSERT INTO content_generation_jobs (job_type, input_params, output_data, status, total_cost_usd, completed_at)
-       VALUES ('blog_post', $1, $2, 'completed', $3, NOW())
+      `INSERT INTO content_generation_jobs (job_type, title, input_params, output_data, status, total_cost_usd, completed_at)
+       VALUES ('blog_post', $1, $2, $3, 'draft', $4, NOW())
        RETURNING *`,
-      [JSON.stringify(data), JSON.stringify(result), textCost]
+      [result.title || data.topic, JSON.stringify(data), JSON.stringify(result), textCost]
     );
 
     return { job, post: result, totalCost: textCost };
@@ -66,10 +66,10 @@ export const generateSocialPost = createServerFn({ method: "POST" })
 
     const { q1 } = await import("../db.server");
     const job = await q1(
-      `INSERT INTO content_generation_jobs (job_type, input_params, output_data, status, total_cost_usd, completed_at)
-       VALUES ('social_post', $1, $2, 'completed', $3, NOW())
+      `INSERT INTO content_generation_jobs (job_type, title, input_params, output_data, status, total_cost_usd, completed_at)
+       VALUES ('social_post', $1, $2, $3, 'draft', $4, NOW())
        RETURNING *`,
-      [JSON.stringify(data), JSON.stringify(result), textCost]
+      [data.topic, JSON.stringify(data), JSON.stringify(result), textCost]
     );
 
     return { job, post: result, totalCost: textCost };

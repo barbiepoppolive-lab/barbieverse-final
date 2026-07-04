@@ -27,10 +27,10 @@ export const generateCarousel = createServerFn({ method: "POST" })
     const cost = data.provider === "premium" ? 0.003 : 0;
     const { q1 } = await import("../db.server");
     const job = await q1(
-      `INSERT INTO content_generation_jobs (job_type, input_params, output_data, status, total_cost_usd, completed_at)
-       VALUES ('carousel', $1, $2, 'completed', $3, NOW())
+      `INSERT INTO content_generation_jobs (job_type, title, input_params, output_data, status, total_cost_usd, completed_at)
+       VALUES ('carousel', $1, $2, $3, 'draft', $4, NOW())
        RETURNING *`,
-      [JSON.stringify(data), JSON.stringify(result), cost]
+      [result.title || data.topic, JSON.stringify(data), JSON.stringify(result), cost]
     );
 
     return { job, content: result, provider: data.provider, cost };
@@ -60,10 +60,10 @@ export const generateReelScript = createServerFn({ method: "POST" })
     const cost = data.provider === "premium" ? 0.003 : 0;
     const { q1 } = await import("../db.server");
     const job = await q1(
-      `INSERT INTO content_generation_jobs (job_type, input_params, output_data, status, total_cost_usd, completed_at)
-       VALUES ('reel_script', $1, $2, 'completed', $3, NOW())
+      `INSERT INTO content_generation_jobs (job_type, title, input_params, output_data, status, total_cost_usd, completed_at)
+       VALUES ('reel_script', $1, $2, $3, 'draft', $4, NOW())
        RETURNING *`,
-      [JSON.stringify(data), JSON.stringify(result), cost]
+      [result.hook || data.topic, JSON.stringify(data), JSON.stringify(result), cost]
     );
 
     return { job, content: result, provider: data.provider, cost };
@@ -92,10 +92,10 @@ export const generateThumbnail = createServerFn({ method: "POST" })
     const cost = data.provider === "premium" ? 0.003 : 0;
     const { q1 } = await import("../db.server");
     const job = await q1(
-      `INSERT INTO content_generation_jobs (job_type, input_params, output_data, status, total_cost_usd, completed_at)
-       VALUES ('thumbnail', $1, $2, 'completed', $3, NOW())
+      `INSERT INTO content_generation_jobs (job_type, title, input_params, output_data, status, total_cost_usd, completed_at)
+       VALUES ('thumbnail', $1, $2, $3, 'draft', $4, NOW())
        RETURNING *`,
-      [JSON.stringify(data), JSON.stringify(result), cost]
+      [data.title, JSON.stringify(data), JSON.stringify(result), cost]
     );
 
     return { job, content: result, provider: data.provider, cost };
@@ -124,10 +124,10 @@ export const generateStory = createServerFn({ method: "POST" })
     const cost = data.provider === "premium" ? 0.003 : 0;
     const { q1 } = await import("../db.server");
     const job = await q1(
-      `INSERT INTO content_generation_jobs (job_type, input_params, output_data, status, total_cost_usd, completed_at)
-       VALUES ('story', $1, $2, 'completed', $3, NOW())
+      `INSERT INTO content_generation_jobs (job_type, title, input_params, output_data, status, total_cost_usd, completed_at)
+       VALUES ('story', $1, $2, $3, 'draft', $4, NOW())
        RETURNING *`,
-      [JSON.stringify(data), JSON.stringify(result), cost]
+      [data.topic, JSON.stringify(data), JSON.stringify(result), cost]
     );
 
     return { job, content: result, provider: data.provider, cost };
@@ -157,10 +157,10 @@ export const generateThread = createServerFn({ method: "POST" })
     const cost = data.provider === "premium" ? 0.003 : 0;
     const { q1 } = await import("../db.server");
     const job = await q1(
-      `INSERT INTO content_generation_jobs (job_type, input_params, output_data, status, total_cost_usd, completed_at)
-       VALUES ('thread', $1, $2, 'completed', $3, NOW())
+      `INSERT INTO content_generation_jobs (job_type, title, input_params, output_data, status, total_cost_usd, completed_at)
+       VALUES ('thread', $1, $2, $3, 'draft', $4, NOW())
        RETURNING *`,
-      [JSON.stringify(data), JSON.stringify(result), cost]
+      [data.topic, JSON.stringify(data), JSON.stringify(result), cost]
     );
 
     return { job, content: result, provider: data.provider, cost };
@@ -189,10 +189,10 @@ export const generatePoll = createServerFn({ method: "POST" })
     const cost = data.provider === "premium" ? 0.003 : 0;
     const { q1 } = await import("../db.server");
     const job = await q1(
-      `INSERT INTO content_generation_jobs (job_type, input_params, output_data, status, total_cost_usd, completed_at)
-       VALUES ('poll', $1, $2, 'completed', $3, NOW())
+      `INSERT INTO content_generation_jobs (job_type, title, input_params, output_data, status, total_cost_usd, completed_at)
+       VALUES ('poll', $1, $2, $3, 'draft', $4, NOW())
        RETURNING *`,
-      [JSON.stringify(data), JSON.stringify(result), cost]
+      [data.topic, JSON.stringify(data), JSON.stringify(result), cost]
     );
 
     return { job, content: result, provider: data.provider, cost };
