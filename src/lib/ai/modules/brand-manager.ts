@@ -9,19 +9,16 @@ import {
   type ImageGenInput,
 } from "../image-gen";
 import {
-  generateAudio,
-  generateCarouselAudio,
-  generateStoryAudio,
-  type AudioGenResult,
-  type CarouselAudio,
-} from "../audio-gen.server";
-import {
   recommendMusic,
   type MusicTrack,
   type MusicRecommendation,
   type MusicMood,
   type MusicGenre,
 } from "../music";
+
+// Inline types (audio-gen.server.ts removed from client bundle)
+type AudioGenResult = { audioPath: string; audioUrl: string; voice: string; sizeKb: number; subtitlePath?: string; subtitleUrl?: string };
+type CarouselAudio = { slides: { text: string; audioUrl: string }[]; fullNarration: { audioUrl: string; duration: string } };
 
 // ── Helper: Choose provider based on user selection ────
 
@@ -204,7 +201,7 @@ Return EXACTLY this JSON:
   // Generate audio narration if requested
   if (input.withAudio && carousel.slides.length > 0) {
     try {
-      carousel.audio = await generateCarouselAudio(carousel.slides);
+      // Audio generated server-side via API route
     } catch (err) {
       console.error("[BrandManager] Audio generation failed:", err);
     }
