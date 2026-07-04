@@ -1,4 +1,5 @@
 import { aiPremium, aiContent } from "../router";
+import type { AudioGenResult } from "../audio-gen.server";
 
 
 // ── Types ──────────────────────────────────────────────

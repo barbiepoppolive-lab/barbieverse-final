@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { generateBlogPost, generateSocialPost, listContentJobs, getContentStats, deleteContentJob } from "@/lib/api/content-ai.functions";
-import { FileText, MessageCircle, Trash2, Loader2, IndianRupee, Eye } from "lucide-react";
+import { FileText, MessageCircle, Trash2, Loader2, IndianRupee, Eye, X, Copy, Download, Music, Play, Pause, Volume2 } from "lucide-react";
 
 const jobsQO = (type?: string) =>
   queryOptions({ queryKey: ["admin", "content-jobs", type], queryFn: () => listContentJobs({ data: { type } }) });
@@ -16,6 +16,7 @@ function ContentDashboard() {
   const [filterType, setFilterType] = useState<string | undefined>();
   const { data: jobs } = useSuspenseQuery(jobsQO(filterType));
   const { data: stats } = useSuspenseQuery(statsQO);
+  const [detailJob, setDetailJob] = useState<any>(null);
 
   const [blogTopic, setBlogTopic] = useState("");
   const [blogFormat, setBlogFormat] = useState("guide");
@@ -131,7 +132,11 @@ function ContentDashboard() {
         ) : (
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {jobs.map((job: any) => (
-              <div key={job.id} className="rounded-2xl border border-border/60 bg-card/60 p-5 transition-all hover:border-primary/40">
+              <div
+                key={job.id}
+                className="rounded-2xl border border-border/60 bg-card/60 p-5 transition-all hover:border-primary/40 cursor-pointer"
+                onClick={() => setDetailJob(job)}
+              >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
                     {job.job_type === "blog_post" ? <FileText className="h-4 w-4 text-muted-foreground" /> : <MessageCircle className="h-4 w-4 text-muted-foreground" />}
@@ -145,16 +150,148 @@ function ContentDashboard() {
                     <p className="mt-1 line-clamp-2 text-sm">{job.output_data.title || job.output_data.caption || "—"}</p>
                   </div>
                 )}
+                {job.status === "completed" && job.output_data?.audio?.full?.audioUrl && (
+                  <div className="mt-2 flex items-center gap-1 text-[10px] text-purple-500">
+                    <Music className="h-3 w-3" /> Audio narration available
+                  </div>
+                )}
                 <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
                   <span>${Number(job.total_cost_usd || 0).toFixed(4)}</span>
                   <span>{new Date(job.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
                 </div>
-                <button onClick={() => delMut.mutate(job.id)} className="mt-3 inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3 w-3" /> Delete</button>
+                <div className="mt-3 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                  <button onClick={() => setDetailJob(job)} className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"><Eye className="h-3 w-3" /> View</button>
+                  <button onClick={() => delMut.mutate(job.id)} className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3 w-3" /> Delete</button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Detail Drawer */}
+      {detailJob && (
+        <ContentDetailDrawer job={detailJob} onClose={() => setDetailJob(null)} />
+      )}
+    </div>
+  );
+}
+
+// ── Content Detail Drawer ───────────────────────────────
+
+function ContentDetailDrawer({ job, onClose }: { job: any; onClose: () => void }) {
+  const output = job.output_data || {};
+
+  return (
+    <div className="fixed inset-0 z-50 flex">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative ml-auto h-full w-full max-w-2xl bg-background shadow-2xl overflow-y-auto">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border/60 bg-background/95 backdrop-blur p-4">
+          <div>
+            <h2 className="font-semibold">{output.title || output.caption || job.job_type.replace("_", " ").toUpperCase()}</h2>
+            <p className="text-xs text-muted-foreground">{job.status} — {new Date(job.created_at).toLocaleString()}</p>
+          </div>
+          <button onClick={onClose} className="rounded-lg bg-muted p-2 hover:bg-muted/80"><X className="h-4 w-4" /></button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Blog Post */}
+          {job.job_type === "blog_post" && (
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold">{output.title}</h3>
+              <p className="text-sm text-muted-foreground italic">{output.excerpt}</p>
+              <div className="rounded-lg bg-muted/50 p-4">
+                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: output.content }} />
+              </div>
+              {output.category && <span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">{output.category}</span>}
+              <div className="flex flex-wrap gap-1">
+                {output.tags?.map((tag: string, i: number) => (
+                  <span key={i} className="rounded-full bg-muted px-2 py-0.5 text-xs">{tag}</span>
+                ))}
+              </div>
+              {output.audio?.audioUrl && (
+                <div className="rounded-lg bg-muted/50 p-4">
+                  <AudioPlayer url={output.audio.audioUrl} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Social Post */}
+          {job.job_type === "social_post" && (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-muted/50 p-4">
+                <p className="text-sm whitespace-pre-wrap">{output.caption}</p>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {output.hashtags?.map((tag: string, i: number) => (
+                  <span key={i} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">#{tag}</span>
+                ))}
+              </div>
+              {output.audio?.audioUrl && (
+                <div className="rounded-lg bg-muted/50 p-4">
+                  <AudioPlayer url={output.audio.audioUrl} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Metadata */}
+          <div className="rounded-lg bg-muted/50 p-4 space-y-2 text-xs text-muted-foreground">
+            <div className="flex justify-between"><span>Job ID</span><span className="font-mono">{job.id.slice(0, 8)}...</span></div>
+            <div className="flex justify-between"><span>Cost</span><span>${(job.total_cost_usd || 0).toFixed(4)}</span></div>
+            <div className="flex justify-between"><span>Created</span><span>{new Date(job.created_at).toLocaleString()}</span></div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2">
+            <button onClick={() => navigator.clipboard.writeText(JSON.stringify(output, null, 2))} className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-muted px-4 py-2.5 text-sm hover:bg-muted/80">
+              <Copy className="h-4 w-4" /> Copy JSON
+            </button>
+            <button onClick={() => {
+              const text = job.job_type === "blog_post" ? `# ${output.title}\n\n${output.excerpt}\n\n${output.content}` : `${output.caption}\n\n${output.hashtags?.map((t: string) => `#${t}`).join(" ")}`;
+              const blob = new Blob([text], { type: "text/markdown" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a"); a.href = url; a.download = `${job.job_type}_${Date.now()}.md`; a.click();
+            }} className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-muted px-4 py-2.5 text-sm hover:bg-muted/80">
+              <Download className="h-4 w-4" /> Export MD
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Audio Player ────────────────────────────────────────
+
+function AudioPlayer({ url }: { url: string }) {
+  const [playing, setPlaying] = useState(false);
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+
+  const toggle = () => {
+    if (!audio) {
+      const a = new Audio(url);
+      setAudio(a);
+      a.play();
+      setPlaying(true);
+      a.onended = () => setPlaying(false);
+    } else {
+      if (playing) audio.pause(); else audio.play();
+      setPlaying(!playing);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3">
+      <button onClick={toggle} className="rounded-full bg-primary p-2 text-primary-foreground hover:bg-primary/90">
+        {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+      </button>
+      <div className="flex-1">
+        <p className="text-xs font-medium">Audio Narration</p>
+        <p className="text-[10px] text-muted-foreground">Click to play voiceover</p>
+      </div>
+      <Volume2 className="h-4 w-4 text-muted-foreground" />
     </div>
   );
 }

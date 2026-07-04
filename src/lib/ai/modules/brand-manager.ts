@@ -8,7 +8,13 @@ import {
   getProviderStatus,
   type ImageGenInput,
 } from "../image-gen";
-
+import {
+  generateAudio,
+  generateCarouselAudio,
+  generateStoryAudio,
+  type AudioGenResult,
+  type CarouselAudio,
+} from "../audio-gen.server";
 import {
   recommendMusic,
   type MusicTrack,
@@ -65,6 +71,7 @@ export interface CarouselSlide {
   headline: string;
   body: string;
   image_prompt: string;
+  image_url?: string;
 }
 
 export interface CarouselWithAudio {
@@ -180,13 +187,26 @@ Return EXACTLY this JSON:
     hashtags: parsed.hashtags || [],
   };
 
+  // Generate images for each slide
+  if (carousel.slides.length > 0) {
+    try {
+      for (let i = 0; i < carousel.slides.length; i++) {
+        const slide = carousel.slides[i];
+        if (slide.image_prompt) {
+          slide.image_url = await generateContentImage(slide.image_prompt, "instagram", "carousel");
+        }
+      }
+    } catch (err) {
+      console.error("[BrandManager] Slide image generation failed:", err);
+    }
+  }
+
   // Generate audio narration if requested
   if (input.withAudio && carousel.slides.length > 0) {
     try {
-      // Audio generated server-side via cron or API endpoint
+      carousel.audio = await generateCarouselAudio(carousel.slides);
     } catch (err) {
       console.error("[BrandManager] Audio generation failed:", err);
-      // Continue without audio — don't fail the whole generation
     }
   }
 
@@ -380,12 +400,26 @@ Return EXACTLY this JSON:
   const parsed = JSON.parse(jsonMatch[0]);
 
   const storySlides = parsed.slides || [];
-  const storyResult: { slides: typeof storySlides; audio?: { slides: AudioGenResult[]; full: AudioGenResult }; music?: MusicRecommendation } = { slides: storySlides };
+  const storyResult: { slides: (typeof storySlides)[0] & { image_url?: string }[]; audio?: { slides: AudioGenResult[]; full: AudioGenResult }; music?: MusicRecommendation } = { slides: storySlides };
+
+  // Generate images for each story slide
+  if (storySlides.length > 0) {
+    try {
+      for (let i = 0; i < storySlides.length; i++) {
+        const slide = storySlides[i];
+        if (slide.image_prompt) {
+          slide.image_url = await generateContentImage(slide.image_prompt, "instagram", "story");
+        }
+      }
+    } catch (err) {
+      console.error("[BrandManager] Story image generation failed:", err);
+    }
+  }
 
   // Generate audio if requested
   if (input.withAudio && storySlides.length > 0) {
     try {
-      // Audio generated server-side
+      storyResult.audio = await generateStoryAudio(storySlides);
     } catch (err) {
       console.error("[BrandManager] Story audio generation failed:", err);
     }
