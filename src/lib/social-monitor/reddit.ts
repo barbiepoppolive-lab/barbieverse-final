@@ -1,10 +1,38 @@
-// Reddit Monitor — Free Reddit API for keyword monitoring
+// Reddit Monitor — Reddit API for keyword monitoring
+// Uses OAuth2 when REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET are set
+// Falls back to public JSON API (may be blocked from server IPs)
 // Docs: https://www.reddit.com/dev/api/
 
 import type { SocialPost } from "./types";
 
 const REDDIT_BASE_URL = "https://www.reddit.com";
-const USER_AGENT = "Barbieverse/1.0 (Social Media Monitor)";
+const USER_AGENT = "Barbieverse/1.0 (Social Media Monitor; by /u/barbieverse_bot)";
+
+let cachedToken: { token: string; expires: number } | null = null;
+
+async function getRedditToken(): Promise<string | null> {
+  const clientId = process.env.REDDIT_CLIENT_ID;
+  const clientSecret = process.env.REDDIT_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return null;
+
+  if (cachedToken && Date.now() < cachedToken.expires) return cachedToken.token;
+
+  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const resp = await fetch("https://www.reddit.com/api/v1/access_token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${auth}`,
+      "User-Agent": USER_AGENT,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=https://oauth.reddit.com/grants/installed_client&device_id=DO_NOT_TRACK_THIS_DEVICE",
+  });
+
+  if (!resp.ok) return null;
+  const data = await resp.json() as any;
+  cachedToken = { token: data.access_token, expires: Date.now() + (data.expires_in - 60) * 1000 };
+  return data.access_token;
+}
 
 interface RedditPost {
   data: {
@@ -42,8 +70,6 @@ export async function searchReddit(
 ): Promise<SocialPost[]> {
   const posts: SocialPost[] = [];
 
-  // Build search URL
-  const searchIn = subreddit ? `r/${subreddit}` : "all";
   const params = new URLSearchParams({
     q: keyword,
     restrict_sr: subreddit ? "true" : "false",
@@ -52,18 +78,25 @@ export async function searchReddit(
     limit: String(limit),
   });
 
-  const url = `${REDDIT_BASE_URL}/search.json?${params}`;
-  if (subreddit) {
-    params.set("restrict_sr", "true");
+  const token = await getRedditToken();
+  let url: string;
+  let headers: Record<string, string>;
+
+  if (token) {
+    // OAuth2 endpoint
+    url = `https://oauth.reddit.com/r/${subreddit || "all"}/search?${params}`;
+    headers = {
+      Authorization: `Bearer ${token}`,
+      "User-Agent": USER_AGENT,
+    };
+  } else {
+    // Public JSON endpoint (may be blocked from server IPs)
+    url = `${REDDIT_BASE_URL}/r/${subreddit || "all"}/search.json?${params}`;
+    headers = { "User-Agent": USER_AGENT };
   }
 
   try {
-    const response = await fetch(
-      `${REDDIT_BASE_URL}/r/${subreddit || "all"}/search.json?${params}`,
-      {
-        headers: { "User-Agent": USER_AGENT },
-      }
-    );
+    const response = await fetch(url, { headers });
 
     if (!response.ok) {
       console.error(`[reddit] Search failed for "${keyword}": ${response.status}`);

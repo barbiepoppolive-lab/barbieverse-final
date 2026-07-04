@@ -94,41 +94,54 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
   };
 
   // Run all platforms in parallel with per-platform timeouts
-  const [fbPosts, redditPosts, twitterPosts, ytPosts] = await Promise.allSettled([
+  const fbResult = { posts: [] as SocialPost[], error: "" };
+  const redditResult = { posts: [] as SocialPost[], error: "" };
+  const twitterResult = { posts: [] as SocialPost[], error: "" };
+  const ytResult = { posts: [] as SocialPost[], error: "" };
+
+  await Promise.allSettled([
     withTimeout(
       monitorFacebook(cfg.facebookQueries, cfg.maxResultsPerPlatform),
       PLATFORM_TIMEOUT,
       "Facebook"
-    ).catch((e) => { console.error("[social-monitor] Facebook error:", e?.message); return []; }),
+    ).then((p) => { fbResult.posts = p; }).catch((e) => { fbResult.error = e?.message || "unknown"; }),
     withTimeout(
       monitorReddit(cfg.keywords, cfg.redditSubreddits, cfg.maxResultsPerPlatform),
       PLATFORM_TIMEOUT,
       "Reddit"
-    ).catch((e) => { console.error("[social-monitor] Reddit error:", e?.message); return []; }),
+    ).then((p) => { redditResult.posts = p; }).catch((e) => { redditResult.error = e?.message || "unknown"; }),
     withTimeout(
       monitorTwitter(cfg.twitterQueries, cfg.maxResultsPerPlatform),
       PLATFORM_TIMEOUT,
       "Twitter"
-    ).catch((e) => { console.error("[social-monitor] Twitter error:", e?.message); return []; }),
+    ).then((p) => { twitterResult.posts = p; }).catch((e) => { twitterResult.error = e?.message || "unknown"; }),
     withTimeout(
       monitorYouTube(cfg.youtubeQueries, cfg.maxResultsPerPlatform),
       PLATFORM_TIMEOUT,
       "YouTube"
-    ).catch((e) => { console.error("[social-monitor] YouTube error:", e?.message); return []; }),
+    ).then((p) => { ytResult.posts = p; }).catch((e) => { ytResult.error = e?.message || "unknown"; }),
   ]);
 
-  const allPosts: SocialPost[] = [];
-
-  // Unwrap settled results
-  const fb = fbPosts.status === "fulfilled" ? fbPosts.value : [];
-  const reddit = redditPosts.status === "fulfilled" ? redditPosts.value : [];
-  const twitter = twitterPosts.status === "fulfilled" ? twitterPosts.value : [];
-  const youtube = ytPosts.status === "fulfilled" ? ytPosts.value : [];
+  const fb = fbResult.posts;
+  const reddit = redditResult.posts;
+  const twitter = twitterResult.posts;
+  const youtube = ytResult.posts;
 
   results.facebook.found = fb.length;
+  results.facebook.errors = fbResult.error ? 1 : 0;
   results.reddit.found = reddit.length;
+  results.reddit.errors = redditResult.error ? 1 : 0;
   results.twitter.found = twitter.length;
+  results.twitter.errors = twitterResult.error ? 1 : 0;
   results.youtube.found = youtube.length;
+  results.youtube.errors = ytResult.error ? 1 : 0;
+
+  if (fbResult.error) console.error("[social-monitor] Facebook error:", fbResult.error);
+  if (redditResult.error) console.error("[social-monitor] Reddit error:", redditResult.error);
+  if (twitterResult.error) console.error("[social-monitor] Twitter error:", twitterResult.error);
+  if (ytResult.error) console.error("[social-monitor] YouTube error:", ytResult.error);
+
+  const allPosts: SocialPost[] = [...fb, ...reddit, ...twitter, ...youtube];
 
   allPosts.push(...fb, ...reddit, ...twitter, ...youtube);
 

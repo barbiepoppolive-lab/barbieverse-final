@@ -98,7 +98,11 @@ async function handleCron(request: Request): Promise<Response> {
       STEP_TIMEOUT * 2, // 60s for social (runs platforms in parallel internally)
       "Social"
     );
-    results.push(`Social: ${socialResult.total} leads (${socialResult.hotAlerts} hot, ${socialResult.warmAlerts} warm)`);
+    results.push(`Social: ${socialResult.total} total leads (${socialResult.hotAlerts} hot, ${socialResult.warmAlerts} warm)`);
+    results.push(`  Facebook: ${socialResult.facebook.found} found, ${socialResult.facebook.stored} stored, ${socialResult.facebook.errors} errors`);
+    results.push(`  Reddit: ${socialResult.reddit.found} found, ${socialResult.reddit.stored} stored, ${socialResult.reddit.errors} errors`);
+    results.push(`  Twitter: ${socialResult.twitter.found} found, ${socialResult.twitter.stored} stored, ${socialResult.twitter.errors} errors`);
+    results.push(`  YouTube: ${socialResult.youtube.found} found, ${socialResult.youtube.stored} stored, ${socialResult.youtube.errors} errors`);
   } catch (err: any) {
     results.push(`Social ERROR: ${err.message}`);
   }
