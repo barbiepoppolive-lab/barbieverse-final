@@ -5,7 +5,7 @@ import { listSocialLeads, getSocialLeadStats, updateSocialLeadStatus, runSocialM
 import {
   Globe, Facebook, Twitter, Youtube, MessageCircle,
   ExternalLink, Copy, CheckCircle, Flame, Sun, Snowflake,
-  RefreshCw, Eye, Send, Loader2, AlertCircle, Hash,
+  RefreshCw, Eye, Send, Loader2, AlertCircle, Hash, Camera,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/social-leads")({
@@ -17,6 +17,7 @@ const PLATFORM_CONFIG: Record<string, { icon: any; color: string; label: string 
   reddit: { icon: MessageCircle, color: "text-orange-400", label: "Reddit" },
   twitter: { icon: Twitter, color: "text-sky-400", label: "Twitter" },
   youtube: { icon: Youtube, color: "text-red-400", label: "YouTube" },
+  instagram: { icon: Camera, color: "text-pink-400", label: "Instagram" },
 };
 
 const CATEGORY_CONFIG: Record<string, { icon: any; color: string; bg: string }> = {
@@ -25,7 +26,7 @@ const CATEGORY_CONFIG: Record<string, { icon: any; color: string; bg: string }> 
   cold: { icon: Snowflake, color: "text-blue-400", bg: "bg-blue-500/10" },
 };
 
-type FilterTab = "all" | "facebook" | "reddit" | "twitter" | "hot" | "warm" | "cold";
+type FilterTab = "all" | "facebook" | "reddit" | "twitter" | "youtube" | "instagram" | "hot" | "warm" | "cold";
 
 function SocialLeadsDashboard() {
   const [leads, setLeads] = useState<any[]>([]);
@@ -49,7 +50,7 @@ function SocialLeadsDashboard() {
       const [leadsResult, statsResult] = await Promise.all([
         fetchLeads({
           data: {
-            platform: ["facebook", "reddit", "twitter"].includes(filter) ? filter as any : undefined,
+            platform: ["facebook", "reddit", "twitter", "youtube", "instagram"].includes(filter) ? filter as any : undefined,
             category: ["hot", "warm", "cold"].includes(filter) ? filter as any : undefined,
             sort,
             page,
@@ -97,7 +98,9 @@ function SocialLeadsDashboard() {
 
   const tabs: { id: FilterTab; label: string; count?: number }[] = [
     { id: "all", label: "All", count: stats?.total },
+    { id: "youtube", label: "YouTube", count: stats?.byPlatform?.youtube },
     { id: "facebook", label: "Facebook", count: stats?.byPlatform?.facebook },
+    { id: "instagram", label: "Instagram", count: stats?.byPlatform?.instagram },
     { id: "reddit", label: "Reddit", count: stats?.byPlatform?.reddit },
     { id: "twitter", label: "Twitter", count: stats?.byPlatform?.twitter },
     { id: "hot", label: "Hot", count: stats?.hot },

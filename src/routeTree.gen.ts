@@ -31,7 +31,6 @@ import { Route as AcademyIndexRouteImport } from './routes/academy.index'
 import { Route as JoinWobbRouteImport } from './routes/join.wobb'
 import { Route as BlogHowToEarnMoneyOnPoppoLiveIndiaRouteImport } from './routes/blog.how-to-earn-money-on-poppo-live-india'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
-import { Route as AdminUpiSetupRouteImport } from './routes/admin.upi-setup'
 import { Route as AdminUnmatchedRouteImport } from './routes/admin.unmatched'
 import { Route as AdminSocialLeadsRouteImport } from './routes/admin.social-leads'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
@@ -47,7 +46,6 @@ import { Route as AdminLeadsRouteImport } from './routes/admin.leads'
 import { Route as AdminHomepageRouteImport } from './routes/admin.homepage'
 import { Route as AdminCreatorLeadsRouteImport } from './routes/admin.creator-leads'
 import { Route as AdminCostsRouteImport } from './routes/admin.costs'
-import { Route as AdminContentCompareRouteImport } from './routes/admin.content-compare'
 import { Route as AdminContentRouteImport } from './routes/admin.content'
 import { Route as AdminBrandManagerRouteImport } from './routes/admin.brand-manager'
 import { Route as AcademyWhatIsPoppoLiveRouteImport } from './routes/academy.what-is-poppo-live'
@@ -65,7 +63,6 @@ import { Route as ApiPublicInteraktActionRouteImport } from './routes/api/public
 import { Route as ApiPublicCronSocialRouteImport } from './routes/api/public/cron-social'
 import { Route as ApiPublicCronScrapeRouteImport } from './routes/api/public/cron-scrape'
 import { Route as ApiPublicChatRouteImport } from './routes/api/public/chat'
-import { Route as ApiBrandManagerCompareRouteImport } from './routes/api.brand-manager.compare'
 
 const VerifyRoute = VerifyRouteImport.update({
   id: '/verify',
@@ -178,11 +175,6 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => BlogRoute,
 } as any)
-const AdminUpiSetupRoute = AdminUpiSetupRouteImport.update({
-  id: '/upi-setup',
-  path: '/upi-setup',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminUnmatchedRoute = AdminUnmatchedRouteImport.update({
   id: '/unmatched',
   path: '/unmatched',
@@ -256,11 +248,6 @@ const AdminCreatorLeadsRoute = AdminCreatorLeadsRouteImport.update({
 const AdminCostsRoute = AdminCostsRouteImport.update({
   id: '/costs',
   path: '/costs',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminContentCompareRoute = AdminContentCompareRouteImport.update({
-  id: '/content-compare',
-  path: '/content-compare',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminContentRoute = AdminContentRouteImport.update({
@@ -352,11 +339,6 @@ const ApiPublicChatRoute = ApiPublicChatRouteImport.update({
   path: '/api/public/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiBrandManagerCompareRoute = ApiBrandManagerCompareRouteImport.update({
-  id: '/api/brand-manager/compare',
-  path: '/api/brand-manager/compare',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -386,7 +368,6 @@ export interface FileRoutesByFullPath {
   '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
   '/admin/brand-manager': typeof AdminBrandManagerRoute
   '/admin/content': typeof AdminContentRoute
-  '/admin/content-compare': typeof AdminContentCompareRoute
   '/admin/costs': typeof AdminCostsRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
@@ -402,13 +383,11 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/social-leads': typeof AdminSocialLeadsRoute
   '/admin/unmatched': typeof AdminUnmatchedRoute
-  '/admin/upi-setup': typeof AdminUpiSetupRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyOnPoppoLiveIndiaRoute
   '/join/wobb': typeof JoinWobbRoute
   '/academy/': typeof AcademyIndexRoute
   '/admin/': typeof AdminIndexRoute
-  '/api/brand-manager/compare': typeof ApiBrandManagerCompareRoute
   '/api/public/chat': typeof ApiPublicChatRoute
   '/api/public/cron-scrape': typeof ApiPublicCronScrapeRoute
   '/api/public/cron-social': typeof ApiPublicCronSocialRoute
@@ -443,7 +422,6 @@ export interface FileRoutesByTo {
   '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
   '/admin/brand-manager': typeof AdminBrandManagerRoute
   '/admin/content': typeof AdminContentRoute
-  '/admin/content-compare': typeof AdminContentCompareRoute
   '/admin/costs': typeof AdminCostsRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
@@ -459,13 +437,11 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/social-leads': typeof AdminSocialLeadsRoute
   '/admin/unmatched': typeof AdminUnmatchedRoute
-  '/admin/upi-setup': typeof AdminUpiSetupRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyOnPoppoLiveIndiaRoute
   '/join/wobb': typeof JoinWobbRoute
   '/academy': typeof AcademyIndexRoute
   '/admin': typeof AdminIndexRoute
-  '/api/brand-manager/compare': typeof ApiBrandManagerCompareRoute
   '/api/public/chat': typeof ApiPublicChatRoute
   '/api/public/cron-scrape': typeof ApiPublicCronScrapeRoute
   '/api/public/cron-social': typeof ApiPublicCronSocialRoute
@@ -503,7 +479,6 @@ export interface FileRoutesById {
   '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
   '/admin/brand-manager': typeof AdminBrandManagerRoute
   '/admin/content': typeof AdminContentRoute
-  '/admin/content-compare': typeof AdminContentCompareRoute
   '/admin/costs': typeof AdminCostsRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
@@ -519,13 +494,11 @@ export interface FileRoutesById {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/social-leads': typeof AdminSocialLeadsRoute
   '/admin/unmatched': typeof AdminUnmatchedRoute
-  '/admin/upi-setup': typeof AdminUpiSetupRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyOnPoppoLiveIndiaRoute
   '/join/wobb': typeof JoinWobbRoute
   '/academy/': typeof AcademyIndexRoute
   '/admin/': typeof AdminIndexRoute
-  '/api/brand-manager/compare': typeof ApiBrandManagerCompareRoute
   '/api/public/chat': typeof ApiPublicChatRoute
   '/api/public/cron-scrape': typeof ApiPublicCronScrapeRoute
   '/api/public/cron-social': typeof ApiPublicCronSocialRoute
@@ -564,7 +537,6 @@ export interface FileRouteTypes {
     | '/academy/what-is-poppo-live'
     | '/admin/brand-manager'
     | '/admin/content'
-    | '/admin/content-compare'
     | '/admin/costs'
     | '/admin/creator-leads'
     | '/admin/homepage'
@@ -580,13 +552,11 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/social-leads'
     | '/admin/unmatched'
-    | '/admin/upi-setup'
     | '/blog/$slug'
     | '/blog/how-to-earn-money-on-poppo-live-india'
     | '/join/wobb'
     | '/academy/'
     | '/admin/'
-    | '/api/brand-manager/compare'
     | '/api/public/chat'
     | '/api/public/cron-scrape'
     | '/api/public/cron-social'
@@ -621,7 +591,6 @@ export interface FileRouteTypes {
     | '/academy/what-is-poppo-live'
     | '/admin/brand-manager'
     | '/admin/content'
-    | '/admin/content-compare'
     | '/admin/costs'
     | '/admin/creator-leads'
     | '/admin/homepage'
@@ -637,13 +606,11 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/social-leads'
     | '/admin/unmatched'
-    | '/admin/upi-setup'
     | '/blog/$slug'
     | '/blog/how-to-earn-money-on-poppo-live-india'
     | '/join/wobb'
     | '/academy'
     | '/admin'
-    | '/api/brand-manager/compare'
     | '/api/public/chat'
     | '/api/public/cron-scrape'
     | '/api/public/cron-social'
@@ -680,7 +647,6 @@ export interface FileRouteTypes {
     | '/academy/what-is-poppo-live'
     | '/admin/brand-manager'
     | '/admin/content'
-    | '/admin/content-compare'
     | '/admin/costs'
     | '/admin/creator-leads'
     | '/admin/homepage'
@@ -696,13 +662,11 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/social-leads'
     | '/admin/unmatched'
-    | '/admin/upi-setup'
     | '/blog/$slug'
     | '/blog/how-to-earn-money-on-poppo-live-india'
     | '/join/wobb'
     | '/academy/'
     | '/admin/'
-    | '/api/brand-manager/compare'
     | '/api/public/chat'
     | '/api/public/cron-scrape'
     | '/api/public/cron-social'
@@ -730,7 +694,6 @@ export interface RootRouteChildren {
   TrackRoute: typeof TrackRoute
   TrackApplicationRoute: typeof TrackApplicationRoute
   VerifyRoute: typeof VerifyRoute
-  ApiBrandManagerCompareRoute: typeof ApiBrandManagerCompareRoute
   ApiPublicChatRoute: typeof ApiPublicChatRoute
   ApiPublicCronScrapeRoute: typeof ApiPublicCronScrapeRoute
   ApiPublicCronSocialRoute: typeof ApiPublicCronSocialRoute
@@ -896,13 +859,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof BlogRoute
     }
-    '/admin/upi-setup': {
-      id: '/admin/upi-setup'
-      path: '/upi-setup'
-      fullPath: '/admin/upi-setup'
-      preLoaderRoute: typeof AdminUpiSetupRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/unmatched': {
       id: '/admin/unmatched'
       path: '/unmatched'
@@ -1006,13 +962,6 @@ declare module '@tanstack/react-router' {
       path: '/costs'
       fullPath: '/admin/costs'
       preLoaderRoute: typeof AdminCostsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/content-compare': {
-      id: '/admin/content-compare'
-      path: '/content-compare'
-      fullPath: '/admin/content-compare'
-      preLoaderRoute: typeof AdminContentCompareRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/content': {
@@ -1134,13 +1083,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicChatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/brand-manager/compare': {
-      id: '/api/brand-manager/compare'
-      path: '/api/brand-manager/compare'
-      fullPath: '/api/brand-manager/compare'
-      preLoaderRoute: typeof ApiBrandManagerCompareRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -1174,7 +1116,6 @@ const AcademyRouteWithChildren =
 interface AdminRouteChildren {
   AdminBrandManagerRoute: typeof AdminBrandManagerRoute
   AdminContentRoute: typeof AdminContentRoute
-  AdminContentCompareRoute: typeof AdminContentCompareRoute
   AdminCostsRoute: typeof AdminCostsRoute
   AdminCreatorLeadsRoute: typeof AdminCreatorLeadsRoute
   AdminHomepageRoute: typeof AdminHomepageRoute
@@ -1190,14 +1131,12 @@ interface AdminRouteChildren {
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminSocialLeadsRoute: typeof AdminSocialLeadsRoute
   AdminUnmatchedRoute: typeof AdminUnmatchedRoute
-  AdminUpiSetupRoute: typeof AdminUpiSetupRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBrandManagerRoute: AdminBrandManagerRoute,
   AdminContentRoute: AdminContentRoute,
-  AdminContentCompareRoute: AdminContentCompareRoute,
   AdminCostsRoute: AdminCostsRoute,
   AdminCreatorLeadsRoute: AdminCreatorLeadsRoute,
   AdminHomepageRoute: AdminHomepageRoute,
@@ -1213,7 +1152,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminSettingsRoute: AdminSettingsRoute,
   AdminSocialLeadsRoute: AdminSocialLeadsRoute,
   AdminUnmatchedRoute: AdminUnmatchedRoute,
-  AdminUpiSetupRoute: AdminUpiSetupRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
@@ -1260,7 +1198,6 @@ const rootRouteChildren: RootRouteChildren = {
   TrackRoute: TrackRoute,
   TrackApplicationRoute: TrackApplicationRoute,
   VerifyRoute: VerifyRoute,
-  ApiBrandManagerCompareRoute: ApiBrandManagerCompareRoute,
   ApiPublicChatRoute: ApiPublicChatRoute,
   ApiPublicCronScrapeRoute: ApiPublicCronScrapeRoute,
   ApiPublicCronSocialRoute: ApiPublicCronSocialRoute,
