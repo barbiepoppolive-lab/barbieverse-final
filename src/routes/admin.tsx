@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, redirect, useRouter } from "@tanstack/react-router";
 import { adminStatus, adminLogout } from "@/lib/api/admin.functions";
 import { useServerFn } from "@tanstack/react-start";
-import { Sparkles, LayoutDashboard, Users, ShoppingCart, Settings as SettingsIcon, FileText, LogOut, Home, Megaphone, AlertTriangle, Smartphone, UserPlus, ScrollText, IndianRupee, Radar, Globe, MessageCircle, BarChart3, Bell } from "lucide-react";
+import { Sparkles, LayoutDashboard, Users, ShoppingCart, Settings as SettingsIcon, FileText, LogOut, Home, Megaphone, AlertTriangle, UserPlus, ScrollText, IndianRupee, Radar, Globe, MessageCircle, BarChart3, Bell } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
 export const Route = createFileRoute("/admin")({
@@ -49,9 +49,6 @@ function AdminLayout() {
     { to: "/admin/marketing", label: "Marketing", icon: Megaphone },
     { to: "/admin/posts", label: "Posts", icon: FileText },
     { to: "/admin/brand-manager", label: "Brand Manager", icon: Sparkles },
-    { to: "/admin/content-compare", label: "Compare AI", icon: BarChart3 },
-    { to: "/admin/content", label: "Content AI", icon: Megaphone },
-    { to: "/admin/upi-setup", label: "UPI Setup", icon: Smartphone },
     { to: "/admin/policies", label: "Policies", icon: ScrollText },
     { to: "/admin/settings", label: "Settings", icon: SettingsIcon },
   ];

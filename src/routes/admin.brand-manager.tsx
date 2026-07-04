@@ -26,6 +26,13 @@ import {
   getVideoGenStatus as getVideoGenStatusFn,
 } from "@/lib/api/video-gen.functions";
 import {
+  generateBlogPost,
+  generateSocialPost,
+  listContentJobs,
+  getContentStats,
+  deleteContentJob,
+} from "@/lib/api/content-ai.functions";
+import {
   Sparkles, Image, Film, Layout, MessageSquare, BarChart3,
   Calendar, ChevronLeft, ChevronRight, Loader2, Check, Clock,
   Send, Trash2, Copy, RefreshCw, Zap, Target, Hash, ArrowRight,
@@ -39,7 +46,7 @@ export const Route = createFileRoute("/admin/brand-manager")({
   component: BrandManagerPage,
 });
 
-type Tab = "generators" | "video" | "queue" | "calendar" | "stats" | "templates";
+type Tab = "generators" | "video" | "content" | "queue" | "calendar" | "stats" | "templates";
 type GeneratorType = "carousel" | "reel" | "thumbnail" | "story" | "thread" | "poll";
 type ProviderChoice = "premium" | "free";
 
@@ -181,7 +188,7 @@ function BrandManagerPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-xl bg-muted/50 p-1">
-        {(["generators", "video", "queue", "calendar", "stats"] as Tab[]).map((t) => (
+        {(["generators", "video", "content", "queue", "calendar", "stats"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -189,7 +196,7 @@ function BrandManagerPage() {
               tab === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "generators" ? "Content Studio" : t === "video" ? "Video Studio" : t === "queue" ? "Approval Queue" : t === "calendar" ? "Calendar" : "Analytics"}
+            {t === "generators" ? "Content Studio" : t === "video" ? "Video Studio" : t === "content" ? "Blog & Social" : t === "queue" ? "Approval Queue" : t === "calendar" ? "Calendar" : "Analytics"}
           </button>
         ))}
       </div>
@@ -529,6 +536,9 @@ function BrandManagerPage() {
         </div>
       )}
 
+      {/* Content AI Tab (Blog & Social) */}
+      {tab === "content" && <ContentAITab />}
+
       {/* Queue Tab */}
       {tab === "queue" && <QueueTab onViewDetail={setDetailItem} />}
 
@@ -865,6 +875,114 @@ function AudioPlayer({ url }: { url: string }) {
         <p className="text-[10px] text-muted-foreground">Click to play voiceover</p>
       </div>
       <Volume2 className="h-4 w-4 text-muted-foreground" />
+    </div>
+  );
+}
+
+// ── Content AI Tab (Blog & Social) ──────────────────────
+
+function ContentAITab() {
+  const [blogTopic, setBlogTopic] = useState("");
+  const [blogFormat, setBlogFormat] = useState("guide");
+  const [blogWords, setBlogWords] = useState(800);
+  const [socialPlatform, setSocialPlatform] = useState("instagram");
+  const [socialTopic, setSocialTopic] = useState("");
+  const [socialGoal, setSocialGoal] = useState("engagement");
+  const [blogLoading, setBlogLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(false);
+  const [detailJob, setDetailJob] = useState<any>(null);
+  const [blogTab, setBlogTab] = useState<"blog" | "social">("blog");
+
+  const handleBlogGenerate = async () => {
+    if (!blogTopic.trim()) return;
+    setBlogLoading(true);
+    try {
+      await generateBlogPost({ data: { topic: blogTopic, format: blogFormat, word_count: blogWords } });
+      setBlogTopic("");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setBlogLoading(false);
+    }
+  };
+
+  const handleSocialGenerate = async () => {
+    if (!socialTopic.trim()) return;
+    setSocialLoading(true);
+    try {
+      await generateSocialPost({ data: { platform: socialPlatform, topic: socialTopic, goal: socialGoal } });
+      setSocialTopic("");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSocialLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex gap-2 border-b border-border/60">
+        <button onClick={() => setBlogTab("blog")} className={`px-4 py-2 text-sm font-medium border-b-2 ${blogTab === "blog" ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>Blog Posts</button>
+        <button onClick={() => setBlogTab("social")} className={`px-4 py-2 text-sm font-medium border-b-2 ${blogTab === "social" ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>Social Posts</button>
+      </div>
+
+      {blogTab === "blog" && (
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-6">
+          <h3 className="font-display text-lg font-bold">Generate Blog Post</h3>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Topic</label>
+              <input value={blogTopic} onChange={(e) => setBlogTopic(e.target.value)} placeholder="How to earn money on Poppo Live..." className="w-full rounded-lg border border-border/60 bg-background/60 px-4 py-2.5 text-sm" />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Format</label>
+              <select value={blogFormat} onChange={(e) => setBlogFormat(e.target.value)} className="w-full rounded-lg border border-border/60 bg-background/60 px-3 py-2.5 text-sm">
+                <option value="guide">Guide</option><option value="listicle">Listicle</option><option value="how-to">How-To</option><option value="story">Story</option><option value="news">News</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Word Count</label>
+              <select value={blogWords} onChange={(e) => setBlogWords(Number(e.target.value))} className="w-full rounded-lg border border-border/60 bg-background/60 px-3 py-2.5 text-sm">
+                <option value={500}>500</option><option value={800}>800</option><option value={1200}>1200</option><option value={2000}>2000</option>
+              </select>
+            </div>
+          </div>
+          <div className="mt-4 flex items-center gap-3">
+            <button onClick={handleBlogGenerate} disabled={!blogTopic.trim() || blogLoading} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-2.5 text-sm font-bold text-white shadow-lg disabled:opacity-50">
+              {blogLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating...</> : <><FileText className="h-4 w-4" /> Generate Blog Post</>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {blogTab === "social" && (
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-6">
+          <h3 className="font-display text-lg font-bold">Generate Social Post</h3>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Platform</label>
+              <select value={socialPlatform} onChange={(e) => setSocialPlatform(e.target.value)} className="w-full rounded-lg border border-border/60 bg-background/60 px-3 py-2.5 text-sm">
+                <option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="linkedin">LinkedIn</option><option value="facebook">Facebook</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Goal</label>
+              <select value={socialGoal} onChange={(e) => setSocialGoal(e.target.value)} className="w-full rounded-lg border border-border/60 bg-background/60 px-3 py-2.5 text-sm">
+                <option value="engagement">Engagement</option><option value="traffic">Traffic</option><option value="sales">Sales</option><option value="awareness">Awareness</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Topic</label>
+              <input value={socialTopic} onChange={(e) => setSocialTopic(e.target.value)} placeholder="Creator success stories, platform tips..." className="w-full rounded-lg border border-border/60 bg-background/60 px-4 py-2.5 text-sm" />
+            </div>
+          </div>
+          <div className="mt-4 flex items-center gap-3">
+            <button onClick={handleSocialGenerate} disabled={!socialTopic.trim() || socialLoading} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 px-6 py-2.5 text-sm font-bold text-white shadow-lg disabled:opacity-50">
+              {socialLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating...</> : <><MessageSquare className="h-4 w-4" /> Generate Social Post</>}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
