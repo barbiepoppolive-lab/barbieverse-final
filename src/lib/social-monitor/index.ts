@@ -3,6 +3,7 @@ export * from "./facebook";
 export * from "./reddit";
 export * from "./twitter";
 export * from "./youtube";
+export * from "./instagram";
 export * from "./ai-comment";
 export * from "./telegram-alert";
 
@@ -10,6 +11,7 @@ import { monitorFacebook } from "./facebook";
 import { monitorReddit } from "./reddit";
 import { monitorTwitter } from "./twitter";
 import { monitorYouTube } from "./youtube";
+import { monitorInstagram } from "./instagram";
 import { generateComment } from "./ai-comment";
 import { sendSocialLeadAlert, sendSocialDigest } from "./telegram-alert";
 import { DEFAULT_MONITOR_CONFIG, loadMonitorConfig } from "./types";
@@ -88,6 +90,7 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
     reddit: { found: 0, stored: 0, errors: 0 },
     twitter: { found: 0, stored: 0, errors: 0 },
     youtube: { found: 0, stored: 0, errors: 0 },
+    instagram: { found: 0, stored: 0, errors: 0 },
     total: 0,
     hotAlerts: 0,
     warmAlerts: 0,
@@ -98,6 +101,7 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
   const redditResult = { posts: [] as SocialPost[], error: "" };
   const twitterResult = { posts: [] as SocialPost[], error: "" };
   const ytResult = { posts: [] as SocialPost[], error: "" };
+  const igResult = { posts: [] as SocialPost[], error: "" };
 
   await Promise.allSettled([
     withTimeout(
@@ -120,12 +124,18 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
       PLATFORM_TIMEOUT,
       "YouTube"
     ).then((p) => { ytResult.posts = p; }).catch((e) => { ytResult.error = e?.message || "unknown"; }),
+    withTimeout(
+      monitorInstagram(cfg.instagramHashtags, cfg.maxResultsPerPlatform),
+      PLATFORM_TIMEOUT,
+      "Instagram"
+    ).then((p) => { igResult.posts = p; }).catch((e) => { igResult.error = e?.message || "unknown"; }),
   ]);
 
   const fb = fbResult.posts;
   const reddit = redditResult.posts;
   const twitter = twitterResult.posts;
   const youtube = ytResult.posts;
+  const instagram = igResult.posts;
 
   results.facebook.found = fb.length;
   results.facebook.errors = fbResult.error ? 1 : 0;
@@ -135,18 +145,22 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
   results.twitter.errors = twitterResult.error ? 1 : 0;
   results.youtube.found = youtube.length;
   results.youtube.errors = ytResult.error ? 1 : 0;
+  results.instagram.found = instagram.length;
+  results.instagram.errors = igResult.error ? 1 : 0;
 
   if (fbResult.error) console.error("[social-monitor] Facebook error:", fbResult.error);
   if (redditResult.error) console.error("[social-monitor] Reddit error:", redditResult.error);
   if (twitterResult.error) console.error("[social-monitor] Twitter error:", twitterResult.error);
   if (ytResult.error) console.error("[social-monitor] YouTube error:", ytResult.error);
+  if (igResult.error) console.error("[social-monitor] Instagram error:", igResult.error);
 
-  const allPosts: SocialPost[] = [...fb, ...reddit, ...twitter, ...youtube];
+  const allPosts: SocialPost[] = [...fb, ...reddit, ...twitter, ...youtube, ...instagram];
 
   // Filter by minimum engagement
-  // YouTube search API doesn't return engagement data, so always include YouTube posts
+  // YouTube and Instagram search APIs don't return engagement data, so always include them
+  const noEngagementPlatforms = new Set(["youtube", "instagram"]);
   const filteredPosts = allPosts.filter(
-    (p) => p.platform === "youtube" || (p.likes + p.comments + p.shares) >= cfg.minEngagement
+    (p) => noEngagementPlatforms.has(p.platform) || (p.likes + p.comments + p.shares) >= cfg.minEngagement
   );
 
   // Generate AI comments and store leads (max 5 per run to stay fast)
@@ -190,6 +204,7 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
         if (post.platform === "reddit") results.reddit.stored++;
         if (post.platform === "twitter") results.twitter.stored++;
         if (post.platform === "youtube") results.youtube.stored++;
+        if (post.platform === "instagram") results.instagram.stored++;
       }
     } catch (e: any) {
       console.error(`[social-monitor] Error processing ${post.postUrl}:`, e?.message);

@@ -103,6 +103,7 @@ async function handleCron(request: Request): Promise<Response> {
     results.push(`  Reddit: ${socialResult.reddit.found} found, ${socialResult.reddit.stored} stored, ${socialResult.reddit.errors} errors`);
     results.push(`  Twitter: ${socialResult.twitter.found} found, ${socialResult.twitter.stored} stored, ${socialResult.twitter.errors} errors`);
     results.push(`  YouTube: ${socialResult.youtube.found} found, ${socialResult.youtube.stored} stored, ${socialResult.youtube.errors} errors`);
+    results.push(`  Instagram: ${socialResult.instagram.found} found, ${socialResult.instagram.stored} stored, ${socialResult.instagram.errors} errors`);
   } catch (err: any) {
     results.push(`Social ERROR: ${err.message}`);
   }

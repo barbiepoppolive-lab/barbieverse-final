@@ -1,6 +1,6 @@
 // Social Media Monitor — Type definitions
 
-export type SocialPlatform = "facebook" | "reddit" | "twitter" | "youtube";
+export type SocialPlatform = "facebook" | "reddit" | "twitter" | "youtube" | "instagram";
 
 export type PostCategory = "hot" | "warm" | "cold";
 
@@ -66,6 +66,8 @@ export interface MonitorConfig {
   twitterQueries: string[];
   /** YouTube search queries */
   youtubeQueries: string[];
+  /** Instagram hashtag queries */
+  instagramHashtags: string[];
   /** Maximum results per platform per run */
   maxResultsPerPlatform: number;
   /** Minimum engagement score to consider (likes + comments + shares) */
@@ -133,6 +135,13 @@ export const DEFAULT_MONITOR_CONFIG: MonitorConfig = {
     "tiktok streamer tips",
     "how to earn from live streaming",
   ],
+  instagramHashtags: [
+    "poppolive",
+    "vonelive",
+    "livestreaming",
+    "earnfromhome",
+    "sidehustleindia",
+  ],
   maxResultsPerPlatform: 20,
   minEngagement: 2,
 };
@@ -163,6 +172,7 @@ export async function loadMonitorConfig(): Promise<MonitorConfig> {
       facebookQueries: parseList(db.scraper_facebook_queries, DEFAULT_MONITOR_CONFIG.facebookQueries),
       twitterQueries: parseList(db.scraper_twitter_queries, DEFAULT_MONITOR_CONFIG.twitterQueries),
       youtubeQueries: parseList(db.scraper_youtube_queries, DEFAULT_MONITOR_CONFIG.youtubeQueries),
+      instagramHashtags: parseList(db.scraper_instagram_hashtags, DEFAULT_MONITOR_CONFIG.instagramHashtags),
       maxResultsPerPlatform: parseInt(db.scraper_max_results || "") || DEFAULT_MONITOR_CONFIG.maxResultsPerPlatform,
       minEngagement: parseInt(db.scraper_min_engagement || "") || DEFAULT_MONITOR_CONFIG.minEngagement,
     };
