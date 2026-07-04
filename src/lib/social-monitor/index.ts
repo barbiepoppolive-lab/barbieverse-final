@@ -143,11 +143,10 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
 
   const allPosts: SocialPost[] = [...fb, ...reddit, ...twitter, ...youtube];
 
-  allPosts.push(...fb, ...reddit, ...twitter, ...youtube);
-
   // Filter by minimum engagement
+  // YouTube search API doesn't return engagement data, so always include YouTube posts
   const filteredPosts = allPosts.filter(
-    (p) => (p.likes + p.comments + p.shares) >= cfg.minEngagement
+    (p) => p.platform === "youtube" || (p.likes + p.comments + p.shares) >= cfg.minEngagement
   );
 
   // Generate AI comments and store leads (max 15 per run to stay fast)
