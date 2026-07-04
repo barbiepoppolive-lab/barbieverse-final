@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS email_send_log (
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_email_send_log_date ON email_send_log (date_trunc('day', created_at));
+CREATE INDEX IF NOT EXISTS idx_email_send_log_date ON email_send_log (created_at);
 
 -- Warmup settings (seed defaults)
 INSERT INTO settings (key, value) VALUES
