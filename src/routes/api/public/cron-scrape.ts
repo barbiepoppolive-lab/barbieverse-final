@@ -95,7 +95,7 @@ async function handleCron(request: Request): Promise<Response> {
     const { monitorAllPlatforms } = await import("@/lib/social-monitor/index");
     const socialResult = await withTimeout(
       monitorAllPlatforms(),
-      STEP_TIMEOUT * 2, // 60s for social (runs platforms in parallel internally)
+      STEP_TIMEOUT * 3, // 90s for social (platforms + AI comments)
       "Social"
     );
     results.push(`Social: ${socialResult.total} total leads (${socialResult.hotAlerts} hot, ${socialResult.warmAlerts} warm)`);

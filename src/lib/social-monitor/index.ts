@@ -149,8 +149,8 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
     (p) => p.platform === "youtube" || (p.likes + p.comments + p.shares) >= cfg.minEngagement
   );
 
-  // Generate AI comments and store leads (max 15 per run to stay fast)
-  for (const post of filteredPosts.slice(0, 15)) {
+  // Generate AI comments and store leads (max 5 per run to stay fast)
+  for (const post of filteredPosts.slice(0, 5)) {
     try {
       const aiResult = await generateComment(
         post.postText,
