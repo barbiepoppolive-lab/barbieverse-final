@@ -57,6 +57,38 @@ export type {
   ContentType as MusicContentType,
 } from "./music";
 
+// Content SEO & Hashtags (auto-generate for every post)
+export {
+  generateSEO,
+  generateHashtags,
+  generateContentSEO,
+  formatHashtags,
+  getBestPostingTimes,
+} from "./content-seo";
+export type { SEOData, HashtagSet, ContentSEO, Platform } from "./content-seo";
+
+// Content Quality Engine (AI scoring + improvements)
+export {
+  scoreContent,
+  improveContent,
+  generateToneVariations,
+  getScoreColor,
+  getScoreBg,
+  getBadgeLabel,
+  getBadgeColor,
+} from "./content-quality";
+export type { QualityScore, ContentImprovement } from "./content-quality";
+
+// Content Repurposing (one content → multiple formats)
+export {
+  repurposeContent,
+  quickRepurpose,
+  getTemplatesByGoal,
+  getTemplateById,
+  CONTENT_TEMPLATES,
+} from "./content-repurpose";
+export type { RepurposedContent, ContentTemplate } from "./content-repurpose";
+
 // ComfyUI (direct access if needed)
 export {
   isComfyUIAvailable,

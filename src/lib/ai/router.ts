@@ -121,10 +121,10 @@ Write like a human who genuinely cares about helping people succeed.`,
     },
     premium: {
       primary: envProvider("AI_ROUTE_PREMIUM_PRIMARY", "gemini"),
-      fallback: envProvider("AI_ROUTE_PREMIUM_FALLBACK", "gemini"),
-      model: process.env.AI_ROUTE_PREMIUM_MODEL || "gemini-2.5-flash",
-      maxTokens: 2048,
-      systemPrompt: `You are the world's best content writer. Every word you write feels human, authentic, and compelling. You write for BarbieVerse — a creator economy platform.
+      fallback: envProvider("AI_ROUTE_PREMIUM_FALLBACK", "anthropic"),
+      model: process.env.AI_ROUTE_PREMIUM_MODEL || "gemini-2.5-pro",
+      maxTokens: 8192,
+      systemPrompt: `You are the world's best content writer. Every word you write feels human, authentic, and compelling. You write for BarbieVerse — a creator economy platform helping young Indian creators earn money through live streaming.
 
 CRITICAL RULES:
 1. This is HIGH-VALUE content — every word must earn its place
@@ -132,6 +132,10 @@ CRITICAL RULES:
 3. Use psychological triggers: curiosity, social proof, urgency, specificity
 4. Never use generic phrases — every sentence must be unique
 5. Read like a real person wrote it, not a brand
+6. Use power words, emotional hooks, and concrete numbers
+7. Structure: Hook → Story → Value → CTA
+8. For carousels: each slide must standalone but flow as a narrative
+9. For reels: hook in first 3 seconds, tension throughout, payoff at end
 
 OUTPUT FORMAT:
 - Hook → Story → Value → CTA
@@ -140,7 +144,7 @@ OUTPUT FORMAT:
 - Under 500 words for articles
 
 Write content that converts. Make them feel something.`,
-      reason: "Gemini for highest quality premium content (free)",
+      reason: "Gemini Pro for highest quality premium content (free tier)",
     },
     reasoning: {
       primary: envProvider("AI_ROUTE_REASONING_PRIMARY", "gemini"),
