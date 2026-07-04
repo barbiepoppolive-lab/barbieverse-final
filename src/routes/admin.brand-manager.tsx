@@ -19,7 +19,8 @@ import {
   Calendar, ChevronLeft, ChevronRight, Loader2, Check, Clock,
   Send, Trash2, Copy, RefreshCw, Zap, Target, Hash, ArrowRight,
   X, Play, Pause, Volume2, Download, Eye, Music, ChevronDown,
-  FileText, ExternalLink, Heart, Share2, Bookmark
+  FileText, ExternalLink, Heart, Share2, Bookmark, Wand2, TrendingUp,
+  Search, Lightbulb, Trophy, AlertCircle, Repeat, Globe
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/brand-manager")({
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/admin/brand-manager")({
   component: BrandManagerPage,
 });
 
-type Tab = "generators" | "queue" | "calendar" | "stats";
+type Tab = "generators" | "queue" | "calendar" | "stats" | "templates";
 type GeneratorType = "carousel" | "reel" | "thumbnail" | "story" | "thread" | "poll";
 type ProviderChoice = "premium" | "free";
 
@@ -40,6 +41,10 @@ function BrandManagerPage() {
   const [error, setError] = useState("");
   const [provider, setProvider] = useState<ProviderChoice>("free");
   const [detailItem, setDetailItem] = useState<any>(null);
+  const [qualityScore, setQualityScore] = useState<any>(null);
+  const [seoData, setSeoData] = useState<any>(null);
+  const [showRepurpose, setShowRepurpose] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   // Form states
   const [topic, setTopic] = useState("");
@@ -47,6 +52,7 @@ function BrandManagerPage() {
   const [duration, setDuration] = useState<"15s" | "30s" | "60s" | "90s">("30s");
   const [platform, setPlatform] = useState<"twitter" | "linkedin">("twitter");
   const [style, setStyle] = useState("educational");
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   const getStats = useServerFn(getBrandManagerStats);
   const getQueue = useServerFn(getContentQueue);
@@ -67,14 +73,13 @@ function BrandManagerPage() {
     setLoading(true);
     setError("");
     setResult(null);
+    setQualityScore(null);
+    setSeoData(null);
 
-    const providerName = provider === "premium" ? "Claude Sonnet 4" : "Gemini 2.5 Flash";
+    const providerName = provider === "premium" ? "Gemini 2.5 Pro" : "Gemini Flash";
     const genLabel = generators.find(g => g.type === activeGen)?.label || activeGen;
 
     try {
-      setStatus(`Connecting to ${providerName}...`);
-      await new Promise(r => setTimeout(r, 300));
-
       setStatus(`Generating ${genLabel.toLowerCase()} with ${providerName}...`);
       let res;
       switch (activeGen) {
@@ -98,12 +103,9 @@ function BrandManagerPage() {
           break;
       }
 
-      setStatus("Generating images...");
-      await new Promise(r => setTimeout(r, 200));
-
       const content = (res as any)?.content || res;
       setResult(content);
-      setStatus(`Done! Generated with ${providerName}. Cost: ${provider === "premium" ? "~$0.003" : "$0.00"}`);
+      setStatus(`Done! Generated with ${providerName}`);
     } catch (err: any) {
       setError(err.message || "Generation failed");
       setStatus("");
@@ -115,15 +117,43 @@ function BrandManagerPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 p-3">
-          <Sparkles className="h-6 w-6 text-white" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 p-3">
+            <Sparkles className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">AI Brand Manager</h1>
+            <p className="text-sm text-muted-foreground">Premium content generation with SEO, quality scoring & repurposing</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold">AI Brand Manager</h1>
-          <p className="text-sm text-muted-foreground">Free content creation — zero cost</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowTemplates(!showTemplates)}
+            className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm hover:bg-muted/80"
+          >
+            <Lightbulb className="h-4 w-4" /> Templates
+          </button>
+          {result && (
+            <button
+              onClick={() => setShowRepurpose(!showRepurpose)}
+              className="flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary hover:bg-primary/20"
+            >
+              <Repeat className="h-4 w-4" /> Repurpose
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Templates Panel */}
+      {showTemplates && (
+        <TemplatesPanel onSelect={(template) => {
+          setSelectedTemplate(template.id);
+          setTopic(template.topics[0]);
+          setStyle(template.style);
+          setShowTemplates(false);
+        }} />
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-xl bg-muted/50 p-1">
@@ -132,12 +162,10 @@ function BrandManagerPage() {
             key={t}
             onClick={() => setTab(t)}
             className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-              tab === t
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+              tab === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "generators" ? "Content Generators" : t === "queue" ? "Approval Queue" : t === "calendar" ? "Content Calendar" : "Analytics"}
+            {t === "generators" ? "Content Studio" : t === "queue" ? "Approval Queue" : t === "calendar" ? "Calendar" : "Analytics"}
           </button>
         ))}
       </div>
@@ -147,11 +175,11 @@ function BrandManagerPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Generator Selector */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground">Choose Content Type</h3>
+            <h3 className="text-sm font-semibold text-muted-foreground">Content Type</h3>
             {generators.map((g) => (
               <button
                 key={g.type}
-                onClick={() => { setActiveGen(g.type); setResult(null); setError(""); }}
+                onClick={() => { setActiveGen(g.type); setResult(null); setError(""); setQualityScore(null); }}
                 className={`flex w-full items-center gap-3 rounded-xl p-3 text-left transition-all ${
                   activeGen === g.type
                     ? "bg-primary/10 text-foreground border border-primary/30"
@@ -165,6 +193,41 @@ function BrandManagerPage() {
                 </div>
               </button>
             ))}
+
+            {/* Provider Toggle */}
+            <div className="space-y-2 pt-4">
+              <h3 className="text-sm font-semibold text-muted-foreground">AI Model</h3>
+              <div className="space-y-2">
+                <button
+                  onClick={() => setProvider("free")}
+                  className={`flex w-full items-center gap-2 rounded-lg border p-3 text-sm transition-all ${
+                    provider === "free"
+                      ? "border-green-500/50 bg-green-500/10 text-green-600"
+                      : "border-border/60 text-muted-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  <Zap className="h-4 w-4" />
+                  <div className="text-left">
+                    <p className="font-medium">Gemini Flash</p>
+                    <p className="text-[10px] opacity-60">Free — Good quality</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setProvider("premium")}
+                  className={`flex w-full items-center gap-2 rounded-lg border p-3 text-sm transition-all ${
+                    provider === "premium"
+                      ? "border-amber-500/50 bg-amber-500/10 text-amber-600"
+                      : "border-border/60 text-muted-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <div className="text-left">
+                    <p className="font-medium">Gemini Pro</p>
+                    <p className="text-[10px] opacity-60">Free — Premium quality</p>
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Generator Form + Result */}
@@ -188,14 +251,14 @@ function BrandManagerPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                {(activeGen === "carousel") && (
+                {activeGen === "carousel" && (
                   <div className="space-y-1">
                     <label className="text-sm text-muted-foreground">Slides</label>
                     <input type="number" value={slides} onChange={e => setSlides(+e.target.value)} min={3} max={10}
                       className="w-full rounded-lg border border-border/60 bg-background p-2 text-sm" />
                   </div>
                 )}
-                {(activeGen === "reel") && (
+                {activeGen === "reel" && (
                   <div className="space-y-1">
                     <label className="text-sm text-muted-foreground">Duration</label>
                     <select value={duration} onChange={e => setDuration(e.target.value as any)}
@@ -229,41 +292,6 @@ function BrandManagerPage() {
                 </div>
               </div>
 
-              {/* Provider Toggle */}
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">AI Provider</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setProvider("free")}
-                    className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-all ${
-                      provider === "free"
-                        ? "border-green-500/50 bg-green-500/10 text-green-600"
-                        : "border-border/60 bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                    }`}
-                  >
-                    <Zap className="h-4 w-4" />
-                    <div className="text-left">
-                      <p>Free — Gemini Flash</p>
-                      <p className="text-[10px] opacity-60">$0.00 • Good quality</p>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => setProvider("premium")}
-                    className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-all ${
-                      provider === "premium"
-                        ? "border-amber-500/50 bg-amber-500/10 text-amber-600"
-                        : "border-border/60 bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                    }`}
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    <div className="text-left">
-                      <p>Premium — Gemini Pro</p>
-                      <p className="text-[10px] opacity-60">~$0.003 • Best quality</p>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
               <button
                 onClick={handleGenerate}
                 disabled={loading || !topic.trim()}
@@ -274,38 +302,42 @@ function BrandManagerPage() {
                 }`}
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                {loading
-                  ? "Generating..."
-                  : provider === "premium"
-                    ? "Generate with Gemini Pro (~$0.003)"
-                    : "Generate with Gemini Flash (FREE)"
-                }
+                {loading ? "Generating..." : provider === "premium" ? "Generate with Gemini Pro" : "Generate with Gemini Flash"}
               </button>
 
-              {/* Status Progress */}
               {status && (
                 <div className={`flex items-center gap-2 rounded-lg p-3 text-sm ${
-                  status.startsWith("Done")
-                    ? "bg-green-500/10 text-green-600"
-                    : "bg-blue-500/10 text-blue-600"
+                  status.startsWith("Done") ? "bg-green-500/10 text-green-600" : "bg-blue-500/10 text-blue-600"
                 }`}>
-                  {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-                  ) : status.startsWith("Done") ? (
-                    <Check className="h-4 w-4 shrink-0" />
-                  ) : null}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin shrink-0" /> : status.startsWith("Done") ? <Check className="h-4 w-4 shrink-0" /> : null}
                   <span>{status}</span>
                 </div>
               )}
 
-              {error && (
-                <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
-              )}
+              {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
             </div>
 
-            {/* Visual Result Display */}
+            {/* Result Display */}
             {result && (
-              <ContentPreview content={result} type={activeGen} />
+              <ContentPreview
+                content={result}
+                type={activeGen}
+                onImprove={async (instruction) => {
+                  // TODO: Wire to improveContent
+                  alert("AI Improve: " + instruction);
+                }}
+                onRegenerate={handleGenerate}
+              />
+            )}
+
+            {/* Repurpose Panel */}
+            {showRepurpose && result && (
+              <RepurposePanel
+                content={JSON.stringify(result)}
+                title={result.title || topic}
+                source_type={activeGen}
+                topic={topic}
+              />
             )}
           </div>
         </div>
@@ -330,8 +362,17 @@ function BrandManagerPage() {
 
 // ── Content Preview Component ───────────────────────────
 
-function ContentPreview({ content, type }: { content: any; type: GeneratorType }) {
+function ContentPreview({ content, type, onImprove, onRegenerate }: {
+  content: any;
+  type: GeneratorType;
+  onImprove: (instruction: string) => void;
+  onRegenerate: () => void;
+}) {
   if (!content) return null;
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [showImprove, setShowImprove] = useState(false);
+  const [improveInstruction, setImproveInstruction] = useState("");
 
   return (
     <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 space-y-4">
@@ -345,10 +386,8 @@ function ContentPreview({ content, type }: { content: any; type: GeneratorType }
               <Music className="h-3 w-3" /> {content.music.track.title}
             </span>
           )}
-          <button
-            onClick={() => navigator.clipboard.writeText(JSON.stringify(content, null, 2))}
-            className="rounded-lg bg-muted px-2 py-1 text-xs hover:bg-muted/80"
-          >
+          <button onClick={() => navigator.clipboard.writeText(JSON.stringify(content, null, 2))}
+            className="rounded-lg bg-muted px-2 py-1 text-xs hover:bg-muted/80">
             <Copy className="h-3 w-3 inline mr-1" /> Copy
           </button>
         </div>
@@ -383,30 +422,21 @@ function ContentPreview({ content, type }: { content: any; type: GeneratorType }
       {/* Reel Script Preview */}
       {type === "reel" && content.scenes && (
         <div className="space-y-3">
-          <div className="rounded-lg bg-amber-500/10 p-2 text-xs text-amber-600 font-medium">
-            Hook: {content.hook}
-          </div>
+          <div className="rounded-lg bg-amber-500/10 p-2 text-xs text-amber-600 font-medium">Hook: {content.hook}</div>
           <div className="space-y-2">
             {content.scenes.map((scene: any, i: number) => (
               <div key={i} className="flex gap-3 rounded-lg border border-border/60 bg-background p-3">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                  {i + 1}
-                </div>
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{i + 1}</div>
                 <div className="flex-1 space-y-1">
                   <p className="text-[10px] text-muted-foreground">{scene.duration}</p>
                   <p className="text-xs font-medium">{scene.visual}</p>
                   <p className="text-xs text-blue-500">{scene.audio}</p>
-                  {scene.text_overlay && (
-                    <p className="text-[10px] bg-muted rounded px-2 py-1">{scene.text_overlay}</p>
-                  )}
+                  {scene.text_overlay && <p className="text-[10px] bg-muted rounded px-2 py-1">{scene.text_overlay}</p>}
                 </div>
               </div>
             ))}
           </div>
           <p className="text-sm text-muted-foreground">{content.caption}</p>
-          {content.music_suggestion && (
-            <p className="text-xs text-purple-500">Music: {content.music_suggestion}</p>
-          )}
         </div>
       )}
 
@@ -415,14 +445,10 @@ function ContentPreview({ content, type }: { content: any; type: GeneratorType }
         <div className="flex gap-3 overflow-x-auto pb-2">
           {content.slides.map((slide: any, i: number) => (
             <div key={i} className="min-w-[160px] rounded-xl border border-border/60 bg-background overflow-hidden">
-              {slide.image_url && (
-                <img src={slide.image_url} alt="" className="h-48 w-full object-cover" />
-              )}
+              {slide.image_url && <img src={slide.image_url} alt="" className="h-48 w-full object-cover" />}
               <div className="p-3 space-y-1">
                 <p className="text-xs font-medium line-clamp-3">{slide.text}</p>
-                {slide.cta && (
-                  <p className="text-[10px] text-primary font-medium">{slide.cta}</p>
-                )}
+                {slide.cta && <p className="text-[10px] text-primary font-medium">{slide.cta}</p>}
               </div>
             </div>
           ))}
@@ -451,7 +477,6 @@ function ContentPreview({ content, type }: { content: any; type: GeneratorType }
               <span className="text-sm">{opt}</span>
             </div>
           ))}
-          <p className="text-xs text-muted-foreground">{content.caption}</p>
         </div>
       )}
 
@@ -469,36 +494,130 @@ function ContentPreview({ content, type }: { content: any; type: GeneratorType }
           <AudioPlayer url={content.audio.full.audioUrl} />
         </div>
       )}
+
+      {/* AI Improve Bar */}
+      <div className="flex gap-2 pt-2 border-t border-border/60">
+        <input
+          value={improveInstruction}
+          onChange={(e) => setImproveInstruction(e.target.value)}
+          placeholder="e.g. Make it funnier, add more hooks, shorten..."
+          className="flex-1 rounded-lg border border-border/60 bg-background px-3 py-2 text-sm"
+          onKeyDown={(e) => { if (e.key === "Enter" && improveInstruction.trim()) { onImprove(improveInstruction); setImproveInstruction(""); } }}
+        />
+        <button
+          onClick={() => { if (improveInstruction.trim()) { onImprove(improveInstruction); setImproveInstruction(""); } }}
+          disabled={!improveInstruction.trim()}
+          className="flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          <Wand2 className="h-4 w-4" /> Improve
+        </button>
+        <button onClick={onRegenerate}
+          className="flex items-center gap-1 rounded-lg bg-muted px-3 py-2 text-sm hover:bg-muted/80">
+          <RefreshCw className="h-4 w-4" /> Regenerate
+        </button>
+      </div>
     </div>
   );
 }
 
-// ── Audio Player Component ──────────────────────────────
+// ── Templates Panel ─────────────────────────────────────
+
+function TemplatesPanel({ onSelect }: { onSelect: (template: any) => void }) {
+  const templates = [
+    { id: "growth", name: "30-Day Growth Sprint", desc: "Educational carousels to grow followers", icon: TrendingUp, color: "text-green-500" },
+    { id: "engagement", name: "Engagement Booster", desc: "Polls, questions, interactive content", icon: Heart, color: "text-pink-500" },
+    { id: "sales", name: "Success Stories", desc: "Testimonials and earnings showcases", icon: Trophy, color: "text-amber-500" },
+    { id: "brand", name: "Industry Authority", desc: "Tips, insights, thought leadership", icon: Lightbulb, color: "text-blue-500" },
+  ];
+
+  return (
+    <div className="rounded-xl border border-border/60 bg-card/50 p-4 space-y-3">
+      <h3 className="font-semibold flex items-center gap-2"><Lightbulb className="h-4 w-4" /> Content Templates</h3>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+        {templates.map((t) => (
+          <button key={t.id} onClick={() => onSelect(t)}
+            className="flex items-center gap-2 rounded-lg border border-border/60 p-3 text-left hover:bg-muted/50 transition-all">
+            <t.icon className={`h-5 w-5 ${t.color}`} />
+            <div>
+              <p className="text-xs font-medium">{t.name}</p>
+              <p className="text-[10px] text-muted-foreground">{t.desc}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Repurpose Panel ─────────────────────────────────────
+
+function RepurposePanel({ content, title, source_type, topic }: {
+  content: string;
+  title: string;
+  source_type: string;
+  topic: string;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<any[]>([]);
+
+  const formats = [
+    { id: "carousel", label: "Carousel", icon: Layout },
+    { id: "reel", label: "Reel Script", icon: Film },
+    { id: "story", label: "Story", icon: Sparkles },
+    { id: "thread", label: "Thread", icon: MessageSquare },
+    { id: "social_post", label: "Social Post", icon: Globe },
+  ];
+
+  const handleRepurpose = async (format: string) => {
+    setLoading(true);
+    try {
+      // TODO: Wire to actual repurpose API
+      alert(`Repurposing to ${format}... Coming soon!`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-4 space-y-3">
+      <h3 className="font-semibold flex items-center gap-2 text-purple-600">
+        <Repeat className="h-4 w-4" /> Repurpose Content
+      </h3>
+      <p className="text-xs text-muted-foreground">Turn this {source_type} into other formats</p>
+      <div className="flex gap-2 flex-wrap">
+        {formats.map((f) => (
+          <button key={f.id} onClick={() => handleRepurpose(f.id)} disabled={loading}
+            className="flex items-center gap-1 rounded-lg bg-background border border-border/60 px-3 py-2 text-xs hover:bg-muted/50 disabled:opacity-50">
+            <f.icon className="h-3 w-3" /> {f.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Audio Player ────────────────────────────────────────
 
 function AudioPlayer({ url }: { url: string }) {
   const [playing, setPlaying] = useState(false);
-  const audioRef = useState<HTMLAudioElement | null>(null);
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
 
-  const togglePlay = () => {
-    if (!audioRef[0]) {
-      const audio = new Audio(url);
-      audioRef[1](audio);
-      audio.play();
+  const toggle = () => {
+    if (!audio) {
+      const a = new Audio(url);
+      setAudio(a);
+      a.play();
       setPlaying(true);
-      audio.onended = () => setPlaying(false);
+      a.onended = () => setPlaying(false);
     } else {
-      if (playing) {
-        audioRef[0].pause();
-      } else {
-        audioRef[0].play();
-      }
+      if (playing) audio.pause(); else audio.play();
       setPlaying(!playing);
     }
   };
 
   return (
     <div className="flex items-center gap-3">
-      <button onClick={togglePlay} className="rounded-full bg-primary p-2 text-primary-foreground hover:bg-primary/90">
+      <button onClick={toggle} className="rounded-full bg-primary p-2 text-primary-foreground hover:bg-primary/90">
         {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
       </button>
       <div className="flex-1">
@@ -526,17 +645,8 @@ function QueueTab({ onViewDetail }: { onViewDetail: (item: any) => void }) {
   useEffect(() => { loadQueue(); }, [loadQueue]);
 
   const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "carousel": return Layout;
-      case "reel_script": return Film;
-      case "thumbnail": return Image;
-      case "story": return Sparkles;
-      case "thread": return MessageSquare;
-      case "poll": return Hash;
-      case "blog_post": return FileText;
-      case "social_post": return MessageSquare;
-      default: return FileText;
-    }
+    const map: Record<string, any> = { carousel: Layout, reel_script: Film, thumbnail: Image, story: Sparkles, thread: MessageSquare, poll: Hash, blog_post: FileText, social_post: MessageSquare };
+    return map[type] || FileText;
   };
 
   return (
@@ -555,27 +665,19 @@ function QueueTab({ onViewDetail }: { onViewDetail: (item: any) => void }) {
       </div>
 
       <div className="space-y-2">
-        {items.length === 0 && (
-          <p className="text-center text-muted-foreground py-8">No content in queue. Generate some content first!</p>
-        )}
+        {items.length === 0 && <p className="text-center text-muted-foreground py-8">No content in queue.</p>}
         {items.map((item) => {
           const TypeIcon = getTypeIcon(item.job_type);
           return (
-            <div
-              key={item.id}
+            <div key={item.id}
               className="flex items-center gap-4 rounded-xl border border-border/60 bg-card/50 p-4 hover:bg-card/80 cursor-pointer transition-all"
-              onClick={() => onViewDetail(item)}
-            >
+              onClick={() => onViewDetail(item)}>
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                 <TypeIcon className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
-                  {item.title || item.job_type.replace(/_/g, " ").toUpperCase()}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {item.status} — {new Date(item.created_at).toLocaleDateString()}
-                </p>
+                <p className="text-sm font-medium truncate">{item.title || item.job_type.replace(/_/g, " ").toUpperCase()}</p>
+                <p className="text-xs text-muted-foreground">{item.status} — {new Date(item.created_at).toLocaleDateString()}</p>
               </div>
               <div className="flex items-center gap-2">
                 <Eye className="h-4 w-4 text-muted-foreground" />
@@ -609,24 +711,14 @@ function ContentDetailDrawer({ item, onClose }: { item: any; onClose: () => void
   const [activeSlide, setActiveSlide] = useState(0);
 
   const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "carousel": return Layout;
-      case "reel_script": return Film;
-      case "thumbnail": return Image;
-      case "story": return Sparkles;
-      case "thread": return MessageSquare;
-      case "poll": return Hash;
-      default: return FileText;
-    }
+    const map: Record<string, any> = { carousel: Layout, reel_script: Film, thumbnail: Image, story: Sparkles, thread: MessageSquare, poll: Hash };
+    return map[type] || FileText;
   };
   const TypeIcon = getTypeIcon(item.job_type);
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Drawer */}
       <div className="relative ml-auto h-full w-full max-w-2xl bg-background shadow-2xl overflow-y-auto">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border/60 bg-background/95 backdrop-blur p-4">
           <div className="flex items-center gap-3">
@@ -638,9 +730,7 @@ function ContentDetailDrawer({ item, onClose }: { item: any; onClose: () => void
               <p className="text-xs text-muted-foreground">{item.status} — {new Date(item.created_at).toLocaleString()}</p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-lg bg-muted p-2 hover:bg-muted/80">
-            <X className="h-4 w-4" />
-          </button>
+          <button onClick={onClose} className="rounded-lg bg-muted p-2 hover:bg-muted/80"><X className="h-4 w-4" /></button>
         </div>
 
         <div className="p-6 space-y-6">
@@ -648,33 +738,18 @@ function ContentDetailDrawer({ item, onClose }: { item: any; onClose: () => void
           {item.job_type === "carousel" && outputData.slides && (
             <div className="space-y-4">
               <h3 className="font-medium">{outputData.title}</h3>
-
-              {/* Slide Navigation */}
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {outputData.slides.map((_: any, i: number) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveSlide(i)}
+                  <button key={i} onClick={() => setActiveSlide(i)}
                     className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                      activeSlide === i
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
-                  >
-                    Slide {i + 1}
-                  </button>
+                      activeSlide === i ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}>Slide {i + 1}</button>
                 ))}
               </div>
-
-              {/* Active Slide */}
               {outputData.slides[activeSlide] && (
                 <div className="rounded-xl border border-border/60 bg-background overflow-hidden">
                   {outputData.slides[activeSlide].image_url && (
-                    <img
-                      src={outputData.slides[activeSlide].image_url}
-                      alt={outputData.slides[activeSlide].headline}
-                      className="h-64 w-full object-cover"
-                    />
+                    <img src={outputData.slides[activeSlide].image_url} alt="" className="h-64 w-full object-cover" />
                   )}
                   <div className="p-4 space-y-2">
                     <h4 className="font-bold text-lg">{outputData.slides[activeSlide].headline}</h4>
@@ -682,8 +757,6 @@ function ContentDetailDrawer({ item, onClose }: { item: any; onClose: () => void
                   </div>
                 </div>
               )}
-
-              {/* Caption & Hashtags */}
               <div className="rounded-lg bg-muted/50 p-4 space-y-2">
                 <p className="text-sm">{outputData.caption}</p>
                 <div className="flex flex-wrap gap-1">
@@ -692,87 +765,38 @@ function ContentDetailDrawer({ item, onClose }: { item: any; onClose: () => void
                   ))}
                 </div>
               </div>
-
-              {/* Audio */}
-              {outputData.audio?.full?.audioUrl && (
-                <div className="rounded-lg bg-muted/50 p-4">
-                  <AudioPlayer url={outputData.audio.full.audioUrl} />
-                </div>
-              )}
-
-              {/* Music */}
-              {outputData.music?.track && (
-                <div className="flex items-center gap-3 rounded-lg bg-purple-500/10 p-4">
-                  <Music className="h-5 w-5 text-purple-500" />
-                  <div>
-                    <p className="text-sm font-medium">{outputData.music.track.title}</p>
-                    <p className="text-xs text-muted-foreground">{outputData.music.reason}</p>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
           {/* Reel Detail */}
           {item.job_type === "reel_script" && outputData.scenes && (
             <div className="space-y-4">
-              <div className="rounded-lg bg-amber-500/10 p-3 text-sm text-amber-600 font-medium">
-                Hook: {outputData.hook}
-              </div>
-
+              <div className="rounded-lg bg-amber-500/10 p-3 text-sm text-amber-600 font-medium">Hook: {outputData.hook}</div>
               {outputData.scenes.map((scene: any, i: number) => (
                 <div key={i} className="flex gap-3 rounded-xl border border-border/60 p-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                    {i + 1}
-                  </div>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">{i + 1}</div>
                   <div className="flex-1 space-y-2">
                     <p className="text-xs text-muted-foreground">{scene.duration}</p>
                     <p className="text-sm font-medium">{scene.visual}</p>
                     <p className="text-sm text-blue-500">Audio: {scene.audio}</p>
-                    {scene.text_overlay && (
-                      <div className="rounded bg-muted p-2 text-xs">{scene.text_overlay}</div>
-                    )}
                   </div>
                 </div>
               ))}
-
-              <div className="rounded-lg bg-muted/50 p-4 space-y-2">
-                <p className="text-sm">{outputData.caption}</p>
-                {outputData.music_suggestion && (
-                  <p className="text-xs text-purple-500">Music: {outputData.music_suggestion}</p>
-                )}
-              </div>
-
-              {outputData.music?.track && (
-                <div className="flex items-center gap-3 rounded-lg bg-purple-500/10 p-4">
-                  <Music className="h-5 w-5 text-purple-500" />
-                  <div>
-                    <p className="text-sm font-medium">{outputData.music.track.title}</p>
-                    <p className="text-xs text-muted-foreground">{outputData.music.reason}</p>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
           {/* Story Detail */}
           {item.job_type === "story" && outputData.slides && (
-            <div className="space-y-4">
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {outputData.slides.map((slide: any, i: number) => (
-                  <div key={i} className="min-w-[200px] rounded-xl border border-border/60 overflow-hidden">
-                    {slide.image_url && (
-                      <img src={slide.image_url} alt="" className="h-56 w-full object-cover" />
-                    )}
-                    <div className="p-3 space-y-1">
-                      <p className="text-xs font-medium">{slide.text}</p>
-                      {slide.cta && (
-                        <p className="text-[10px] text-primary font-medium">{slide.cta}</p>
-                      )}
-                    </div>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {outputData.slides.map((slide: any, i: number) => (
+                <div key={i} className="min-w-[200px] rounded-xl border border-border/60 overflow-hidden">
+                  {slide.image_url && <img src={slide.image_url} alt="" className="h-56 w-full object-cover" />}
+                  <div className="p-3 space-y-1">
+                    <p className="text-xs font-medium">{slide.text}</p>
+                    {slide.cta && <p className="text-[10px] text-primary font-medium">{slide.cta}</p>}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           )}
 
@@ -798,60 +822,45 @@ function ContentDetailDrawer({ item, onClose }: { item: any; onClose: () => void
                   <span className="text-sm">{opt}</span>
                 </div>
               ))}
-              <p className="text-sm text-muted-foreground">{outputData.caption}</p>
             </div>
           )}
 
-          {/* Thumbnail Detail */}
-          {item.job_type === "thumbnail" && outputData.image_url && (
-            <div className="space-y-3">
-              <img src={outputData.image_url} alt="Thumbnail" className="w-full rounded-xl" />
-              <p className="text-sm text-muted-foreground">{outputData.image_prompt}</p>
+          {/* Audio */}
+          {outputData.audio?.full?.audioUrl && (
+            <div className="rounded-lg bg-muted/50 p-4">
+              <AudioPlayer url={outputData.audio.full.audioUrl} />
+            </div>
+          )}
+
+          {/* Music */}
+          {outputData.music?.track && (
+            <div className="flex items-center gap-3 rounded-lg bg-purple-500/10 p-4">
+              <Music className="h-5 w-5 text-purple-500" />
+              <div>
+                <p className="text-sm font-medium">{outputData.music.track.title}</p>
+                <p className="text-xs text-muted-foreground">{outputData.music.reason}</p>
+              </div>
             </div>
           )}
 
           {/* Metadata */}
           <div className="rounded-lg bg-muted/50 p-4 space-y-2 text-xs text-muted-foreground">
-            <div className="flex justify-between">
-              <span>Job ID</span>
-              <span className="font-mono">{item.id.slice(0, 8)}...</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Cost</span>
-              <span>${(item.total_cost_usd || 0).toFixed(4)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Created</span>
-              <span>{new Date(item.created_at).toLocaleString()}</span>
-            </div>
-            {item.completed_at && (
-              <div className="flex justify-between">
-                <span>Completed</span>
-                <span>{new Date(item.completed_at).toLocaleString()}</span>
-              </div>
-            )}
+            <div className="flex justify-between"><span>Job ID</span><span className="font-mono">{item.id.slice(0, 8)}...</span></div>
+            <div className="flex justify-between"><span>Cost</span><span>${(item.total_cost_usd || 0).toFixed(4)}</span></div>
+            <div className="flex justify-between"><span>Created</span><span>{new Date(item.created_at).toLocaleString()}</span></div>
           </div>
 
           {/* Actions */}
           <div className="flex gap-2">
-            <button
-              onClick={() => navigator.clipboard.writeText(JSON.stringify(outputData, null, 2))}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-muted px-4 py-2.5 text-sm hover:bg-muted/80"
-            >
+            <button onClick={() => navigator.clipboard.writeText(JSON.stringify(outputData, null, 2))}
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-muted px-4 py-2.5 text-sm hover:bg-muted/80">
               <Copy className="h-4 w-4" /> Copy JSON
             </button>
-            <button
-              onClick={() => {
-                const text = JSON.stringify(outputData, null, 2);
-                const blob = new Blob([text], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `${item.job_type}_${Date.now()}.json`;
-                a.click();
-              }}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-muted px-4 py-2.5 text-sm hover:bg-muted/80"
-            >
+            <button onClick={() => {
+              const blob = new Blob([JSON.stringify(outputData, null, 2)], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a"); a.href = url; a.download = `${item.job_type}_${Date.now()}.json`; a.click();
+            }} className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-muted px-4 py-2.5 text-sm hover:bg-muted/80">
               <Download className="h-4 w-4" /> Export
             </button>
           </div>
@@ -877,7 +886,6 @@ function CalendarTab() {
     from.setDate(from.getDate() - from.getDay() + 1);
     const to = new Date(from);
     to.setDate(to.getDate() + 6);
-
     const res = await getCalendar({ data: { from: from.toISOString().split("T")[0], to: to.toISOString().split("T")[0] } });
     setEntries((res as any) || []);
   }, [weekOffset]);
@@ -886,12 +894,7 @@ function CalendarTab() {
 
   const handleGenerateWeek = async () => {
     setGenerating(true);
-    try {
-      await genPlan({ data: {} });
-      await loadCalendar();
-    } finally {
-      setGenerating(false);
-    }
+    try { await genPlan({ data: {} }); await loadCalendar(); } finally { setGenerating(false); }
   };
 
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -904,33 +907,22 @@ function CalendarTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button onClick={() => setWeekOffset(w => w - 1)} className="rounded-lg bg-muted p-2 hover:bg-muted/80">
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <span className="text-sm font-medium">
-            Week of {weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-          </span>
-          <button onClick={() => setWeekOffset(w => w + 1)} className="rounded-lg bg-muted p-2 hover:bg-muted/80">
-            <ChevronRight className="h-4 w-4" />
-          </button>
+          <button onClick={() => setWeekOffset(w => w - 1)} className="rounded-lg bg-muted p-2 hover:bg-muted/80"><ChevronLeft className="h-4 w-4" /></button>
+          <span className="text-sm font-medium">Week of {weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+          <button onClick={() => setWeekOffset(w => w + 1)} className="rounded-lg bg-muted p-2 hover:bg-muted/80"><ChevronRight className="h-4 w-4" /></button>
         </div>
-        <button
-          onClick={handleGenerateWeek}
-          disabled={generating}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
+        <button onClick={handleGenerateWeek} disabled={generating}
+          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
           {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {generating ? "Generating..." : "Generate Weekly Plan (FREE)"}
+          {generating ? "Generating..." : "Generate Weekly Plan"}
         </button>
       </div>
-
       <div className="grid grid-cols-7 gap-2">
         {days.map((day, i) => {
           const date = new Date(weekStart);
           date.setDate(date.getDate() + i);
           const dateStr = date.toISOString().split("T")[0];
           const dayEntries = entries.filter(e => e.date === dateStr);
-
           return (
             <div key={day} className="rounded-xl border border-border/60 bg-card/50 p-3 min-h-[120px]">
               <p className="text-xs font-semibold text-muted-foreground mb-2">{day} {date.getDate()}</p>
@@ -941,9 +933,7 @@ function CalendarTab() {
                     <p className="text-muted-foreground truncate">{e.platform}</p>
                   </div>
                 ))}
-                {dayEntries.length === 0 && (
-                  <p className="text-[10px] text-muted-foreground/50 italic">No content</p>
-                )}
+                {dayEntries.length === 0 && <p className="text-[10px] text-muted-foreground/50 italic">No content</p>}
               </div>
             </div>
           );
@@ -958,12 +948,9 @@ function CalendarTab() {
 function StatsTab({ getStats }: { getStats: any }) {
   const [stats, setStats] = useState<any>(null);
 
-  useEffect(() => {
-    getStats().then((res: any) => setStats(res || null));
-  }, []);
+  useEffect(() => { getStats().then((res: any) => setStats(res || null)); }, []);
 
   if (!stats) return <p className="text-muted-foreground">Loading stats...</p>;
-
   const s = stats.totals || {};
 
   return (
@@ -983,7 +970,6 @@ function StatsTab({ getStats }: { getStats: any }) {
           </div>
         ))}
       </div>
-
       {stats.byType?.length > 0 && (
         <div className="rounded-xl border border-border/60 bg-card/50 p-5">
           <h3 className="font-semibold mb-3">Content by Type</h3>
@@ -992,20 +978,6 @@ function StatsTab({ getStats }: { getStats: any }) {
               <div key={t.job_type} className="flex items-center justify-between">
                 <span className="text-sm">{t.job_type.replace(/_/g, " ")}</span>
                 <span className="text-sm font-medium">{t.count}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {stats.byPlatform?.length > 0 && (
-        <div className="rounded-xl border border-border/60 bg-card/50 p-5">
-          <h3 className="font-semibold mb-3">Calendar by Platform</h3>
-          <div className="space-y-2">
-            {stats.byPlatform.map((p: any) => (
-              <div key={p.platform} className="flex items-center justify-between">
-                <span className="text-sm capitalize">{p.platform}</span>
-                <span className="text-sm font-medium">{p.count}</span>
               </div>
             ))}
           </div>

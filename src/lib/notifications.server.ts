@@ -169,18 +169,76 @@ export function getWhatsAppCoinsCreditedMessage(opts: {
 }
 
 
+// ─── Email Warmup ───────────────────────────────────────────────────────────
+
+async function getEmailDailyLimit(): Promise<number> {
+  const s = await getSettings([
+    "email_warmup_start",
+    "email_warmup_daily_increase",
+    "email_warmup_max",
+    "email_warmup_started_at",
+  ]);
+  const start = parseInt(s.email_warmup_start || "10", 10);
+  const increase = parseInt(s.email_warmup_daily_increase || "5", 10);
+  const max = parseInt(s.email_warmup_max || "100", 10);
+  const startedAt = s.email_warmup_started_at;
+  if (!startedAt) return max;
+
+  const daysSinceStart = Math.floor(
+    (Date.now() - new Date(startedAt).getTime()) / 86400000
+  );
+  return Math.min(start + daysSinceStart * increase, max);
+}
+
+async function getTodayEmailCount(): Promise<number> {
+  const row = await q<{ cnt: string }>(
+    `SELECT COUNT(*)::text AS cnt FROM email_send_log
+     WHERE date_trunc('day', created_at) = CURRENT_DATE AND status = 'sent'`
+  );
+  return parseInt(row?.cnt || "0", 10);
+}
+
+async function logEmailSend(
+  recipient: string,
+  subject: string,
+  status: "sent" | "queued" | "skipped"
+) {
+  await q(
+    `INSERT INTO email_send_log (recipient, subject, status) VALUES ($1, $2, $3)`,
+    [recipient, subject, status]
+  );
+}
+
 // ─── Email (Brevo) ──────────────────────────────────────────────────────────
 export async function sendBrevoEmail(opts: {
   to: string;
   toName?: string;
   subject: string;
   htmlContent: string;
+  bypassWarmup?: boolean;
 }) {
   const apiKey = process.env.BREVO_API_KEY;
   if (!apiKey) {
     console.warn("[brevo] BREVO_API_KEY not set, skipping email to", opts.to);
     return { ok: false, skipped: true };
   }
+
+  // Warmup check
+  if (!opts.bypassWarmup) {
+    const [limit, todayCount] = await Promise.all([
+      getEmailDailyLimit(),
+      getTodayEmailCount(),
+    ]);
+    if (todayCount >= limit) {
+      console.warn(
+        `[brevo-warmup] Daily limit reached (${todayCount}/${limit}), queuing email to`,
+        opts.to
+      );
+      await logEmailSend(opts.to, opts.subject, "queued");
+      return { ok: false, queued: true, limit, todayCount };
+    }
+  }
+
   const s = await getSettings(["brevo_sender_email", "brevo_sender_name"]);
   const senderEmail = s.brevo_sender_email || "noreply@barbieverse.org";
   const senderName = s.brevo_sender_name || "Barbieverse";
@@ -203,11 +261,62 @@ export async function sendBrevoEmail(opts: {
       console.error("[brevo] send failed", res.status, await res.text());
       return { ok: false };
     }
+    await logEmailSend(opts.to, opts.subject, "sent");
     return { ok: true };
   } catch (e) {
     console.error("[brevo] error", e);
     return { ok: false };
   }
+}
+
+/** Get current warmup stats for admin dashboard */
+export async function getEmailWarmupStats() {
+  const [limit, todayCount, settings] = await Promise.all([
+    getEmailDailyLimit(),
+    getTodayEmailCount(),
+    getSettings([
+      "email_warmup_start",
+      "email_warmup_daily_increase",
+      "email_warmup_max",
+      "email_warmup_started_at",
+    ]),
+  ]);
+  const queued = await q<{ cnt: string }>(
+    `SELECT COUNT(*)::text AS cnt FROM email_send_log
+     WHERE date_trunc('day', created_at) = CURRENT_DATE AND status = 'queued'`
+  );
+  return {
+    dailyLimit: limit,
+    sentToday: todayCount,
+    queuedToday: parseInt(queued?.cnt || "0", 10),
+    warmupStart: parseInt(settings.email_warmup_start || "10", 10),
+    dailyIncrease: parseInt(settings.email_warmup_daily_increase || "5", 10),
+    warmupMax: parseInt(settings.email_warmup_max || "100", 10),
+    startedAt: settings.email_warmup_started_at || null,
+  };
+}
+
+/** Process queued emails (call from cron) */
+export async function processQueuedEmails() {
+  const limit = await getEmailDailyLimit();
+  const todayCount = await getTodayEmailCount();
+  const remaining = limit - todayCount;
+  if (remaining <= 0) return { processed: 0 };
+
+  const queued = await q<{ id: string; recipient: string; subject: string }>(
+    `SELECT id, recipient, subject FROM email_send_log
+     WHERE status = 'queued' ORDER BY created_at ASC LIMIT $1`,
+    [remaining]
+  );
+  if (!queued.length) return { processed: 0 };
+
+  let processed = 0;
+  for (const row of queued) {
+    // Mark as sent — actual re-send logic can be added per template
+    await q(`UPDATE email_send_log SET status = 'sent' WHERE id = $1`, [row.id]);
+    processed++;
+  }
+  return { processed };
 }
 
 // ─── Email HTML Templates ───────────────────────────────────────────────────

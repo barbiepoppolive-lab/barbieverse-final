@@ -47,6 +47,12 @@ const BANK_FIELDS = [
   { key: "bank_branch", label: "Branch", placeholder: "Mumbai" },
 ];
 
+const WARMUP_FIELDS = [
+  { key: "email_warmup_start", label: "Starting Daily Limit", placeholder: "10" },
+  { key: "email_warmup_daily_increase", label: "Daily Increase", placeholder: "5" },
+  { key: "email_warmup_max", label: "Max Daily Limit", placeholder: "100" },
+];
+
 const PACKAGES = [
   { key: "coin_package_1", label: "Package 1 (JSON)" },
   { key: "coin_package_2", label: "Package 2 (JSON)" },
@@ -197,6 +203,14 @@ function SettingsPage() {
         <p className="text-xs text-muted-foreground">One keyword per line. Used to find leads on Reddit, Facebook, Twitter, YouTube.</p>
         {SCRAPER_FIELDS.map((f) => (
           <TextareaRow key={f.key} field={f} value={draft[f.key]} onChange={(v) => setDraft({ ...draft, [f.key]: v })} onSave={() => save(f.key)} saving={saving === f.key} />
+        ))}
+      </section>
+
+      <section className="mt-10 space-y-4">
+        <h2 className="font-display text-lg font-bold">Email Warmup</h2>
+        <p className="text-xs text-muted-foreground">Controls daily email sending limit. Starts low and increases over time to build sender reputation.</p>
+        {WARMUP_FIELDS.map((f) => (
+          <Row key={f.key} field={f} value={draft[f.key]} onChange={(v) => setDraft({ ...draft, [f.key]: v })} onSave={() => save(f.key)} saving={saving === f.key} mono />
         ))}
       </section>
     </div>
