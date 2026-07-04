@@ -123,8 +123,8 @@ export async function monitorInstagram(
   const allPosts: SocialPost[] = [];
   const seenUrls = new Set<string>();
 
-  // Limit to top 3 hashtags — Apify is slow and costs credits
-  const tags = hashtags.slice(0, 3);
+  // Limit to top 2 hashtags — Apify is slow and costs credits
+  const tags = hashtags.slice(0, 2);
 
   for (const tag of tags) {
     const posts = await searchInstagramPosts(tag, maxResults);

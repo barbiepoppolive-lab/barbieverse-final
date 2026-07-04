@@ -42,7 +42,7 @@ function ScraperDashboard() {
   const [dashboard, setDashboard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [providerStatus, setProviderStatus] = useState<any>(null);
-  const [tab, setTab] = useState<"overview" | "scrape" | "import" | "jobs">("overview");
+  const [tab, setTab] = useState<"overview" | "scrape" | "import" | "jobs" | "keywords">("overview");
 
   // Scrape form
   const [scrapeProvider, setScrapeProvider] = useState<"apify" | "phantombuster">("apify");
@@ -215,7 +215,7 @@ function ScraperDashboard() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-900 rounded-lg p-1">
-        {(["overview", "scrape", "import", "jobs"] as const).map((t) => (
+        {(["overview", "scrape", "keywords", "import", "jobs"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -225,6 +225,7 @@ function ScraperDashboard() {
           >
             {t === "overview" && "Overview"}
             {t === "scrape" && "Scrape"}
+            {t === "keywords" && "Keywords"}
             {t === "import" && "CSV Import"}
             {t === "jobs" && "Jobs"}
           </button>
@@ -501,6 +502,11 @@ function ScraperDashboard() {
         </div>
       )}
 
+      {/* Keywords Tab */}
+      {tab === "keywords" && (
+        <KeywordsTab />
+      )}
+
       {/* Jobs Tab */}
       {tab === "jobs" && dashboard && (
         <div className="space-y-4">
@@ -658,5 +664,75 @@ function StatusBadge({ status }: { status: string }) {
       {status === "pending" && <Clock className="w-3 h-3" />}
       {status}
     </span>
+  );
+}
+
+// ── Keywords Tab ────────────────────────────────────────
+
+function KeywordsTab() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [draft, setDraft] = useState<Record<string, string>>({});
+
+  const FIELDS = [
+    { key: "scraper_keywords", label: "Search Keywords (all platforms)", placeholder: "poppo live\nvone live\nlive streaming earn money" },
+    { key: "scraper_reddit_subreddits", label: "Reddit Subreddits", placeholder: "WorkOnline\nbeermoney\nbeermoneyindia" },
+    { key: "scraper_facebook_queries", label: "Facebook Search Queries", placeholder: "poppo live\nvone live" },
+    { key: "scraper_twitter_queries", label: "Twitter Search Queries", placeholder: "poppo live\nvone live" },
+    { key: "scraper_youtube_queries", label: "YouTube Search Queries", placeholder: "poppo live earn money\nvone live india" },
+  ];
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { getAllSettings } = await import("@/lib/api/settings.functions");
+        const settings = await getAllSettings();
+        setDraft(settings);
+      } catch (e) {
+        console.error("Failed to load settings:", e);
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  const save = async (key: string) => {
+    setSaving(key);
+    try {
+      const { updateSetting } = await import("@/lib/api/settings.functions");
+      await updateSetting({ data: { key, value: draft[key] || "" } });
+    } catch (e: any) {
+      alert("Save failed: " + e.message);
+    }
+    setSaving(null);
+  };
+
+  if (loading) return <div className="text-gray-400 py-8 text-center">Loading keywords...</div>;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-lg font-semibold text-white">Monitor Keywords</h3>
+        <p className="text-sm text-gray-400">One keyword per line. Used by the social monitor to find leads on Reddit, Facebook, Twitter, YouTube.</p>
+      </div>
+      {FIELDS.map((f) => (
+        <div key={f.key} className="bg-gray-900 rounded-xl border border-gray-800 p-4">
+          <label className="text-sm font-medium text-gray-300">{f.label}</label>
+          <textarea
+            value={draft[f.key] || ""}
+            onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })}
+            placeholder={f.placeholder}
+            rows={4}
+            className="mt-2 w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-sm text-white font-mono focus:border-purple-500 focus:outline-none resize-none"
+          />
+          <button
+            onClick={() => save(f.key)}
+            disabled={saving === f.key}
+            className="mt-2 rounded-lg bg-purple-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+          >
+            {saving === f.key ? "Saving..." : "Save"}
+          </button>
+        </div>
+      ))}
+    </div>
   );
 }

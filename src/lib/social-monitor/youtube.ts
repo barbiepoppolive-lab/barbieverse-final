@@ -84,8 +84,9 @@ export async function monitorYouTube(
   const allPosts: SocialPost[] = [];
   const seenIds = new Set<string>();
 
-  // Limit to top 5 keywords to stay fast
-  const kws = keywords.slice(0, 5);
+  // Limit to top 2 keywords — YouTube quota is 10,000 units/day, search costs 100 units each
+  // 2 keywords × 100 units × 48 runs/day = 9,600 units (under 10k limit)
+  const kws = keywords.slice(0, 2);
 
   for (const keyword of kws) {
     const posts = await searchYouTube(keyword, maxResults);

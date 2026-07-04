@@ -28,7 +28,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   ]);
 }
 
-const PLATFORM_TIMEOUT = 20_000; // 20s per platform
+const PLATFORM_TIMEOUT = 60_000; // 60s per platform (Facebook/Instagram actors need time to run + poll)
 
 // ── Database operations ────────────────────────────────
 
