@@ -37,8 +37,7 @@ export {
 } from "./image-gen";
 export type { ImageGenResult, ImageSize } from "./image-gen";
 
-// Audio generation (Edge TTS — free, neural voices) — server-only, import directly
-// export { ... } from "./audio-gen.server";
+// Audio generation — server-only, import from audio-gen.server.ts directly in API routes
 
 // Music recommendation (AI-powered music selection)
 export {
