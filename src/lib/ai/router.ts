@@ -120,9 +120,9 @@ Write like a human who genuinely cares about helping people succeed.`,
       reason: "Gemini for content quality (free)",
     },
     premium: {
-      primary: envProvider("AI_ROUTE_PREMIUM_PRIMARY", "openrouter"),
-      fallback: envProvider("AI_ROUTE_PREMIUM_FALLBACK", "gemini"),
-      model: process.env.AI_ROUTE_PREMIUM_MODEL || "openrouter/free",
+      primary: envProvider("AI_ROUTE_PREMIUM_PRIMARY", "gemini"),
+      fallback: envProvider("AI_ROUTE_PREMIUM_FALLBACK", "groq"),
+      model: process.env.AI_ROUTE_PREMIUM_MODEL || "gemini-2.5-flash",
       maxTokens: 8192,
       systemPrompt: `You are the world's best content writer. Every word you write feels human, authentic, and compelling. You write for BarbieVerse — a creator economy platform helping young Indian creators earn money through live streaming.
 
