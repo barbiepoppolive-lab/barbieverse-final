@@ -15,6 +15,7 @@ import {
   type MusicMood,
   type MusicGenre,
 } from "../music";
+import { generateContentSEO, type ContentSEO, type Platform } from "../content-seo";
 
 // Inline types (audio-gen.server.ts removed from client bundle)
 type AudioGenResult = { audioPath: string; audioUrl: string; voice: string; sizeKb: number; subtitlePath?: string; subtitleUrl?: string };
@@ -129,6 +130,30 @@ CONTENT RULES:
 6. Never use: leverage, synergy, unlock, gamify, disruptive
 7. Always sound like a real person, not a brand`;
 
+// ── SEO Enrichment Helper ──────────────────────────────
+
+async function enrichWithSEO(
+  content: any,
+  title: string,
+  topic: string,
+  platform: Platform,
+  contentType: string,
+): Promise<any> {
+  try {
+    const seo = await generateContentSEO({
+      title,
+      content: JSON.stringify(content),
+      topic,
+      platform,
+      content_type: contentType,
+    });
+    return { ...content, seo };
+  } catch (err) {
+    console.error("[BrandManager] SEO enrichment failed:", err);
+    return content;
+  }
+}
+
 // ── Carousel Generator ─────────────────────────────────
 
 export async function generateCarousel(input: {
@@ -218,7 +243,8 @@ Return EXACTLY this JSON:
     console.error("[BrandManager] Music recommendation failed:", err);
   }
 
-  return carousel;
+  // Enrich with SEO data
+  return enrichWithSEO(carousel, carousel.title, input.topic, "instagram", "carousel");
 }
 
 // ── Reel Script Generator ──────────────────────────────
@@ -305,7 +331,8 @@ Return EXACTLY this JSON:
     console.error("[BrandManager] Music recommendation failed:", err);
   }
 
-  return reel;
+  // Enrich with SEO data
+  return enrichWithSEO(reel, reel.hook || input.topic, input.topic, "instagram", "reel_script");
 }
 
 // ── Thumbnail Generator ────────────────────────────────
@@ -347,10 +374,10 @@ Return EXACTLY this JSON:
     model: "flux",
   });
 
-  return {
+  return enrichWithSEO({
     image_url: imageResult.url,
     image_prompt: parsed.image_prompt || "",
-  };
+  }, input.title, input.title, "instagram", "thumbnail");
 }
 
 // ── Story Generator ────────────────────────────────────
@@ -433,7 +460,8 @@ Return EXACTLY this JSON:
     console.error("[BrandManager] Music recommendation failed:", err);
   }
 
-  return storyResult;
+  // Enrich with SEO data
+  return enrichWithSEO(storyResult, input.topic, input.topic, "instagram", "story");
 }
 
 // ── Thread Generator (Twitter/LinkedIn) ────────────────
@@ -474,10 +502,10 @@ Return EXACTLY this JSON:
   if (!jsonMatch) throw new Error("Failed to parse thread content");
   const parsed = JSON.parse(jsonMatch[0]);
 
-  return {
+  return enrichWithSEO({
     tweets: parsed.tweets || [],
     hashtags: parsed.hashtags || [],
-  };
+  }, input.topic, input.topic, input.platform || "twitter", "thread");
 }
 
 // ── Poll Generator ─────────────────────────────────────
@@ -513,11 +541,11 @@ Return EXACTLY this JSON:
   if (!jsonMatch) throw new Error("Failed to parse poll content");
   const parsed = JSON.parse(jsonMatch[0]);
 
-  return {
+  return enrichWithSEO({
     question: parsed.question || "",
     options: parsed.options || [],
     caption: parsed.caption || "",
-  };
+  }, input.topic, input.topic, platform, "poll");
 }
 
 // ── Weekly Content Plan ────────────────────────────────

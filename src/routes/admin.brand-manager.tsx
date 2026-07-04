@@ -19,12 +19,19 @@ import {
   scoreContent as scoreContentFn,
 } from "@/lib/api/brand-manager.functions";
 import {
+  generateVideoScript as generateVideoScriptFn,
+  generateVideo as generateVideoFn,
+  generateVoice as generateVoiceFn,
+  generateFullVideo as generateFullVideoFn,
+  getVideoGenStatus as getVideoGenStatusFn,
+} from "@/lib/api/video-gen.functions";
+import {
   Sparkles, Image, Film, Layout, MessageSquare, BarChart3,
   Calendar, ChevronLeft, ChevronRight, Loader2, Check, Clock,
   Send, Trash2, Copy, RefreshCw, Zap, Target, Hash, ArrowRight,
   X, Play, Pause, Volume2, Download, Eye, Music, ChevronDown,
   FileText, ExternalLink, Heart, Share2, Bookmark, Wand2, TrendingUp,
-  Search, Lightbulb, Trophy, AlertCircle, Repeat, Globe
+  Search, Lightbulb, Trophy, AlertCircle, Repeat, Globe, Video
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/brand-manager")({
@@ -32,7 +39,7 @@ export const Route = createFileRoute("/admin/brand-manager")({
   component: BrandManagerPage,
 });
 
-type Tab = "generators" | "queue" | "calendar" | "stats" | "templates";
+type Tab = "generators" | "video" | "queue" | "calendar" | "stats" | "templates";
 type GeneratorType = "carousel" | "reel" | "thumbnail" | "story" | "thread" | "poll";
 type ProviderChoice = "premium" | "free";
 
@@ -49,6 +56,11 @@ function BrandManagerPage() {
   const [seoData, setSeoData] = useState<any>(null);
   const [showRepurpose, setShowRepurpose] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [videoTopic, setVideoTopic] = useState("");
+  const [videoDuration, setVideoDuration] = useState<"15" | "30" | "60">("30");
+  const [videoPlatform, setVideoPlatform] = useState<"youtube" | "instagram" | "tiktok">("youtube");
+  const [videoStyle, setVideoStyle] = useState<"educational" | "entertaining" | "promotional">("educational");
+  const [videoResult, setVideoResult] = useState<any>(null);
 
   // Form states
   const [topic, setTopic] = useState("");
@@ -66,6 +78,10 @@ function BrandManagerPage() {
   const repurposeServer = useServerFn(quickRepurposeFn);
   const seoServer = useServerFn(generateContentSEOFn);
   const scoreServer = useServerFn(scoreContentFn);
+  const videoScriptServer = useServerFn(generateVideoScriptFn);
+  const videoServer = useServerFn(generateVideoFn);
+  const voiceServer = useServerFn(generateVoiceFn);
+  const fullVideoServer = useServerFn(generateFullVideoFn);
 
   const generators: { type: GeneratorType; label: string; icon: any; desc: string }[] = [
     { type: "carousel", label: "Carousel", icon: Layout, desc: "Multi-slide Instagram post" },
@@ -165,7 +181,7 @@ function BrandManagerPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-xl bg-muted/50 p-1">
-        {(["generators", "queue", "calendar", "stats"] as Tab[]).map((t) => (
+        {(["generators", "video", "queue", "calendar", "stats"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -173,7 +189,7 @@ function BrandManagerPage() {
               tab === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "generators" ? "Content Studio" : t === "queue" ? "Approval Queue" : t === "calendar" ? "Calendar" : "Analytics"}
+            {t === "generators" ? "Content Studio" : t === "video" ? "Video Studio" : t === "queue" ? "Approval Queue" : t === "calendar" ? "Calendar" : "Analytics"}
           </button>
         ))}
       </div>
@@ -354,6 +370,160 @@ function BrandManagerPage() {
                 source_type={activeGen}
                 topic={topic}
               />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Video Tab */}
+      {tab === "video" && (
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Video Form */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-muted-foreground">Video Generation</h3>
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Video topic..."
+                value={videoTopic}
+                onChange={(e) => setVideoTopic(e.target.value)}
+                className="w-full rounded-lg border border-border/60 bg-background px-4 py-3 text-sm"
+              />
+              <div className="grid grid-cols-3 gap-2">
+                <select
+                  value={videoDuration}
+                  onChange={(e) => setVideoDuration(e.target.value as any)}
+                  className="rounded-lg border border-border/60 bg-background px-3 py-2 text-sm"
+                >
+                  <option value="15">15s</option>
+                  <option value="30">30s</option>
+                  <option value="60">60s</option>
+                </select>
+                <select
+                  value={videoPlatform}
+                  onChange={(e) => setVideoPlatform(e.target.value as any)}
+                  className="rounded-lg border border-border/60 bg-background px-3 py-2 text-sm"
+                >
+                  <option value="youtube">YouTube</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="tiktok">TikTok</option>
+                </select>
+                <select
+                  value={videoStyle}
+                  onChange={(e) => setVideoStyle(e.target.value as any)}
+                  className="rounded-lg border border-border/60 bg-background px-3 py-2 text-sm"
+                >
+                  <option value="educational">Educational</option>
+                  <option value="entertaining">Entertaining</option>
+                  <option value="promotional">Promotional</option>
+                </select>
+              </div>
+              <button
+                onClick={async () => {
+                  if (!videoTopic.trim()) return;
+                  setLoading(true);
+                  setError("");
+                  setVideoResult(null);
+                  try {
+                    setStatus("Generating video script...");
+                    const res = await fullVideoServer({
+                      data: {
+                        topic: videoTopic,
+                        duration: videoDuration,
+                        platform: videoPlatform,
+                        style: videoStyle,
+                        withVoiceover: true,
+                      },
+                    });
+                    setVideoResult(res);
+                    setStatus("Video generated!");
+                  } catch (e: any) {
+                    setError("Video generation failed: " + (e?.message || "Unknown error"));
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading || !videoTopic.trim()}
+                className="w-full rounded-lg bg-purple-600 px-4 py-3 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Generating...</span>
+                ) : (
+                  <span className="flex items-center gap-2"><Film className="h-4 w-4" /> Generate Full Video</span>
+                )}
+              </button>
+            </div>
+            {status && <p className="text-xs text-muted-foreground">{status}</p>}
+            {error && <p className="text-xs text-red-500">{error}</p>}
+          </div>
+
+          {/* Video Result */}
+          <div className="lg:col-span-2">
+            {videoResult && (
+              <div className="space-y-4">
+                {videoResult.script && (
+                  <div className="rounded-xl border border-border/60 bg-card/50 p-5 space-y-3">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <Film className="h-4 w-4 text-purple-500" /> {videoResult.script.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground italic">"{videoResult.script.hook}"</p>
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-semibold text-muted-foreground">Scenes</h4>
+                      {videoResult.script.scenes?.map((scene: any, i: number) => (
+                        <div key={i} className="flex gap-3 rounded-lg bg-background border border-border/40 p-3">
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-purple-500/10 text-xs font-bold text-purple-500">
+                            {i + 1}
+                          </span>
+                          <div className="flex-1">
+                            <p className="text-sm">{scene.text}</p>
+                            <p className="text-[11px] text-muted-foreground">{scene.visual} ({scene.duration})</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {videoResult.script.voiceover && (
+                      <div className="rounded-lg bg-purple-500/5 border border-purple-500/20 p-3">
+                        <p className="text-xs font-semibold text-purple-600 mb-1">Voiceover Script</p>
+                        <p className="text-sm text-muted-foreground">{videoResult.script.voiceover}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {videoResult.video && (
+                  <div className="rounded-xl border border-border/60 bg-card/50 p-5 space-y-2">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Video className="h-4 w-4 text-blue-500" /> Generated Video
+                    </h4>
+                    {videoResult.video.video_url ? (
+                      <video controls className="w-full rounded-lg" src={videoResult.video.video_url} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Video queued (fal.ai processing...)</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Model: {videoResult.video.model} | Duration: {videoResult.video.duration}s | Cost: ${videoResult.video.cost}
+                    </p>
+                  </div>
+                )}
+                {videoResult.voiceover && (
+                  <div className="rounded-xl border border-border/60 bg-card/50 p-5 space-y-2">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Volume2 className="h-4 w-4 text-green-500" /> Voiceover Audio
+                    </h4>
+                    <audio controls className="w-full" src={videoResult.voiceover.audio_url} />
+                    <p className="text-xs text-muted-foreground">
+                      Voice: {videoResult.voiceover.voice} | Duration: {videoResult.voiceover.duration} | Size: {videoResult.voiceover.size_kb}KB
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+            {!videoResult && (
+              <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border/60 p-10">
+                <div className="text-center text-muted-foreground">
+                  <Film className="mx-auto h-12 w-12 opacity-20 mb-3" />
+                  <p className="text-sm">Enter a topic to generate a video with script, visuals, and voiceover</p>
+                </div>
+              </div>
             )}
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { aiPremium, aiContent } from "../router";
+import { generateContentSEO, type ContentSEO } from "../content-seo";
 
 // Inline type (audio-gen.server removed from client bundle)
 type AudioGenResult = { audioPath: string; audioUrl: string; voice: string; sizeKb: number; subtitlePath?: string; subtitleUrl?: string };
@@ -16,6 +17,7 @@ export type BlogPostContent = {
   category: string;
   tags: string[];
   audio?: AudioGenResult;
+  seo?: ContentSEO;
 };
 
 export type SocialPostContent = {
@@ -23,6 +25,7 @@ export type SocialPostContent = {
   caption: string;
   hashtags: string[];
   audio?: AudioGenResult;
+  seo?: ContentSEO;
 };
 
 // ── Blog Post Generation ───────────────────────────────
@@ -85,7 +88,20 @@ Return EXACTLY this JSON:
     }
   }
 
-  return blog;
+  // Enrich with SEO data
+  try {
+    const seo = await generateContentSEO({
+      title: blog.title,
+      content: blog.content,
+      topic: input.topic || blog.title,
+      platform: "instagram",
+      content_type: "blog_post",
+    });
+    return { ...blog, seo };
+  } catch (err) {
+    console.error("[ContentAI] SEO enrichment failed:", err);
+    return blog;
+  }
 }
 
 // ── Social Post Generation ─────────────────────────────
@@ -141,5 +157,18 @@ Return EXACTLY this JSON:
     // Audio generated server-side
   }
 
-  return post;
+  // Enrich with SEO data
+  try {
+    const seo = await generateContentSEO({
+      title: post.caption.slice(0, 60),
+      content: post.caption,
+      topic: input.topic,
+      platform: input.platform,
+      content_type: "social_post",
+    });
+    return { ...post, seo };
+  } catch (err) {
+    console.error("[ContentAI] SEO enrichment failed:", err);
+    return post;
+  }
 }

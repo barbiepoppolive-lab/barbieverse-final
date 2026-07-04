@@ -101,6 +101,23 @@ export {
 // Pollinations (free image generation — direct access)
 export { generateImageUrl, downloadImage } from "./providers/pollinations";
 
+// Video Generation (fal.ai + ElevenLabs)
+export {
+  generateVideo,
+  generateVoice,
+  generateVideoScript,
+  generateFullVideo,
+  getVideoGenStatus,
+} from "./video-gen";
+export type {
+  VideoGenInput,
+  VideoGenResult,
+  VoiceGenInput,
+  VoiceGenResult,
+  VideoScriptInput,
+  VideoScriptResult,
+} from "./video-gen";
+
 // Brand Manager (free content creation)
 export {
   generateCarousel,
