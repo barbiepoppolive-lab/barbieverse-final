@@ -19,6 +19,7 @@ export const listSocialLeads = createServerFn({ validator: z.object({
   platform: z.enum(["facebook", "reddit", "twitter", "youtube", "telegram"]).optional(),
   category: z.enum(["hot", "warm", "cold"]).optional(),
   status: z.enum(["discovered", "commented", "replied", "dismissed"]).optional(),
+  sort: z.enum(["date", "score", "category"]).optional(),
   page: z.number().optional(),
   limit: z.number().optional(),
 })}).handler(async ({ data }) => {
@@ -47,10 +48,14 @@ export const listSocialLeads = createServerFn({ validator: z.object({
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
+  let orderBy = "ORDER BY discovered_at DESC";
+  if (data.sort === "score") orderBy = "ORDER BY engagement_score DESC, ai_confidence DESC";
+  else if (data.sort === "category") orderBy = "ORDER BY CASE ai_category WHEN 'hot' THEN 1 WHEN 'warm' THEN 2 WHEN 'cold' THEN 3 END, engagement_score DESC";
+
   const [countResult, leadsResult] = await Promise.all([
     q(`SELECT count(*) as count FROM social_leads ${where}`, values),
     q(
-      `SELECT * FROM social_leads ${where} ORDER BY discovered_at DESC LIMIT $${idx++} OFFSET $${idx++}`,
+      `SELECT * FROM social_leads ${where} ${orderBy} LIMIT $${idx++} OFFSET $${idx++}`,
       [...values, limit, offset]
     ),
   ]);

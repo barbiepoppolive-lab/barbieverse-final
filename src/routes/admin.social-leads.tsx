@@ -32,6 +32,7 @@ function SocialLeadsDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterTab>("all");
+  const [sort, setSort] = useState<"date" | "score" | "category">("score");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [monitoring, setMonitoring] = useState(false);
@@ -50,6 +51,7 @@ function SocialLeadsDashboard() {
           data: {
             platform: ["facebook", "reddit", "twitter"].includes(filter) ? filter as any : undefined,
             category: ["hot", "warm", "cold"].includes(filter) ? filter as any : undefined,
+            sort,
             page,
             limit: 20,
           },
@@ -68,7 +70,7 @@ function SocialLeadsDashboard() {
 
   useEffect(() => {
     fetchData();
-  }, [filter, page]);
+  }, [filter, sort, page]);
 
   const runMonitor = async () => {
     setMonitoring(true);
@@ -138,7 +140,7 @@ function SocialLeadsDashboard() {
       )}
 
       {/* Filter Tabs */}
-      <div className="mt-8 flex flex-wrap gap-2">
+      <div className="mt-8 flex flex-wrap items-center gap-2">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -157,6 +159,15 @@ function SocialLeadsDashboard() {
             )}
           </button>
         ))}
+        <select
+          value={sort}
+          onChange={(e) => { setSort(e.target.value as any); setPage(1); }}
+          className="ml-auto rounded-full border border-border/60 bg-card/40 px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground"
+        >
+          <option value="score">Sort by Score</option>
+          <option value="date">Sort by Date</option>
+          <option value="category">Sort by Category</option>
+        </select>
       </div>
 
       {/* Leads List */}
