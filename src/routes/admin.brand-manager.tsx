@@ -13,6 +13,10 @@ import {
   listCalendarEntries,
   updateContentStatus,
   getContentQueue,
+  improveContent as improveContentFn,
+  quickRepurpose as quickRepurposeFn,
+  generateContentSEO as generateContentSEOFn,
+  scoreContent as scoreContentFn,
 } from "@/lib/api/brand-manager.functions";
 import {
   Sparkles, Image, Film, Layout, MessageSquare, BarChart3,
@@ -58,6 +62,10 @@ function BrandManagerPage() {
   const getQueue = useServerFn(getContentQueue);
   const getCalendar = useServerFn(listCalendarEntries);
   const updateStatus = useServerFn(updateContentStatus);
+  const improveServer = useServerFn(improveContentFn);
+  const repurposeServer = useServerFn(quickRepurposeFn);
+  const seoServer = useServerFn(generateContentSEOFn);
+  const scoreServer = useServerFn(scoreContentFn);
 
   const generators: { type: GeneratorType; label: string; icon: any; desc: string }[] = [
     { type: "carousel", label: "Carousel", icon: Layout, desc: "Multi-slide Instagram post" },
@@ -323,8 +331,16 @@ function BrandManagerPage() {
                 content={result}
                 type={activeGen}
                 onImprove={async (instruction) => {
-                  // TODO: Wire to improveContent
-                  alert("AI Improve: " + instruction);
+                  if (!result) return;
+                  try {
+                    setStatus("Improving content with AI...");
+                    const contentStr = JSON.stringify(result);
+                    const improved = await improveServer({ data: { content: contentStr, instruction, content_type: activeGen } });
+                    setResult((improved as any)?.improvedContent || result);
+                    setStatus("Content improved!");
+                  } catch (e: any) {
+                    setError("Improve failed: " + (e?.message || "Unknown error"));
+                  }
                 }}
                 onRegenerate={handleGenerate}
               />
@@ -559,6 +575,7 @@ function RepurposePanel({ content, title, source_type, topic }: {
 }) {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
+  const repurposeServer = useServerFn(quickRepurposeFn);
 
   const formats = [
     { id: "carousel", label: "Carousel", icon: Layout },
@@ -571,8 +588,12 @@ function RepurposePanel({ content, title, source_type, topic }: {
   const handleRepurpose = async (format: string) => {
     setLoading(true);
     try {
-      // TODO: Wire to actual repurpose API
-      alert(`Repurposing to ${format}... Coming soon!`);
+      const res = await repurposeServer({
+        data: { content, source_type, target_type: format, topic }
+      });
+      setResults((prev) => [...prev, { format, result: res }]);
+    } catch (e: any) {
+      setResults((prev) => [...prev, { format, error: e?.message || "Failed" }]);
     } finally {
       setLoading(false);
     }
@@ -592,6 +613,27 @@ function RepurposePanel({ content, title, source_type, topic }: {
           </button>
         ))}
       </div>
+      {results.length > 0 && (
+        <div className="space-y-2 pt-2 border-t border-purple-500/20">
+          {results.map((r, i) => (
+            <div key={i} className="rounded-lg bg-background border border-border/40 p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium capitalize">{r.format.replace("_", " ")}</span>
+                {r.error ? (
+                  <span className="text-[10px] text-red-500">{r.error}</span>
+                ) : (
+                  <Check className="h-3 w-3 text-green-500" />
+                )}
+              </div>
+              {r.result && (
+                <p className="text-[11px] text-muted-foreground line-clamp-3">
+                  {typeof r.result === "string" ? r.result : JSON.stringify(r.result).slice(0, 200)}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

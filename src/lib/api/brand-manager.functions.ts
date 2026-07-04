@@ -389,3 +389,110 @@ export const getBrandManagerStats = createServerFn({ method: "GET" })
 
     return { totals, byType, byPlatform, calendarCount };
   });
+
+// ── Improve Content ────────────────────────────────────
+
+export const improveContent = createServerFn({ method: "POST" })
+  .validator(
+    (d) =>
+      z
+        .object({
+          content: z.string(),
+          instruction: z.string().min(1),
+          content_type: z.string().default("carousel"),
+        })
+        .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("../admin-session.server");
+    await requireAdmin();
+
+    const { improveContent: improve } = await import("../ai/content-quality");
+    return improve({
+      content: data.content,
+      instruction: data.instruction,
+      content_type: data.content_type,
+    });
+  });
+
+// ── Quick Repurpose ────────────────────────────────────
+
+export const quickRepurpose = createServerFn({ method: "POST" })
+  .validator(
+    (d) =>
+      z
+        .object({
+          content: z.string(),
+          source_type: z.string().default("carousel"),
+          target_type: z.string(),
+          topic: z.string().default(""),
+        })
+        .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("../admin-session.server");
+    await requireAdmin();
+
+    const { quickRepurpose: repurpose } = await import("../ai/content-repurpose");
+    return repurpose({
+      content: data.content,
+      title: data.topic || "Untitled",
+      source_type: data.source_type,
+      target_format: data.target_type,
+      platform: "instagram" as any,
+      topic: data.topic,
+    });
+  });
+
+// ── Generate SEO ───────────────────────────────────────
+
+export const generateContentSEO = createServerFn({ method: "POST" })
+  .validator(
+    (d) =>
+      z
+        .object({
+          content: z.string(),
+          platform: z.string().default("instagram"),
+          topic: z.string().default(""),
+        })
+        .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("../admin-session.server");
+    await requireAdmin();
+
+    const { generateContentSEO: genSEO } = await import("../ai/content-seo");
+    return genSEO({
+      title: data.topic || "Untitled",
+      content: data.content,
+      platform: data.platform as any,
+      content_type: "social_post",
+      topic: data.topic,
+    });
+  });
+
+// ── Score Content ──────────────────────────────────────
+
+export const scoreContent = createServerFn({ method: "POST" })
+  .validator(
+    (d) =>
+      z
+        .object({
+          content: z.string(),
+          content_type: z.string().default("carousel"),
+          platform: z.string().default("instagram"),
+        })
+        .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("../admin-session.server");
+    await requireAdmin();
+
+    const { scoreContent: score } = await import("../ai/content-quality");
+    return score({
+      content: data.content,
+      content_type: data.content_type,
+      platform: data.platform,
+      topic: "",
+    });
+  });

@@ -416,7 +416,7 @@ Return EXACTLY this JSON:
   // Generate audio if requested
   if (input.withAudio && storySlides.length > 0) {
     try {
-      storyResult.audio = await generateStoryAudio(storySlides);
+      // Audio generated server-side via API route
     } catch (err) {
       console.error("[BrandManager] Story audio generation failed:", err);
     }

@@ -1,5 +1,7 @@
 import { aiPremium, aiContent } from "../router";
-import type { AudioGenResult } from "../audio-gen.server";
+
+// Inline type (audio-gen.server removed from client bundle)
+type AudioGenResult = { audioPath: string; audioUrl: string; voice: string; sizeKb: number; subtitlePath?: string; subtitleUrl?: string };
 
 
 // ── Types ──────────────────────────────────────────────
