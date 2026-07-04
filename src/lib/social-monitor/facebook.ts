@@ -26,7 +26,7 @@ export async function searchFacebookPosts(
   try {
     // Use the Facebook Posts Search actor
     const runResponse = await fetch(
-      `${APIFY_BASE_URL}/acts/apify/facebook-posts-search/runs`,
+      `${APIFY_BASE_URL}/acts/scraper_one~facebook-posts-search/runs`,
       {
         method: "POST",
         headers: {
