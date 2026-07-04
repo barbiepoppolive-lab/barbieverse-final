@@ -562,7 +562,7 @@ function ContentPreview({ content, type, onImprove, onRegenerate }: {
 
   return (
     <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 space-y-4">
-      <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between">
         <h3 className="font-semibold text-primary flex items-center gap-2">
           <Check className="h-4 w-4" /> Generated Content
         </h3>
@@ -572,9 +572,37 @@ function ContentPreview({ content, type, onImprove, onRegenerate }: {
               <Music className="h-3 w-3" /> {content.music.track.title}
             </span>
           )}
-          <button onClick={() => navigator.clipboard.writeText(JSON.stringify(content, null, 2))}
-            className="rounded-lg bg-muted px-2 py-1 text-xs hover:bg-muted/80">
+          <button onClick={() => {
+            const parts: string[] = [];
+            if (content.caption) parts.push(content.caption);
+            if (content.question) parts.push(content.question + "\n\n" + (content.options || []).map((o: string, i: number) => `${i + 1}. ${o}`).join("\n"));
+            if (content.tweets) parts.push(content.tweets.join("\n\n"));
+            if (content.title) parts.push(content.title);
+            if (content.hashtags?.length) parts.push("\n" + content.hashtags.map((t: string) => "#" + t).join(" "));
+            if (content.hook) parts.push("Hook: " + content.hook);
+            if (content.slides) {
+              parts.push("\n--- SLIDES ---");
+              content.slides.forEach((s: any, i: number) => {
+                parts.push(`\nSlide ${i + 1}: ${s.headline || s.text || ""}\n${s.body || ""}`);
+              });
+            }
+            navigator.clipboard.writeText(parts.join("\n\n"));
+          }}
+            className="rounded-lg bg-gradient-pink px-2 py-1 text-xs text-primary-foreground hover:opacity-90">
             <Copy className="h-3 w-3 inline mr-1" /> Copy
+          </button>
+          <button onClick={() => {
+            const images: string[] = [];
+            if (content.image_url) images.push(content.image_url);
+            if (content.slides) content.slides.forEach((s: any) => { if (s.image_url) images.push(s.image_url); });
+            if (images.length === 0) { alert("No images to download"); return; }
+            images.forEach((url, i) => {
+              const a = document.createElement("a"); a.href = url; a.download = `image_${i + 1}.png`; a.target = "_blank";
+              document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            });
+          }}
+            className="rounded-lg bg-muted px-2 py-1 text-xs hover:bg-muted/80">
+            <Download className="h-3 w-3 inline mr-1" /> Images
           </button>
         </div>
       </div>
@@ -1063,18 +1091,53 @@ function ContentDetailDrawer({ item, onClose }: { item: any; onClose: () => void
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2">
-            <button onClick={() => navigator.clipboard.writeText(JSON.stringify(outputData, null, 2))}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-muted px-4 py-2.5 text-sm hover:bg-muted/80">
-              <Copy className="h-4 w-4" /> Copy JSON
-            </button>
+          <div className="space-y-2">
             <button onClick={() => {
-              const blob = new Blob([JSON.stringify(outputData, null, 2)], { type: "application/json" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a"); a.href = url; a.download = `${item.job_type}_${Date.now()}.json`; a.click();
-            }} className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-muted px-4 py-2.5 text-sm hover:bg-muted/80">
-              <Download className="h-4 w-4" /> Export
+              const parts: string[] = [];
+              if (outputData.caption) parts.push(outputData.caption);
+              if (outputData.question) parts.push(outputData.question + "\n\n" + (outputData.options || []).map((o: string, i: number) => `${i + 1}. ${o}`).join("\n"));
+              if (outputData.tweets) parts.push(outputData.tweets.join("\n\n"));
+              if (outputData.title) parts.push(outputData.title);
+              if (outputData.hashtags?.length) parts.push("\n" + outputData.hashtags.map((t: string) => "#" + t).join(" "));
+              if (outputData.hook) parts.push("Hook: " + outputData.hook);
+              if (outputData.slides) {
+                parts.push("\n--- SLIDES ---");
+                outputData.slides.forEach((s: any, i: number) => {
+                  parts.push(`\nSlide ${i + 1}: ${s.headline || s.text || ""}\n${s.body || ""}`);
+                });
+              }
+              navigator.clipboard.writeText(parts.join("\n\n"));
+              alert("Caption + hashtags copied!");
+            }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-pink px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
+              <Copy className="h-4 w-4" /> Copy Caption + Hashtags
             </button>
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                const images: string[] = [];
+                if (outputData.image_url) images.push(outputData.image_url);
+                if (outputData.slides) outputData.slides.forEach((s: any) => { if (s.image_url) images.push(s.image_url); });
+                if (images.length === 0) { alert("No images to download"); return; }
+                for (let i = 0; i < images.length; i++) {
+                  const a = document.createElement("a");
+                  a.href = images[i];
+                  a.download = `${item.job_type}_image_${i + 1}.png`;
+                  a.target = "_blank";
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  if (i < images.length - 1) await new Promise(r => setTimeout(r, 500));
+                }
+              }} className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-muted px-4 py-2.5 text-sm hover:bg-muted/80">
+                <Download className="h-4 w-4" /> Images ({(() => { let c = 0; if (outputData.image_url) c++; if (outputData.slides) c += outputData.slides.filter((s: any) => s.image_url).length; return c; })()})
+              </button>
+              <button onClick={() => {
+                const blob = new Blob([JSON.stringify(outputData, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a"); a.href = url; a.download = `${item.job_type}_${Date.now()}.json`; a.click();
+              }} className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-muted px-4 py-2.5 text-sm hover:bg-muted/80">
+                <FileText className="h-4 w-4" /> Export JSON
+              </button>
+            </div>
           </div>
         </div>
       </div>
