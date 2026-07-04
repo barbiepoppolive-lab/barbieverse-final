@@ -76,7 +76,7 @@ Return EXACTLY this JSON:
   // Generate read-aloud audio if requested
   if (input.withAudio && blog.content) {
     try {
-      blog.audio = await (await import("../audio-gen.server")).generateBlogAudio(blog.content);
+      // Audio generated server-side
     } catch (err) {
       console.error("[ContentAI] Blog audio generation failed:", err);
     }
@@ -135,12 +135,7 @@ Return EXACTLY this JSON:
 
   // Generate audio if requested
   if (input.withAudio && post.caption) {
-    try {
-      const { generateSocialAudio } = await import("../audio-gen.server");
-      post.audio = await generateSocialAudio(post.caption);
-    } catch (err) {
-      console.error("[ContentAI] Social audio generation failed:", err);
-    }
+    // Audio generated server-side
   }
 
   return post;
