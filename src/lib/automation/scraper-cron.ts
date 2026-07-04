@@ -272,8 +272,8 @@ export async function autoScoreNewLeads(): Promise<{
 // ── Send Telegram Alert ────────────────────────────────
 
 export async function sendAutomationAlert(text: string): Promise<void> {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
+  const botToken = process.env.CONTENT_TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.CONTENT_TELEGRAM_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
   if (!botToken || !chatId) return;
 
   try {

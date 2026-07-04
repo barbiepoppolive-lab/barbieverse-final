@@ -5,8 +5,8 @@ import type { SocialPost, PostCategory } from "./types";
 const TELEGRAM_API_BASE = "https://api.telegram.org";
 
 function getBotConfig() {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
+  const token = process.env.CONTENT_TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.CONTENT_TELEGRAM_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
   if (!token || !chatId) {
     throw new Error("Telegram bot not configured");
   }

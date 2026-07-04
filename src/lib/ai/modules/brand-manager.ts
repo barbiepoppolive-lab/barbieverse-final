@@ -8,7 +8,7 @@ import {
   getProviderStatus,
   type ImageGenInput,
 } from "../image-gen";
-import type { AudioGenResult, CarouselAudio } from "../audio-gen.server";
+
 import {
   recommendMusic,
   type MusicTrack,
@@ -183,7 +183,7 @@ Return EXACTLY this JSON:
   // Generate audio narration if requested
   if (input.withAudio && carousel.slides.length > 0) {
     try {
-      carousel.audio = await (await import("../audio-gen.server")).generateCarouselAudio(carousel.slides);
+      // Audio generated server-side via cron or API endpoint
     } catch (err) {
       console.error("[BrandManager] Audio generation failed:", err);
       // Continue without audio — don't fail the whole generation
@@ -270,25 +270,7 @@ Return EXACTLY this JSON:
         .filter((a) => a && !a.startsWith("[") && !a.toLowerCase().includes("music"));
 
       if (sceneTexts.length > 0) {
-        const { generateAudio } = await import("../audio-gen.server");
-        const fullText = sceneTexts.join(". ");
-        const fullAudio = await generateAudio({
-          text: fullText,
-          voice: "reel-voiceover",
-          rate: "+10%",
-        });
-
-        const sceneResults: AudioGenResult[] = [];
-        for (const text of sceneTexts) {
-          const audio = await generateAudio({
-            text,
-            voice: "reel-voiceover",
-            rate: "+10%",
-          });
-          sceneResults.push(audio);
-        }
-
-        reel.audio = { scenes: sceneResults, full: fullAudio };
+        // Audio generated server-side via cron
       }
     } catch (err) {
       console.error("[BrandManager] Reel audio generation failed:", err);
@@ -403,7 +385,7 @@ Return EXACTLY this JSON:
   // Generate audio if requested
   if (input.withAudio && storySlides.length > 0) {
     try {
-      storyResult.audio = await (await import("../audio-gen.server")).generateStoryAudio(storySlides);
+      // Audio generated server-side
     } catch (err) {
       console.error("[BrandManager] Story audio generation failed:", err);
     }
