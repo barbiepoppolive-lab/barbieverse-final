@@ -1,5 +1,8 @@
 // Server-only DB helpers
-import { Pool } from "pg";
+import { Pool, types } from "pg";
+
+// Force PostgreSQL `numeric` (OID 1700) to return as JS numbers instead of strings
+types.setTypeParser(1700, (val: string) => parseFloat(val));
 
 const connectionString = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
 
