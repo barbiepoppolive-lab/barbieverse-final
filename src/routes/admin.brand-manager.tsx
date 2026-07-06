@@ -1204,7 +1204,7 @@ function ContentDetailDrawer({ item, onClose }: { item: any; onClose: () => void
           {/* Metadata */}
           <div className="rounded-lg bg-muted/50 p-4 space-y-2 text-xs text-muted-foreground">
             <div className="flex justify-between"><span>Job ID</span><span className="font-mono">{item.id.slice(0, 8)}...</span></div>
-            <div className="flex justify-between"><span>Cost</span><span>${(item.total_cost_usd || 0).toFixed(4)}</span></div>
+            <div className="flex justify-between"><span>Cost</span><span>${Number(item.total_cost_usd || 0).toFixed(4)}</span></div>
             <div className="flex justify-between"><span>Created</span><span>{new Date(item.created_at).toLocaleString()}</span></div>
           </div>
 
@@ -1354,7 +1354,7 @@ function StatsTab({ getStats }: { getStats: any }) {
           { label: "Drafts", value: s.drafts || 0, icon: Clock, color: "text-yellow-500" },
           { label: "Approved", value: s.approved || 0, icon: Check, color: "text-green-500" },
           { label: "Published", value: s.published || 0, icon: Send, color: "text-blue-500" },
-          { label: "Total Cost", value: `$${(s.total_cost || 0).toFixed(2)}`, icon: Target, color: "text-purple-500" },
+          { label: "Total Cost", value: `$${Number(s.total_cost || 0).toFixed(2)}`, icon: Target, color: "text-purple-500" },
         ].map((card) => (
           <div key={card.label} className="rounded-xl border border-border/60 bg-card/50 p-4">
             <card.icon className={`h-5 w-5 ${card.color} mb-2`} />

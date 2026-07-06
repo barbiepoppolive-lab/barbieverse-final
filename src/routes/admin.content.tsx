@@ -239,7 +239,7 @@ function ContentDetailDrawer({ job, onClose }: { job: any; onClose: () => void }
           {/* Metadata */}
           <div className="rounded-lg bg-muted/50 p-4 space-y-2 text-xs text-muted-foreground">
             <div className="flex justify-between"><span>Job ID</span><span className="font-mono">{job.id.slice(0, 8)}...</span></div>
-            <div className="flex justify-between"><span>Cost</span><span>${(job.total_cost_usd || 0).toFixed(4)}</span></div>
+            <div className="flex justify-between"><span>Cost</span><span>${Number(job.total_cost_usd || 0).toFixed(4)}</span></div>
             <div className="flex justify-between"><span>Created</span><span>{new Date(job.created_at).toLocaleString()}</span></div>
           </div>
 
