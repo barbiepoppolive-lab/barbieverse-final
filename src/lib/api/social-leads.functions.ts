@@ -4,10 +4,8 @@ import { pool } from "@/lib/db.server";
 import type { SocialLead, SocialPlatform, PostCategory, PostStatus } from "@/lib/social-monitor/types";
 
 async function requireAdmin() {
-  const { useSession } = await import("@tanstack/react-start/server");
-  const { verifyAdminSession } = await import("@/lib/admin-session.server");
-  const session = await useSession({ password: process.env.ADMIN_SESSION_SECRET || "" });
-  if (!session?.data?.isAdmin) throw new Error("Unauthorized");
+  const { requireAdmin: requireAdminSession } = await import("@/lib/admin-session.server");
+  await requireAdminSession();
 }
 
 async function q(text: string, params: any[] = []) {
@@ -18,7 +16,7 @@ async function q(text: string, params: any[] = []) {
 export const listSocialLeads = createServerFn({ validator: z.object({
   platform: z.enum(["facebook", "reddit", "twitter", "youtube", "instagram", "telegram"]).optional(),
   category: z.enum(["hot", "warm", "cold"]).optional(),
-  status: z.enum(["discovered", "commented", "replied", "dismissed"]).optional(),
+  status: z.enum(["discovered", "ai_reviewed", "commented", "replied", "dismissed"]).optional(),
   sort: z.enum(["date", "score", "category"]).optional(),
   page: z.number().optional(),
   limit: z.number().optional(),
@@ -68,7 +66,7 @@ export const listSocialLeads = createServerFn({ validator: z.object({
 
 export const updateSocialLeadStatus = createServerFn({ validator: z.object({
   leadId: z.string(),
-  status: z.enum(["discovered", "commented", "replied", "dismissed"]),
+  status: z.enum(["discovered", "ai_reviewed", "commented", "replied", "dismissed"]),
 })}).handler(async ({ data }) => {
   await requireAdmin();
 

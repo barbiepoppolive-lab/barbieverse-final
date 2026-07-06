@@ -15,7 +15,7 @@ import { monitorInstagram } from "./instagram";
 import { generateComment } from "./ai-comment";
 import { sendSocialLeadAlert, sendSocialDigest } from "./telegram-alert";
 import { DEFAULT_MONITOR_CONFIG, loadMonitorConfig } from "./types";
-import type { SocialPost, MonitorConfig } from "./types";
+import type { SocialPost, SocialPlatform, MonitorConfig } from "./types";
 
 // ── Timeout helper ──────────────────────────────────────
 
@@ -28,7 +28,49 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   ]);
 }
 
-const PLATFORM_TIMEOUT = 60_000; // 60s per platform (Facebook/Instagram actors need time to run + poll)
+const PLATFORM_TIMEOUT = 60_000;
+
+// ── Last run tracking (per-platform intervals) ─────────
+
+async function getLastRunAt(platform: SocialPlatform): Promise<Date | null> {
+  try {
+    const { q } = await import("@/lib/db.server");
+    const rows = await q<{ value: string }>(
+      `SELECT value FROM settings WHERE key = $1`,
+      [`social_last_run_${platform}`]
+    );
+    if (rows.length > 0 && rows[0].value) {
+      return new Date(rows[0].value);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function setLastRunAt(platform: SocialPlatform): Promise<void> {
+  try {
+    const { q } = await import("@/lib/db.server");
+    await q(
+      `INSERT INTO settings (key, value) VALUES ($1, $2)
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+      [`social_last_run_${platform}`, new Date().toISOString()]
+    );
+  } catch (e: any) {
+    console.error(`[social-monitor] Failed to update last_run_at for ${platform}:`, e?.message);
+  }
+}
+
+async function shouldRunPlatform(
+  platform: SocialPlatform,
+  intervalHours: number
+): Promise<boolean> {
+  const lastRun = await getLastRunAt(platform);
+  if (!lastRun) return true;
+
+  const hoursSinceLastRun = (Date.now() - lastRun.getTime()) / (1000 * 60 * 60);
+  return hoursSinceLastRun >= intervalHours;
+}
 
 // ── Database operations ────────────────────────────────
 
@@ -40,7 +82,6 @@ async function storeSocialLead(post: SocialPost, aiResult: {
 }) {
   const { q } = await import("@/lib/db.server");
 
-  // Check for duplicate by post URL
   const existing = await q<{ id: string }>(
     `SELECT id FROM social_leads WHERE post_url = $1 LIMIT 1`,
     [post.postUrl]
@@ -84,52 +125,103 @@ async function storeSocialLead(post: SocialPost, aiResult: {
 export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
   const dbConfig = await loadMonitorConfig();
   const cfg = { ...dbConfig, ...config };
+  const intervals = cfg.platformIntervals;
 
   const results = {
-    facebook: { found: 0, stored: 0, errors: 0 },
-    reddit: { found: 0, stored: 0, errors: 0 },
-    twitter: { found: 0, stored: 0, errors: 0 },
-    youtube: { found: 0, stored: 0, errors: 0 },
-    instagram: { found: 0, stored: 0, errors: 0 },
+    facebook: { found: 0, stored: 0, errors: 0, skipped: false },
+    reddit: { found: 0, stored: 0, errors: 0, skipped: false },
+    twitter: { found: 0, stored: 0, errors: 0, skipped: false },
+    youtube: { found: 0, stored: 0, errors: 0, skipped: false },
+    instagram: { found: 0, stored: 0, errors: 0, skipped: false },
     total: 0,
     hotAlerts: 0,
     warmAlerts: 0,
   };
 
-  // Run all platforms in parallel with per-platform timeouts
+  // Check which platforms should run based on their intervals
+  const platformChecks = await Promise.all([
+    shouldRunPlatform("youtube", intervals.youtube),
+    shouldRunPlatform("twitter", intervals.twitter),
+    shouldRunPlatform("reddit", intervals.reddit),
+    shouldRunPlatform("facebook", intervals.facebook),
+    shouldRunPlatform("instagram", intervals.instagram),
+  ]);
+
+  const [runYT, runTwitter, runReddit, runFB, runIG] = platformChecks;
+
+  results.youtube.skipped = !runYT;
+  results.twitter.skipped = !runTwitter;
+  results.reddit.skipped = !runReddit;
+  results.facebook.skipped = !runFB;
+  results.instagram.skipped = !runIG;
+
+  // Run platforms that are due
   const fbResult = { posts: [] as SocialPost[], error: "" };
   const redditResult = { posts: [] as SocialPost[], error: "" };
   const twitterResult = { posts: [] as SocialPost[], error: "" };
   const ytResult = { posts: [] as SocialPost[], error: "" };
   const igResult = { posts: [] as SocialPost[], error: "" };
 
-  await Promise.allSettled([
-    withTimeout(
-      monitorFacebook(cfg.facebookQueries, cfg.maxResultsPerPlatform),
-      PLATFORM_TIMEOUT,
-      "Facebook"
-    ).then((p) => { fbResult.posts = p; }).catch((e) => { fbResult.error = e?.message || "unknown"; }),
-    withTimeout(
-      monitorReddit(cfg.keywords, cfg.redditSubreddits, cfg.maxResultsPerPlatform),
-      PLATFORM_TIMEOUT,
-      "Reddit"
-    ).then((p) => { redditResult.posts = p; }).catch((e) => { redditResult.error = e?.message || "unknown"; }),
-    withTimeout(
-      monitorTwitter(cfg.twitterQueries, cfg.maxResultsPerPlatform),
-      PLATFORM_TIMEOUT,
-      "Twitter"
-    ).then((p) => { twitterResult.posts = p; }).catch((e) => { twitterResult.error = e?.message || "unknown"; }),
-    withTimeout(
-      monitorYouTube(cfg.youtubeQueries, cfg.maxResultsPerPlatform),
-      PLATFORM_TIMEOUT,
-      "YouTube"
-    ).then((p) => { ytResult.posts = p; }).catch((e) => { ytResult.error = e?.message || "unknown"; }),
-    withTimeout(
-      monitorInstagram(cfg.instagramHashtags, cfg.maxResultsPerPlatform),
-      PLATFORM_TIMEOUT,
-      "Instagram"
-    ).then((p) => { igResult.posts = p; }).catch((e) => { igResult.error = e?.message || "unknown"; }),
-  ]);
+  const promises: Promise<void>[] = [];
+
+  if (runYT) {
+    promises.push(
+      withTimeout(
+        monitorYouTube(cfg.youtubeQueries, cfg.maxResultsPerPlatform),
+        PLATFORM_TIMEOUT,
+        "YouTube"
+      ).then((p) => { ytResult.posts = p; }).catch((e) => { ytResult.error = e?.message || "unknown"; })
+    );
+  }
+
+  if (runTwitter) {
+    promises.push(
+      withTimeout(
+        monitorTwitter(cfg.twitterQueries, cfg.maxResultsPerPlatform),
+        PLATFORM_TIMEOUT,
+        "Twitter"
+      ).then((p) => { twitterResult.posts = p; }).catch((e) => { twitterResult.error = e?.message || "unknown"; })
+    );
+  }
+
+  if (runReddit) {
+    promises.push(
+      withTimeout(
+        monitorReddit(cfg.keywords, cfg.redditSubreddits, cfg.maxResultsPerPlatform),
+        PLATFORM_TIMEOUT,
+        "Reddit"
+      ).then((p) => { redditResult.posts = p; }).catch((e) => { redditResult.error = e?.message || "unknown"; })
+    );
+  }
+
+  if (runFB) {
+    promises.push(
+      withTimeout(
+        monitorFacebook(cfg.facebookQueries, cfg.maxResultsPerPlatform),
+        PLATFORM_TIMEOUT,
+        "Facebook"
+      ).then((p) => { fbResult.posts = p; }).catch((e) => { fbResult.error = e?.message || "unknown"; })
+    );
+  }
+
+  if (runIG) {
+    promises.push(
+      withTimeout(
+        monitorInstagram(cfg.instagramHashtags, cfg.maxResultsPerPlatform),
+        PLATFORM_TIMEOUT,
+        "Instagram"
+      ).then((p) => { igResult.posts = p; }).catch((e) => { igResult.error = e?.message || "unknown"; })
+    );
+  }
+
+  await Promise.allSettled(promises);
+
+  // Update last_run_at for platforms that ran
+  if (runYT) await setLastRunAt("youtube");
+  if (runTwitter) await setLastRunAt("twitter");
+  if (runReddit) await setLastRunAt("reddit");
+  if (runFB) await setLastRunAt("facebook");
+  if (runIG) await setLastRunAt("instagram");
 
   const fb = fbResult.posts;
   const reddit = redditResult.posts;
@@ -157,13 +249,12 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
   const allPosts: SocialPost[] = [...fb, ...reddit, ...twitter, ...youtube, ...instagram];
 
   // Filter by minimum engagement
-  // YouTube and Instagram search APIs don't return engagement data, so always include them
   const noEngagementPlatforms = new Set(["youtube", "instagram"]);
   const filteredPosts = allPosts.filter(
     (p) => noEngagementPlatforms.has(p.platform) || (p.likes + p.comments + p.shares) >= cfg.minEngagement
   );
 
-  // Generate AI comments and store leads (max 5 per run to stay fast)
+  // Generate AI comments and store leads (max 5 per run)
   for (const post of filteredPosts.slice(0, 5)) {
     try {
       const aiResult = await generateComment(
@@ -177,7 +268,6 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
       const leadId = await storeSocialLead(post, aiResult);
 
       if (leadId) {
-        // Send Telegram alert for hot/warm leads
         if (aiResult.category === "hot" || aiResult.category === "warm") {
           await sendSocialLeadAlert({
             platform: post.platform,
@@ -199,7 +289,6 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
 
         results.total++;
 
-        // Track per-platform
         if (post.platform === "facebook") results.facebook.stored++;
         if (post.platform === "reddit") results.reddit.stored++;
         if (post.platform === "twitter") results.twitter.stored++;
@@ -210,7 +299,6 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
       console.error(`[social-monitor] Error processing ${post.postUrl}:`, e?.message);
     }
 
-    // Rate limit AI calls
     await new Promise((r) => setTimeout(r, 1000));
   }
 

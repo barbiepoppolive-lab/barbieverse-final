@@ -130,6 +130,10 @@ CONTENT RULES:
 6. Never use: leverage, synergy, unlock, gamify, disruptive
 7. Always sound like a real person, not a brand`;
 
+// ── Brand Visual Identity (append to ALL image prompts) ──
+
+const BRAND_AESTHETIC = `BarbieVerse brand aesthetic: luxurious pink and black color palette, rose gold accents, cinematic lighting with soft bokeh, glamorous and feminine, professional studio quality, 8K ultra-detailed, dramatic lighting, elegant typography space, shallow depth of field, editorial fashion photography style, high-end beauty magazine quality, sparkle and shimmer effects, royal crown motifs, dark moody backgrounds with pink neon glow, premium luxury feel, photorealistic, hyperdetailed skin texture, studio ring light reflection in eyes, magazine cover quality`;
+
 // ── SEO Enrichment Helper ──────────────────────────────
 
 async function enrichWithSEO(
@@ -174,12 +178,14 @@ STYLE: ${style}
 NUMBER OF SLIDES: ${numSlides}
 
 REQUIREMENTS:
-- Slide 1: Bold hook headline + short subtitle (this is the cover)
+- Slide 1: Bold hook headline + short subtitle (this is the cover) — this MUST have a caption/text overlay described in image_prompt
 - Slides 2-${numSlides - 1}: One key point per slide with headline + 1-2 sentences
-- Last slide: Strong CTA slide
-- Each slide needs a visual description for image generation
+- Last slide: Strong CTA slide with brand handle @barbieverse
+- Each slide needs a VISUAL image description for AI image generation
 - Keep text minimal — Instagram carousels work best with 30-50 words per slide
 - Write in a conversational, empowering tone
+- EVERY image_prompt MUST describe a pink/black/gold color palette, cinematic lighting, and professional quality
+- The first slide image_prompt must describe a bold, eye-catching cover with text space
 
 Return EXACTLY this JSON:
 {
@@ -188,7 +194,7 @@ Return EXACTLY this JSON:
     {
       "headline": "short punchy headline",
       "body": "1-2 sentences max",
-      "image_prompt": "detailed image description for AI image generation, photorealistic, vibrant colors"
+      "image_prompt": "detailed scene description — pink and black color palette, rose gold accents, cinematic studio lighting, glamorous, 8K quality, editorial photography, professional, text overlay space for headline"
     }
   ],
   "caption": "Instagram caption for this carousel",
@@ -287,7 +293,8 @@ Return EXACTLY this JSON:
   ],
   "caption": "post caption",
   "hashtags": ["relevant", "hashtags"],
-  "music_suggestion": "trending audio style"
+  "music_suggestion": "trending audio style",
+  "cover_prompt": "reel cover thumbnail — BarbieVerse pink/black aesthetic, glamorous creator portrait, cinematic lighting, rose gold accents, 8K, magazine cover quality"
 }`,
     BRAND_VOICE,
     provider
@@ -350,15 +357,17 @@ export async function generateThumbnail(input: {
 
 STYLE: ${style}
 REQUIREMENTS:
-- Eye-catching and clickable
+- Eye-catching and clickable — must stop the scroll
 - Bold text-friendly composition (space for text overlay)
-- Vibrant colors
-- Professional quality
+- BarbieVerse pink/black/gold color palette, rose gold accents
+- Cinematic lighting, dramatic shadows
+- Professional editorial quality, 8K
 - 16:9 aspect ratio
+- Glamorous, luxury feel
 
 Return EXACTLY this JSON:
 {
-  "image_prompt": "detailed image generation prompt, photorealistic, vibrant"
+  "image_prompt": "detailed scene description — BarbieVerse aesthetic, pink and black palette, rose gold accents, cinematic lighting, glamorous, 8K, editorial, professional, text overlay space, dramatic"
 }`,
     BRAND_VOICE,
     provider
@@ -404,13 +413,14 @@ REQUIREMENTS:
 - Vertical format (9:16)
 - Bold, minimal text
 - High energy
+- ALL image_prompts MUST use BarbieVerse pink/black/gold aesthetic
 
 Return EXACTLY this JSON:
 {
   "slides": [
     {
       "text": "short text on slide",
-      "image_prompt": "background image prompt for AI generation",
+      "image_prompt": "background scene — BarbieVerse pink/black aesthetic, cinematic lighting, rose gold accents, glamorous, 8K, professional, vertical 9:16",
       "cta": "optional call to action"
     }
   ]
@@ -620,9 +630,12 @@ export async function generateContentImage(
   else if (platform === "linkedin") size = "landscape";
   else if (platform === "youtube") size = "thumbnail";
 
+  // Always append brand aesthetic for consistent visual identity
+  const enhancedPrompt = `${prompt}, ${BRAND_AESTHETIC}`;
+
   try {
     const result = await generateImageFull({
-      prompt,
+      prompt: enhancedPrompt,
       size,
       provider: "auto",
       useFaceDetailer: false,
@@ -630,7 +643,7 @@ export async function generateContentImage(
     return result.url;
   } catch {
     // Fallback to Pollinations
-    const fallback = generateImageUrl({ prompt, size, model: "flux" });
+    const fallback = generateImageUrl({ prompt: enhancedPrompt, size, model: "flux" });
     return fallback.url;
   }
 }

@@ -13,7 +13,8 @@ function getApifyToken(): string | null {
 
 export async function searchFacebookPosts(
   keyword: string,
-  maxResults: number = 20
+  maxResults: number = 20,
+  timeRange: "24h" | "7d" | "30d" | "90d" = "7d"
 ): Promise<SocialPost[]> {
   const token = getApifyToken();
   if (!token) {
@@ -37,6 +38,7 @@ export async function searchFacebookPosts(
           query: keyword,
           resultsCount: maxResults,
           sort: "NEWEST",
+          postTimeRange: timeRange,
         }),
       }
     );
@@ -112,7 +114,8 @@ export async function searchFacebookPosts(
 
 export async function monitorFacebook(
   keywords: string[],
-  maxResults: number = 20
+  maxResults: number = 20,
+  timeRange: "24h" | "7d" | "30d" | "90d" = "7d"
 ): Promise<SocialPost[]> {
   const allPosts: SocialPost[] = [];
   const seenUrls = new Set<string>();
@@ -121,7 +124,7 @@ export async function monitorFacebook(
   const kws = keywords.slice(0, 3);
 
   for (const keyword of kws) {
-    const posts = await searchFacebookPosts(keyword, maxResults);
+    const posts = await searchFacebookPosts(keyword, maxResults, timeRange);
 
     for (const post of posts) {
       const key = post.postUrl || `${post.postText?.slice(0, 50)}`;

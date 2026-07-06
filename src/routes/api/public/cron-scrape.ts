@@ -99,11 +99,11 @@ async function handleCron(request: Request): Promise<Response> {
       "Social"
     );
     results.push(`Social: ${socialResult.total} total leads (${socialResult.hotAlerts} hot, ${socialResult.warmAlerts} warm)`);
-    results.push(`  Facebook: ${socialResult.facebook.found} found, ${socialResult.facebook.stored} stored, ${socialResult.facebook.errors} errors`);
-    results.push(`  Reddit: ${socialResult.reddit.found} found, ${socialResult.reddit.stored} stored, ${socialResult.reddit.errors} errors`);
-    results.push(`  Twitter: ${socialResult.twitter.found} found, ${socialResult.twitter.stored} stored, ${socialResult.twitter.errors} errors`);
-    results.push(`  YouTube: ${socialResult.youtube.found} found, ${socialResult.youtube.stored} stored, ${socialResult.youtube.errors} errors`);
-    results.push(`  Instagram: ${socialResult.instagram.found} found, ${socialResult.instagram.stored} stored, ${socialResult.instagram.errors} errors`);
+    results.push(`  YouTube: ${socialResult.youtube.found} found, ${socialResult.youtube.stored} stored${socialResult.youtube.skipped ? " (SKIPPED - interval)" : ""}`);
+    results.push(`  Reddit: ${socialResult.reddit.found} found, ${socialResult.reddit.stored} stored${socialResult.reddit.skipped ? " (SKIPPED - interval)" : ""}`);
+    results.push(`  Twitter: ${socialResult.twitter.found} found, ${socialResult.twitter.stored} stored${socialResult.twitter.skipped ? " (SKIPPED - interval)" : ""}`);
+    results.push(`  Facebook: ${socialResult.facebook.found} found, ${socialResult.facebook.stored} stored${socialResult.facebook.skipped ? " (SKIPPED - interval)" : ""}`);
+    results.push(`  Instagram: ${socialResult.instagram.found} found, ${socialResult.instagram.stored} stored${socialResult.instagram.skipped ? " (SKIPPED - interval)" : ""}`);
   } catch (err: any) {
     results.push(`Social ERROR: ${err.message}`);
   }

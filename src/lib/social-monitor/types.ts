@@ -72,6 +72,8 @@ export interface MonitorConfig {
   maxResultsPerPlatform: number;
   /** Minimum engagement score to consider (likes + comments + shares) */
   minEngagement: number;
+  /** Minimum hours between runs per platform (free tier optimization) */
+  platformIntervals: Record<SocialPlatform, number>;
 }
 
 export const DEFAULT_MONITOR_CONFIG: MonitorConfig = {
@@ -178,6 +180,14 @@ export const DEFAULT_MONITOR_CONFIG: MonitorConfig = {
   ],
   maxResultsPerPlatform: 20,
   minEngagement: 2,
+  // Free tier optimization: YouTube/Twitter/Reddit every 30min, Facebook/Instagram every 3 days
+  platformIntervals: {
+    youtube: 0.5,    // 30 minutes
+    twitter: 0.5,    // 30 minutes
+    reddit: 0.5,     // 30 minutes
+    facebook: 72,    // 3 days (saves ~$16/month on Apify)
+    instagram: 72,   // 3 days (saves ~$4/month on Apify)
+  },
 };
 
 // ── Load config from database (with fallback to defaults) ──
@@ -209,6 +219,7 @@ export async function loadMonitorConfig(): Promise<MonitorConfig> {
       instagramHashtags: parseList(db.scraper_instagram_hashtags, DEFAULT_MONITOR_CONFIG.instagramHashtags),
       maxResultsPerPlatform: parseInt(db.scraper_max_results || "") || DEFAULT_MONITOR_CONFIG.maxResultsPerPlatform,
       minEngagement: parseInt(db.scraper_min_engagement || "") || DEFAULT_MONITOR_CONFIG.minEngagement,
+      platformIntervals: DEFAULT_MONITOR_CONFIG.platformIntervals,
     };
   } catch {
     return DEFAULT_MONITOR_CONFIG;

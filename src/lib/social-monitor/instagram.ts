@@ -14,7 +14,8 @@ function getApifyToken(): string | null {
 
 export async function searchInstagramPosts(
   keyword: string,
-  maxResults: number = 20
+  maxResults: number = 20,
+  newerThan: string = "3 days"
 ): Promise<SocialPost[]> {
   const token = getApifyToken();
   if (!token) {
@@ -40,6 +41,7 @@ export async function searchInstagramPosts(
           hashtags: [hashtag],
           resultsLimit: maxResults,
           resultsType: "posts",
+          onlyPostsNewerThan: newerThan,
         }),
       }
     );
@@ -118,7 +120,8 @@ export async function searchInstagramPosts(
 
 export async function monitorInstagram(
   hashtags: string[],
-  maxResults: number = 20
+  maxResults: number = 20,
+  newerThan: string = "3 days"
 ): Promise<SocialPost[]> {
   const allPosts: SocialPost[] = [];
   const seenUrls = new Set<string>();
@@ -127,7 +130,7 @@ export async function monitorInstagram(
   const tags = hashtags.slice(0, 2);
 
   for (const tag of tags) {
-    const posts = await searchInstagramPosts(tag, maxResults);
+    const posts = await searchInstagramPosts(tag, maxResults, newerThan);
 
     for (const post of posts) {
       const key = post.postUrl || `${post.postText?.slice(0, 50)}`;
