@@ -12,6 +12,7 @@ import {
   getBrandManagerStats,
   listCalendarEntries,
   updateContentStatus,
+  updateContentOutput,
   getContentQueue,
   improveContent as improveContentFn,
   quickRepurpose as quickRepurposeFn,
@@ -550,7 +551,7 @@ function BrandManagerPage() {
 
       {/* Content Detail Drawer */}
       {detailItem && (
-        <ContentDetailDrawer item={detailItem} onClose={() => setDetailItem(null)} />
+        <ContentDetailDrawer item={detailItem} onClose={() => setDetailItem(null)} onRefresh={() => { if (tab === "queue") { getQueue({ data: {} }).then((res) => setDetailItem(null)); } }} />
       )}
     </div>
   );
@@ -1092,15 +1093,50 @@ function QueueTab({ onViewDetail }: { onViewDetail: (item: any) => void }) {
 
 // ── Content Detail Drawer ───────────────────────────────
 
-function ContentDetailDrawer({ item, onClose }: { item: any; onClose: () => void }) {
+function ContentDetailDrawer({ item, onClose, onRefresh }: { item: any; onClose: () => void; onRefresh?: () => void }) {
   const outputData = item.output_data || {};
   const [activeSlide, setActiveSlide] = useState(0);
+  const [editing, setEditing] = useState(false);
+  const [editInstruction, setEditInstruction] = useState("");
+  const [improving, setImproving] = useState(false);
 
   const getTypeIcon = (type: string) => {
     const map: Record<string, any> = { carousel: Layout, reel_script: Film, thumbnail: Image, story: Sparkles, thread: MessageSquare, poll: Hash };
     return map[type] || FileText;
   };
   const TypeIcon = getTypeIcon(item.job_type);
+
+  const improveServer = useServerFn(improveContentFn);
+  const updateOutputServer = useServerFn(updateContentOutput);
+
+  const handleImprove = async () => {
+    if (!editInstruction.trim()) return;
+    setImproving(true);
+    try {
+      const textContent = [
+        outputData.caption,
+        outputData.title,
+        outputData.hook,
+        outputData.slides?.map((s: any) => `${s.headline || s.text || ""}\n${s.body || ""}`).join("\n"),
+        outputData.tweets?.join("\n\n"),
+        outputData.question + "\n\n" + (outputData.options || []).map((o: string, i: number) => `${i + 1}. ${o}`).join("\n"),
+      ].filter(Boolean).join("\n\n");
+
+      const result = await improveServer({ data: { content: textContent, instruction: editInstruction, content_type: item.job_type } });
+
+      const improved = typeof result === "string" ? result : (result as any)?.improved || JSON.stringify(result);
+      const updatedOutput = { ...outputData, caption: improved, last_edited: new Date().toISOString(), edit_instruction: editInstruction };
+      await updateOutputServer({ data: { id: item.id, output_data: updatedOutput } });
+      setEditing(false);
+      setEditInstruction("");
+      onRefresh?.();
+      alert("Content updated!");
+    } catch (e: any) {
+      alert("AI improve failed: " + (e.message || "Unknown error"));
+    } finally {
+      setImproving(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -1234,6 +1270,39 @@ function ContentDetailDrawer({ item, onClose }: { item: any; onClose: () => void
             <div className="flex justify-between"><span>Job ID</span><span className="font-mono">{item.id.slice(0, 8)}...</span></div>
             <div className="flex justify-between"><span>Cost</span><span>${Number(item.total_cost_usd || 0).toFixed(4)}</span></div>
             <div className="flex justify-between"><span>Created</span><span>{new Date(item.created_at).toLocaleString()}</span></div>
+          </div>
+
+          {/* AI Improve */}
+          <div className="rounded-xl border border-border/60 bg-muted/30 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Edit Content</h4>
+              {!editing && (
+                <button onClick={() => setEditing(true)} className="text-xs text-primary hover:underline">Open Editor</button>
+              )}
+              {editing && (
+                <button onClick={() => { setEditing(false); setEditInstruction(""); }} className="text-xs text-muted-foreground hover:underline">Cancel</button>
+              )}
+            </div>
+            {editing && (
+              <div className="space-y-2">
+                <textarea
+                  value={editInstruction}
+                  onChange={(e) => setEditInstruction(e.target.value)}
+                  placeholder="Tell AI what to change... e.g. &quot;Make the hook more emotional&quot;, &quot;Add 3 more slides&quot;, &quot;Change tone to professional&quot;, &quot;Replace the images with studio lighting&quot;"
+                  className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-[80px] resize-y"
+                />
+                <div className="flex gap-2">
+                  {["Make it more emotional", "Add more slides", "Change to professional tone", "Better hook", "Add statistics"].map((preset) => (
+                    <button key={preset} onClick={() => setEditInstruction(preset)}
+                      className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs hover:bg-muted">{preset}</button>
+                  ))}
+                </div>
+                <button onClick={handleImprove} disabled={improving || !editInstruction.trim()}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-pink px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+                  {improving ? <><Loader2 className="h-4 w-4 animate-spin" /> Regenerating...</> : <><Sparkles className="h-4 w-4" /> Apply Changes</>}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Actions */}

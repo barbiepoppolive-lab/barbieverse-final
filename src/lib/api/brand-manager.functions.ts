@@ -352,6 +352,30 @@ export const updateContentStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ── Update Content Output ───────────────────────────────
+
+export const updateContentOutput = createServerFn({ method: "POST" })
+  .validator(
+    (d) =>
+      z
+        .object({
+          id: z.string().uuid(),
+          output_data: z.any(),
+        })
+        .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("../admin-session.server");
+    await requireAdmin();
+
+    const { q } = await import("../db.server");
+    await q(
+      `UPDATE content_generation_jobs SET output_data = $1, updated_at = NOW() WHERE id = $2`,
+      [JSON.stringify(data.output_data), data.id]
+    );
+    return { ok: true };
+  });
+
 // ── Brand Manager Stats ────────────────────────────────
 
 export const getBrandManagerStats = createServerFn({ method: "GET" })
