@@ -1038,6 +1038,34 @@ function QueueTab({ onViewDetail }: { onViewDetail: (item: any) => void }) {
                 <p className="text-xs text-muted-foreground">{item.status} — {new Date(item.created_at).toLocaleDateString()}</p>
               </div>
               <div className="flex items-center gap-2">
+                <button onClick={(e) => {
+                  e.stopPropagation();
+                  const od = item.output_data || {};
+                  const images: string[] = [];
+                  if (od.image_url) images.push(od.image_url);
+                  if (od.slides) od.slides.forEach((s: any) => { if (s.image_url) images.push(s.image_url); });
+                  const parts: string[] = [];
+                  if (od.caption) parts.push(od.caption);
+                  if (od.title) parts.push(od.title);
+                  if (od.hashtags?.length) parts.push(od.hashtags.map((t: string) => "#" + t).join(" "));
+                  if (od.hook) parts.push("Hook: " + od.hook);
+                  if (od.slides) od.slides.forEach((s: any, i: number) => { parts.push(`Slide ${i + 1}: ${s.headline || s.text || ""}\n${s.body || ""}`); });
+                  if (od.tweets) parts.push(od.tweets.join("\n\n"));
+                  if (od.question) parts.push(od.question + "\n\n" + (od.options || []).map((o: string, i: number) => `${i + 1}. ${o}`).join("\n"));
+                  if (images.length > 0) {
+                    images.forEach((url, i) => {
+                      const a = document.createElement("a"); a.href = url; a.download = `${item.job_type}_image_${i + 1}.png`; a.target = "_blank";
+                      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    });
+                  }
+                  if (parts.length > 0) {
+                    const blob = new Blob([parts.join("\n\n")], { type: "text/plain" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a"); a.href = url; a.download = `${item.job_type}_${Date.now()}.txt`; a.click();
+                  }
+                }} className="rounded-lg bg-primary/10 p-2 text-primary hover:bg-primary/20" title="Download content">
+                  <Download className="h-4 w-4" />
+                </button>
                 <Eye className="h-4 w-4 text-muted-foreground" />
                 <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                   {item.status === "draft" && (

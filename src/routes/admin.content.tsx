@@ -160,6 +160,18 @@ function ContentDashboard() {
                   <span>{new Date(job.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
                 </div>
                 <div className="mt-3 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                  <button onClick={() => {
+                    const od = job.output_data || {};
+                    const parts: string[] = [];
+                    if (od.title) parts.push(`# ${od.title}`);
+                    if (od.excerpt) parts.push(od.excerpt);
+                    if (od.content) parts.push(od.content);
+                    if (od.caption) parts.push(od.caption);
+                    if (od.hashtags?.length) parts.push(od.hashtags.map((t: string) => `#${t}`).join(" "));
+                    const blob = new Blob([parts.join("\n\n")], { type: "text/plain" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a"); a.href = url; a.download = `${job.job_type}_${Date.now()}.txt`; a.click();
+                  }} className="inline-flex items-center gap-1 rounded-lg bg-primary/10 px-3 py-1.5 text-xs text-primary hover:bg-primary/20"><Download className="h-3 w-3" /> Download</button>
                   <button onClick={() => setDetailJob(job)} className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"><Eye className="h-3 w-3" /> View</button>
                   <button onClick={() => delMut.mutate(job.id)} className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3 w-3" /> Delete</button>
                 </div>
