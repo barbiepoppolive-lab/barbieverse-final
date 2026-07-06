@@ -1,6 +1,6 @@
 // Social Media Monitor — Type definitions
 
-export type SocialPlatform = "facebook" | "reddit" | "twitter" | "youtube" | "instagram";
+export type SocialPlatform = "facebook" | "reddit" | "twitter" | "youtube" | "instagram" | "tiktok";
 
 export type PostCategory = "hot" | "warm" | "cold";
 
@@ -68,6 +68,8 @@ export interface MonitorConfig {
   youtubeQueries: string[];
   /** Instagram hashtag queries */
   instagramHashtags: string[];
+  /** TikTok search queries */
+  tiktokQueries: string[];
   /** Maximum results per platform per run */
   maxResultsPerPlatform: number;
   /** Minimum engagement score to consider (likes + comments + shares) */
@@ -77,116 +79,22 @@ export interface MonitorConfig {
 }
 
 export const DEFAULT_MONITOR_CONFIG: MonitorConfig = {
-  keywords: [
-    "poppo live",
-    "vone live",
-    "poppo host",
-    "vone host",
-    "live streaming earn money",
-    "go live earn",
-    "poppo agency",
-    "vone agency",
-    "live streaming india earn",
-    "poppo live philippines",
-    "poppo live bangladesh",
-    "poppo live indonesia",
-    "poppo live brazil",
-    "mag live sa poppo",
-    "kumita sa poppo",
-    "poppo earn",
-    "vone earn",
-    "tiktok streamer",
-    "tiktok live",
-    "tiktok creator",
-    "model streamer",
-    "looking for collab",
-    "dm for collab",
-    "unemployed looking for work",
-    "need money",
-    "side hustle india",
-    "side hustle philippines",
-    "earn from home",
-    "live streaming job",
-  ],
-  redditSubreddits: [
-    "WorkOnline",
-    "beermoney",
-    "beermoneyindia",
-    "IndianGaming",
-    "OnlineMoneyHustles",
-    "SideHustle",
-    "freelance",
-    "WorkFromHome",
-    "influencer",
-    "TikTokCreators",
-    "phcareers",
-    "PHAppjobs",
-  ],
-  facebookQueries: [
-    "poppo live philippines",
-    "poppo host philippines",
-    "vone live philippines",
-    "live streaming earn philippines",
-    "poppo live",
-    "poppo host",
-    "vone live",
-    "poppo live india",
-    "poppo host india",
-    "poppo live bangladesh",
-    "poppo live indonesia",
-    "mag live sa poppo",
-    "kumita sa poppo",
-    "poppo earn ph",
-  ],
-  twitterQueries: [
-    "poppo live philippines",
-    "poppo host philippines",
-    "vone live philippines",
-    "poppo live",
-    "poppo host",
-    "live streaming earn philippines",
-    "tiktok streamer philippines",
-    "filipino creator",
-    "poppo live india",
-    "poppo earn",
-    "vone earn",
-    "mag live sa poppo",
-    "kumita sa poppo",
-  ],
-  youtubeQueries: [
-    "poppo live earn money",
-    "poppo live philippines",
-    "poppo host philippines",
-    "vone live india",
-    "vone live philippines",
-    "live streaming earn money india",
-    "live streaming earn money philippines",
-    "tiktok streamer tips",
-    "how to earn from live streaming",
-    "poppo live tutorial",
-    "kumita sa poppo",
-  ],
-  instagramHashtags: [
-    "poppolive",
-    "poppolivephilippines",
-    "poppoliveindia",
-    "vonelive",
-    "livestreamingph",
-    "earnfromhomeph",
-    "filipinocreator",
-    "poppohost",
-    "poppoph",
-    "kumitapoppo",
-  ],
+  keywords: [],
+  redditSubreddits: [],
+  facebookQueries: [],
+  twitterQueries: [],
+  youtubeQueries: [],
+  instagramHashtags: [],
+  tiktokQueries: [],
   maxResultsPerPlatform: 20,
   minEngagement: 2,
-  // Free tier optimization: YouTube/Twitter/Reddit every 30min, Facebook/Instagram every 3 days
   platformIntervals: {
-    youtube: 0.5,    // 30 minutes
-    twitter: 0.5,    // 30 minutes
-    reddit: 0.5,     // 30 minutes
-    facebook: 72,    // 3 days (saves ~$16/month on Apify)
-    instagram: 72,   // 3 days (saves ~$4/month on Apify)
+    youtube: 0.5,
+    twitter: 0.5,
+    reddit: 0.5,
+    facebook: 72,
+    instagram: 72,
+    tiktok: 0.5,
   },
 };
 
@@ -217,6 +125,7 @@ export async function loadMonitorConfig(): Promise<MonitorConfig> {
       twitterQueries: parseList(db.scraper_twitter_queries, DEFAULT_MONITOR_CONFIG.twitterQueries),
       youtubeQueries: parseList(db.scraper_youtube_queries, DEFAULT_MONITOR_CONFIG.youtubeQueries),
       instagramHashtags: parseList(db.scraper_instagram_hashtags, DEFAULT_MONITOR_CONFIG.instagramHashtags),
+      tiktokQueries: parseList(db.scraper_tiktok_queries, DEFAULT_MONITOR_CONFIG.tiktokQueries),
       maxResultsPerPlatform: parseInt(db.scraper_max_results || "") || DEFAULT_MONITOR_CONFIG.maxResultsPerPlatform,
       minEngagement: parseInt(db.scraper_min_engagement || "") || DEFAULT_MONITOR_CONFIG.minEngagement,
       platformIntervals: DEFAULT_MONITOR_CONFIG.platformIntervals,

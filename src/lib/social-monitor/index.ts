@@ -4,6 +4,7 @@ export * from "./reddit";
 export * from "./twitter";
 export * from "./youtube";
 export * from "./instagram";
+export * from "./tiktok";
 export * from "./ai-comment";
 export * from "./telegram-alert";
 
@@ -12,6 +13,7 @@ import { monitorReddit } from "./reddit";
 import { monitorTwitter } from "./twitter";
 import { monitorYouTube } from "./youtube";
 import { monitorInstagram } from "./instagram";
+import { monitorTikTok } from "./tiktok";
 import { generateComment } from "./ai-comment";
 import { sendSocialLeadAlert, sendSocialDigest } from "./telegram-alert";
 import { DEFAULT_MONITOR_CONFIG, loadMonitorConfig } from "./types";
@@ -133,6 +135,7 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
     twitter: { found: 0, stored: 0, errors: 0, skipped: false },
     youtube: { found: 0, stored: 0, errors: 0, skipped: false },
     instagram: { found: 0, stored: 0, errors: 0, skipped: false },
+    tiktok: { found: 0, stored: 0, errors: 0, skipped: false },
     total: 0,
     hotAlerts: 0,
     warmAlerts: 0,
@@ -145,15 +148,17 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
     shouldRunPlatform("reddit", intervals.reddit),
     shouldRunPlatform("facebook", intervals.facebook),
     shouldRunPlatform("instagram", intervals.instagram),
+    shouldRunPlatform("tiktok", intervals.tiktok),
   ]);
 
-  const [runYT, runTwitter, runReddit, runFB, runIG] = platformChecks;
+  const [runYT, runTwitter, runReddit, runFB, runIG, runTikTok] = platformChecks;
 
   results.youtube.skipped = !runYT;
   results.twitter.skipped = !runTwitter;
   results.reddit.skipped = !runReddit;
   results.facebook.skipped = !runFB;
   results.instagram.skipped = !runIG;
+  results.tiktok.skipped = !runTikTok;
 
   // Run platforms that are due
   const fbResult = { posts: [] as SocialPost[], error: "" };
@@ -161,6 +166,7 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
   const twitterResult = { posts: [] as SocialPost[], error: "" };
   const ytResult = { posts: [] as SocialPost[], error: "" };
   const igResult = { posts: [] as SocialPost[], error: "" };
+  const tiktokResult = { posts: [] as SocialPost[], error: "" };
 
   const promises: Promise<void>[] = [];
 
@@ -214,6 +220,16 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
     );
   }
 
+  if (runTikTok) {
+    promises.push(
+      withTimeout(
+        monitorTikTok(cfg.tiktokQueries, cfg.maxResultsPerPlatform),
+        PLATFORM_TIMEOUT,
+        "TikTok"
+      ).then((p) => { tiktokResult.posts = p; }).catch((e) => { tiktokResult.error = e?.message || "unknown"; })
+    );
+  }
+
   await Promise.allSettled(promises);
 
   // Update last_run_at for platforms that ran
@@ -222,12 +238,14 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
   if (runReddit) await setLastRunAt("reddit");
   if (runFB) await setLastRunAt("facebook");
   if (runIG) await setLastRunAt("instagram");
+  if (runTikTok) await setLastRunAt("tiktok");
 
   const fb = fbResult.posts;
   const reddit = redditResult.posts;
   const twitter = twitterResult.posts;
   const youtube = ytResult.posts;
   const instagram = igResult.posts;
+  const tiktok = tiktokResult.posts;
 
   results.facebook.found = fb.length;
   results.facebook.errors = fbResult.error ? 1 : 0;
@@ -239,17 +257,20 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
   results.youtube.errors = ytResult.error ? 1 : 0;
   results.instagram.found = instagram.length;
   results.instagram.errors = igResult.error ? 1 : 0;
+  results.tiktok.found = tiktok.length;
+  results.tiktok.errors = tiktokResult.error ? 1 : 0;
 
   if (fbResult.error) console.error("[social-monitor] Facebook error:", fbResult.error);
   if (redditResult.error) console.error("[social-monitor] Reddit error:", redditResult.error);
   if (twitterResult.error) console.error("[social-monitor] Twitter error:", twitterResult.error);
   if (ytResult.error) console.error("[social-monitor] YouTube error:", ytResult.error);
   if (igResult.error) console.error("[social-monitor] Instagram error:", igResult.error);
+  if (tiktokResult.error) console.error("[social-monitor] TikTok error:", tiktokResult.error);
 
-  const allPosts: SocialPost[] = [...fb, ...reddit, ...twitter, ...youtube, ...instagram];
+  const allPosts: SocialPost[] = [...fb, ...reddit, ...twitter, ...youtube, ...instagram, ...tiktok];
 
   // Filter by minimum engagement
-  const noEngagementPlatforms = new Set(["youtube", "instagram"]);
+  const noEngagementPlatforms = new Set(["youtube", "instagram", "tiktok"]);
   const filteredPosts = allPosts.filter(
     (p) => noEngagementPlatforms.has(p.platform) || (p.likes + p.comments + p.shares) >= cfg.minEngagement
   );
@@ -294,6 +315,7 @@ export async function monitorAllPlatforms(config?: Partial<MonitorConfig>) {
         if (post.platform === "twitter") results.twitter.stored++;
         if (post.platform === "youtube") results.youtube.stored++;
         if (post.platform === "instagram") results.instagram.stored++;
+        if (post.platform === "tiktok") results.tiktok.stored++;
       }
     } catch (e: any) {
       console.error(`[social-monitor] Error processing ${post.postUrl}:`, e?.message);

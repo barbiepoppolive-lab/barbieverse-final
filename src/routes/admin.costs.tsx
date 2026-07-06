@@ -269,7 +269,7 @@ function CostDashboard() {
                       borderRadius: 8,
                       color: "var(--foreground)",
                     }}
-                    formatter={(value: number) => [`$${value.toFixed(4)}`, "Cost"]}
+                    formatter={(value: number) => [`$${Number(value).toFixed(4)}`, "Cost"]}
                     labelFormatter={(v) => new Date(v).toLocaleDateString("en-IN")}
                   />
                   <Bar dataKey="cost_usd" fill="#8B5CF6" radius={[4, 4, 0, 0]} name="Cost (USD)" />

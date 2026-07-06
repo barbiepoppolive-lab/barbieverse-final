@@ -66,6 +66,12 @@ YOUTUBE:
 - reference something specific from the video
 - "the part about xyz is true, i had the same experience"
 
+TIKTOK:
+- same energy as YouTube comments but even shorter
+- reference something specific from the video
+- "ngl this is accurate, been streaming for 3 months"
+- don't write paragraphs, tiktok comments are chaotic
+
 WHAT TO ACTUALLY SAY:
 - If someone asks "is poppo legit?" → "yeah i've been paid 3 times now, around 4-5k per month if you're consistent"
 - If someone asks "how to start?" → "just download the app and go live, they give you a new host bonus for the first week"

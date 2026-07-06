@@ -27,6 +27,7 @@ const PLATFORM_ICONS: Record<string, any> = {
   facebook: Facebook,
   twitter: Twitter,
   youtube: Youtube,
+  tiktok: Globe,
   telegram: MessageCircle,
 };
 
@@ -35,6 +36,7 @@ const PLATFORM_COLORS: Record<string, string> = {
   facebook: "text-blue-400",
   twitter: "text-sky-400",
   youtube: "text-red-400",
+  tiktok: "text-white",
   telegram: "text-blue-300",
 };
 
@@ -320,6 +322,7 @@ function ScraperDashboard() {
                 <option value="facebook">Facebook</option>
                 <option value="twitter">Twitter/X</option>
                 <option value="youtube">YouTube</option>
+                <option value="tiktok">TikTok</option>
                 <option value="telegram">Telegram</option>
               </select>
             </div>
@@ -407,6 +410,7 @@ function ScraperDashboard() {
                 <option value="facebook">Facebook</option>
                 <option value="twitter">Twitter/X</option>
                 <option value="youtube">YouTube</option>
+                <option value="tiktok">TikTok</option>
                 <option value="telegram">Telegram</option>
               </select>
               <button
@@ -680,6 +684,8 @@ function KeywordsTab() {
     { key: "scraper_facebook_queries", label: "Facebook Search Queries", placeholder: "poppo live\nvone live" },
     { key: "scraper_twitter_queries", label: "Twitter Search Queries", placeholder: "poppo live\nvone live" },
     { key: "scraper_youtube_queries", label: "YouTube Search Queries", placeholder: "poppo live earn money\nvone live india" },
+    { key: "scraper_instagram_hashtags", label: "Instagram Hashtags", placeholder: "poppolive\nvonelive\nlivestreamingph" },
+    { key: "scraper_tiktok_queries", label: "TikTok Search Queries", placeholder: "poppo live\nvone live\nlivestreamingph" },
   ];
 
   useEffect(() => {
@@ -712,7 +718,7 @@ function KeywordsTab() {
     <div className="space-y-4">
       <div>
         <h3 className="text-lg font-semibold text-white">Monitor Keywords</h3>
-        <p className="text-sm text-gray-400">One keyword per line. Used by the social monitor to find leads on Reddit, Facebook, Twitter, YouTube.</p>
+        <p className="text-sm text-gray-400">One keyword per line. Used by the social monitor to find leads on Reddit, Facebook, Twitter, YouTube, TikTok.</p>
       </div>
       {FIELDS.map((f) => (
         <div key={f.key} className="bg-gray-900 rounded-xl border border-gray-800 p-4">
