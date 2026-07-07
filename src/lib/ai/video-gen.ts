@@ -54,76 +54,30 @@ export interface VideoScriptResult {
 
 // ── Video Generation (OpenRouter) ──────────────────────────
 
-const OPENROUTER_API = "https://openrouter.ai/api/v1";
-
-const VIDEO_MODELS: Record<string, { model: string; cost: number }> = {
-  kling: { model: "kling-3.0-standard", cost: 0.07 },
-  seedance: { model: "seedance-2.0", cost: 0.036 },
-  hailuo: { model: "wan-2.7", cost: 0.04 },
-};
-
 export async function generateVideo(input: VideoGenInput): Promise<VideoGenResult> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) throw new Error("OPENROUTER_API_KEY not configured");
+  const { generateVideoOpenRouter } = await import("./video-gen-openrouter");
 
-  const modelConfig = VIDEO_MODELS[input.model || "seedance"];
-  const duration = input.duration || "5";
-  const aspect_ratio = input.aspect_ratio || "9:16";
+  const modelMap: Record<string, string> = {
+    seedance: "seedance-2.0",
+    kling: "kling-3.0-standard",
+    hailuo: "wan-2.7",
+  };
 
-  // Build prompt with AI enhancement
-  const enhancedPrompt = await enhanceVideoPrompt(input.prompt, input.platform);
-
-  // Submit video job to OpenRouter
-  const submitRes = await fetch(`${OPENROUTER_API}/videos`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": "https://barbieverse.org",
-      "X-Title": "BarbieVerse Video Gen",
-    },
-    body: JSON.stringify({
-      model: modelConfig.model,
-      prompt: enhancedPrompt,
-      duration: parseInt(duration),
-      aspect_ratio,
-      ...(input.image_url && { image_url: input.image_url }),
-    }),
+  const result = await generateVideoOpenRouter({
+    prompt: input.prompt,
+    image_url: input.image_url,
+    duration: parseInt(input.duration || "5"),
+    aspect_ratio: input.aspect_ratio || "9:16",
+    model: (modelMap[input.model || "seedance"]) as any,
   });
 
-  if (!submitRes.ok) {
-    const err = await submitRes.text();
-    throw new Error(`OpenRouter video error: ${err}`);
-  }
-
-  const submitted = await submitRes.json();
-  const jobId = submitted.id;
-
-  // Poll for completion
-  let attempts = 0;
-  const maxAttempts = 60;
-  while (attempts < maxAttempts) {
-    await new Promise(r => setTimeout(r, 2000));
-    const pollRes = await fetch(`${OPENROUTER_API}/videos/${jobId}`, {
-      headers: { "Authorization": `Bearer ${apiKey}` },
-    });
-    const status = await pollRes.json();
-    if (status.status === "completed") {
-      return {
-        video_url: status.output?.video_url || status.output?.url || "",
-        duration,
-        aspect_ratio,
-        model: input.model || "seedance",
-        cost: modelConfig.cost * parseInt(duration),
-      };
-    }
-    if (status.status === "failed") {
-      throw new Error(`OpenRouter video failed: ${status.error || "Unknown error"}`);
-    }
-    attempts++;
-  }
-
-  throw new Error("OpenRouter video generation timed out");
+  return {
+    video_url: result.video_url || "",
+    duration: input.duration || "5",
+    aspect_ratio: input.aspect_ratio || "9:16",
+    model: input.model || "seedance",
+    cost: result.cost_estimate || 0,
+  };
 }
 
 // ── Voice Generation (ElevenLabs) ──────────────────────
@@ -342,25 +296,6 @@ export async function generateFullVideo(input: {
   return result;
 }
 
-// ── Helper: Enhance video prompt with AI ───────────────
-
-async function enhanceVideoPrompt(prompt: string, platform?: string): Promise<string> {
-  try {
-    const result = await aiContent(
-      `Enhance this video prompt for ${platform || "social media"}.
-Make it more cinematic, detailed, and visually compelling.
-
-Original: ${prompt}
-
-Return ONLY the enhanced prompt, no JSON.`,
-      { maxTokens: 200 }
-    );
-    return result.text.trim() || prompt;
-  } catch {
-    return prompt;
-  }
-}
-
 // ── Provider Status ────────────────────────────────────
 
 export async function getVideoGenStatus(): Promise<{
@@ -374,6 +309,6 @@ export async function getVideoGenStatus(): Promise<{
   return {
     openrouter,
     elevenlabs,
-    models: openrouter ? ["seedance", "kling", "wan"] : [],
+    models: openrouter ? ["seedance-2.0", "kling-3.0-standard", "wan-2.7"] : [],
   };
 }
