@@ -247,10 +247,36 @@ Return EXACTLY this JSON:
   );
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("Failed to parse video script");
+  if (!jsonMatch) {
+    // Fallback: construct script from plain text response
+    const lines = result.text.split("\n").filter(l => l.trim());
+    return {
+      title: input.topic,
+      hook: lines[0] || "Watch this till the end!",
+      scenes: lines.slice(0, 5).map((line, i) => ({
+        text: line.replace(/^\d+[\.\)]\s*/, "").trim(),
+        duration: `${3 + i}s`,
+        visual: `Scene showing ${input.topic}`,
+      })),
+      voiceover: lines.join(". ").slice(0, 500),
+      hashtags: [input.topic.toLowerCase().replace(/\s+/g, ""), "viral", "trending"],
+    };
+  }
 
   const parsed = safeParseJson(jsonMatch[0]);
-  if (!parsed) throw new Error("Failed to parse video script JSON");
+  if (!parsed) {
+    return {
+      title: input.topic,
+      hook: (result.text.match(/[""]([^""]+)[""]/)?.[1]) || "Watch this!",
+      scenes: result.text.split("\n").filter(l => l.trim() && !l.startsWith("{") && !l.startsWith("}")).slice(0, 5).map((line, i) => ({
+        text: line.replace(/^[-*]\s*/, "").trim(),
+        duration: `${3 + i}s`,
+        visual: `Scene about ${input.topic}`,
+      })),
+      voiceover: result.text.slice(0, 500),
+      hashtags: ["barbieverse", "creator"],
+    };
+  }
 
   const script: VideoScriptResult = {
     title: parsed.title || input.topic,
