@@ -1,6 +1,6 @@
 // Social Media Monitor — Type definitions
 
-export type SocialPlatform = "facebook" | "reddit" | "twitter" | "youtube" | "instagram" | "tiktok";
+export type SocialPlatform = "facebook" | "reddit" | "twitter" | "youtube" | "instagram" | "tiktok" | "moj";
 
 export type PostCategory = "hot" | "warm" | "cold";
 
@@ -70,6 +70,8 @@ export interface MonitorConfig {
   instagramHashtags: string[];
   /** TikTok search queries */
   tiktokQueries: string[];
+  /** Moj search queries (India) */
+  mojQueries: string[];
   /** Maximum results per platform per run */
   maxResultsPerPlatform: number;
   /** Minimum engagement score to consider (likes + comments + shares) */
@@ -86,6 +88,7 @@ export const DEFAULT_MONITOR_CONFIG: MonitorConfig = {
   youtubeQueries: [],
   instagramHashtags: [],
   tiktokQueries: [],
+  mojQueries: [],
   maxResultsPerPlatform: 20,
   minEngagement: 2,
   platformIntervals: {
@@ -95,6 +98,7 @@ export const DEFAULT_MONITOR_CONFIG: MonitorConfig = {
     facebook: 72,
     instagram: 72,
     tiktok: 0.5,
+    moj: 72,
   },
 };
 
@@ -126,6 +130,7 @@ export async function loadMonitorConfig(): Promise<MonitorConfig> {
       youtubeQueries: parseList(db.scraper_youtube_queries, DEFAULT_MONITOR_CONFIG.youtubeQueries),
       instagramHashtags: parseList(db.scraper_instagram_hashtags, DEFAULT_MONITOR_CONFIG.instagramHashtags),
       tiktokQueries: parseList(db.scraper_tiktok_queries, DEFAULT_MONITOR_CONFIG.tiktokQueries),
+      mojQueries: parseList(db.scraper_moj_queries, DEFAULT_MONITOR_CONFIG.mojQueries),
       maxResultsPerPlatform: parseInt(db.scraper_max_results || "") || DEFAULT_MONITOR_CONFIG.maxResultsPerPlatform,
       minEngagement: parseInt(db.scraper_min_engagement || "") || DEFAULT_MONITOR_CONFIG.minEngagement,
       platformIntervals: DEFAULT_MONITOR_CONFIG.platformIntervals,

@@ -28,6 +28,7 @@ const PLATFORM_ICONS: Record<string, any> = {
   twitter: Twitter,
   youtube: Youtube,
   tiktok: Globe,
+  moj: Globe,
   telegram: MessageCircle,
 };
 
@@ -37,6 +38,7 @@ const PLATFORM_COLORS: Record<string, string> = {
   twitter: "text-sky-400",
   youtube: "text-red-400",
   tiktok: "text-white",
+  moj: "text-orange-400",
   telegram: "text-blue-300",
 };
 
@@ -324,6 +326,7 @@ function ScraperDashboard() {
                 <option value="twitter">Twitter/X</option>
                 <option value="youtube">YouTube</option>
                 <option value="tiktok">TikTok</option>
+                <option value="moj">Moj (India)</option>
                 <option value="telegram">Telegram</option>
               </select>
             </div>
@@ -412,6 +415,7 @@ function ScraperDashboard() {
                 <option value="twitter">Twitter/X</option>
                 <option value="youtube">YouTube</option>
                 <option value="tiktok">TikTok</option>
+                <option value="moj">Moj (India)</option>
                 <option value="telegram">Telegram</option>
               </select>
               <button
@@ -692,6 +696,7 @@ function KeywordsTab() {
     { key: "scraper_youtube_queries", label: "YouTube Search Queries", placeholder: "poppo live earn money\nvone live india" },
     { key: "scraper_instagram_hashtags", label: "Instagram Hashtags", placeholder: "poppolive\nvonelive\nlivestreamingph" },
     { key: "scraper_tiktok_queries", label: "TikTok Search Queries", placeholder: "poppo live\nvone live\nlivestreamingph" },
+    { key: "scraper_moj_queries", label: "Moj Search Queries (India)", placeholder: "poppo live\nvone live\nlive streaming india" },
   ];
 
   useEffect(() => {
@@ -727,6 +732,7 @@ function KeywordsTab() {
     { key: "scraper_enabled_tiktok", label: "TikTok", icon: Globe, color: "text-white", tier: "PAID" },
     { key: "scraper_enabled_facebook", label: "Facebook", icon: Facebook, color: "text-blue-400", tier: "PAID" },
     { key: "scraper_enabled_instagram", label: "Instagram", icon: Instagram, color: "text-pink-400", tier: "PAID" },
+    { key: "scraper_enabled_moj", label: "Moj", icon: Globe, color: "text-orange-400", tier: "PAID" },
   ];
 
   const togglePlatform = async (key: string) => {
@@ -748,7 +754,7 @@ function KeywordsTab() {
       <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
         <h3 className="text-lg font-semibold text-white mb-1">Platform Monitoring</h3>
         <p className="text-sm text-gray-400 mb-4">Toggle platforms on/off. Disabled platforms will not be scraped.</p>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           {platformToggles.map(({ key, label, icon: Icon, color, tier }) => {
             const enabled = draft[key] !== "false";
             return (

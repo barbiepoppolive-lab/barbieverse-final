@@ -14,7 +14,7 @@ async function q(text: string, params: any[] = []) {
 }
 
 export const listSocialLeads = createServerFn({ validator: z.object({
-  platform: z.enum(["facebook", "reddit", "twitter", "youtube", "instagram", "tiktok", "telegram"]).optional(),
+  platform: z.enum(["facebook", "reddit", "twitter", "youtube", "instagram", "tiktok", "moj", "telegram"]).optional(),
   category: z.enum(["hot", "warm", "cold"]).optional(),
   status: z.enum(["discovered", "ai_reviewed", "commented", "replied", "dismissed"]).optional(),
   sort: z.enum(["date", "score", "category"]).optional(),

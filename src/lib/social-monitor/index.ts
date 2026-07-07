@@ -5,6 +5,7 @@ export * from "./twitter";
 export * from "./youtube";
 export * from "./instagram";
 export * from "./tiktok";
+export * from "./moj";
 export * from "./ai-comment";
 export * from "./telegram-alert";
 export * from "./keyword-intel";
@@ -15,6 +16,7 @@ import { monitorTwitter } from "./twitter";
 import { monitorYouTube } from "./youtube";
 import { monitorInstagram } from "./instagram";
 import { monitorTikTok } from "./tiktok";
+import { monitorMoj } from "./moj";
 import { generateComment } from "./ai-comment";
 import { sendSocialLeadAlert, sendSocialDigest } from "./telegram-alert";
 import { DEFAULT_MONITOR_CONFIG, loadMonitorConfig } from "./types";
@@ -210,6 +212,7 @@ async function loadTieredIntervals(): Promise<Record<SocialPlatform, number>> {
       tiktok: parseFloat(db.scraper_interval_tiktok || "6"),
       facebook: parseFloat(db.scraper_interval_facebook || "12"),
       instagram: parseFloat(db.scraper_interval_instagram || "12"),
+      moj: parseFloat(db.scraper_interval_moj || "12"),
     };
   } catch {
     return DEFAULT_MONITOR_CONFIG.platformIntervals;
@@ -237,11 +240,12 @@ async function loadPlatformEnabled(): Promise<Record<SocialPlatform, boolean>> {
       tiktok: db.scraper_enabled_tiktok !== "false",
       facebook: db.scraper_enabled_facebook !== "false",
       instagram: db.scraper_enabled_instagram !== "false",
+      moj: db.scraper_enabled_moj !== "false",
     };
   } catch {
     return {
       youtube: true, reddit: true, twitter: true,
-      tiktok: true, facebook: true, instagram: true,
+      tiktok: true, facebook: true, instagram: true, moj: true,
     };
   }
 }
@@ -257,6 +261,7 @@ export interface DiscoveryResult {
   youtube: { found: number; stored: number; errors: number; skipped: boolean };
   instagram: { found: number; stored: number; errors: number; skipped: boolean };
   tiktok: { found: number; stored: number; errors: number; skipped: boolean };
+  moj: { found: number; stored: number; errors: number; skipped: boolean };
   totalDiscovered: number;
   totalStored: number;
 }
@@ -275,6 +280,7 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
     youtube: { found: 0, stored: 0, errors: 0, skipped: false },
     instagram: { found: 0, stored: 0, errors: 0, skipped: false },
     tiktok: { found: 0, stored: 0, errors: 0, skipped: false },
+    moj: { found: 0, stored: 0, errors: 0, skipped: false },
     totalDiscovered: 0,
     totalStored: 0,
   };
@@ -287,9 +293,10 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
     shouldRunPlatform("facebook", intervals.facebook).then(r => r && platformEnabled.facebook),
     shouldRunPlatform("instagram", intervals.instagram).then(r => r && platformEnabled.instagram),
     shouldRunPlatform("tiktok", intervals.tiktok).then(r => r && platformEnabled.tiktok),
+    shouldRunPlatform("moj", intervals.moj).then(r => r && platformEnabled.moj),
   ]);
 
-  const [runYT, runReddit, runTwitter, runFB, runIG, runTikTok] = platformChecks;
+  const [runYT, runReddit, runTwitter, runFB, runIG, runTikTok, runMoj] = platformChecks;
 
   results.youtube.skipped = !runYT;
   results.reddit.skipped = !runReddit;
@@ -297,6 +304,7 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
   results.facebook.skipped = !runFB;
   results.instagram.skipped = !runIG;
   results.tiktok.skipped = !runTikTok;
+  results.moj.skipped = !runMoj;
 
   // Run platforms that are due — use weighted keyword selection
   const fbResult = { posts: [] as SocialPost[], error: "" };
@@ -305,6 +313,7 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
   const ytResult = { posts: [] as SocialPost[], error: "" };
   const igResult = { posts: [] as SocialPost[], error: "" };
   const tiktokResult = { posts: [] as SocialPost[], error: "" };
+  const mojResult = { posts: [] as SocialPost[], error: "" };
 
   const promises: Promise<void>[] = [];
 
@@ -386,6 +395,19 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
     );
   }
 
+  if (runMoj) {
+    const kws = (await selectKeywordsForPlatform("moj", 2)).length > 0
+      ? await selectKeywordsForPlatform("moj", 2)
+      : cfg.mojQueries.slice(0, 2);
+    promises.push(
+      withTimeout(
+        monitorMoj(kws, cfg.maxResultsPerPlatform),
+        PLATFORM_TIMEOUT,
+        "Moj"
+      ).then((p) => { mojResult.posts = p; }).catch((e) => { mojResult.error = e?.message || "unknown"; })
+    );
+  }
+
   await Promise.allSettled(promises);
 
   // Update last_run_at for platforms that ran
@@ -395,6 +417,7 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
   if (runFB) await setLastRunAt("facebook");
   if (runIG) await setLastRunAt("instagram");
   if (runTikTok) await setLastRunAt("tiktok");
+  if (runMoj) await setLastRunAt("moj");
 
   // Tally results
   const platformResults = [
@@ -404,6 +427,7 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
     { key: "youtube", result: ytResult },
     { key: "instagram", result: igResult },
     { key: "tiktok", result: tiktokResult },
+    { key: "moj", result: mojResult },
   ];
 
   for (const { key, result } of platformResults) {
@@ -421,6 +445,7 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
     ...ytResult.posts,
     ...igResult.posts,
     ...tiktokResult.posts,
+    ...mojResult.posts,
   ];
 
   const seenUrls = new Set<string>();
@@ -433,7 +458,7 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
   }
 
   // Filter by minimum engagement
-  const noEngagementPlatforms = new Set(["youtube", "instagram", "tiktok"]);
+  const noEngagementPlatforms = new Set(["youtube", "instagram", "tiktok", "moj"]);
   const filteredPosts = uniquePosts.filter(
     (p) => noEngagementPlatforms.has(p.platform) || (p.likes + p.comments + p.shares) >= cfg.minEngagement
   );

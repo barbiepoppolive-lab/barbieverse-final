@@ -76,7 +76,7 @@ async function handleCron(request: Request): Promise<Response> {
       "Discovery"
     );
     results.push(`Discovery: ${discoveryResult.totalDiscovered} found, ${discoveryResult.totalStored} stored`);
-    for (const platform of ["youtube", "reddit", "twitter", "facebook", "instagram", "tiktok"]) {
+    for (const platform of ["youtube", "reddit", "twitter", "facebook", "instagram", "tiktok", "moj"]) {
       const p = discoveryResult[platform];
       if (p) {
         const status = p.skipped ? "SKIPPED" : `${p.found} found, ${p.stored} stored`;
