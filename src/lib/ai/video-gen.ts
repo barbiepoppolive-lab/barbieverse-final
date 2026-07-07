@@ -196,6 +196,21 @@ export async function generateVoice(input: VoiceGenInput): Promise<VoiceGenResul
   };
 }
 
+// ── Helpers ────────────────────────────────────────────
+
+function safeParseJson(text: string): any {
+  let clean = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+  clean = clean.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  clean = clean.replace(/,\s*([\]}])/g, "$1");
+  try { return JSON.parse(clean); } catch {}
+  const first = clean.indexOf("{");
+  const last = clean.lastIndexOf("}");
+  if (first >= 0 && last > first) {
+    try { return JSON.parse(clean.slice(first, last + 1)); } catch {}
+  }
+  return null;
+}
+
 // ── Video Script Generation ────────────────────────────
 
 export async function generateVideoScript(input: VideoScriptInput): Promise<VideoScriptResult> {
@@ -234,7 +249,18 @@ Return EXACTLY this JSON:
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("Failed to parse video script");
 
-  return JSON.parse(jsonMatch[0]);
+  const parsed = safeParseJson(jsonMatch[0]);
+  if (!parsed) throw new Error("Failed to parse video script JSON");
+
+  const script: VideoScriptResult = {
+    title: parsed.title || input.topic,
+    hook: parsed.hook || "",
+    scenes: parsed.scenes || [],
+    voiceover: parsed.voiceover || "",
+    hashtags: parsed.hashtags || [],
+  };
+
+  return script;
 }
 
 // ── Full Video Pipeline ────────────────────────────────
