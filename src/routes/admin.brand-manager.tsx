@@ -36,6 +36,9 @@ import {
   refreshModels as refreshModelsFn,
 } from "@/lib/api/cost-monitor.functions";
 import {
+  generateMonthPlan as generateMonthPlanFn,
+} from "@/lib/api/month-plan.functions";
+import {
   generateBlogPost,
   generateSocialPost,
   listContentJobs,
@@ -81,6 +84,8 @@ function BrandManagerPage() {
   const [skillCommand, setSkillCommand] = useState("");
   const [mediaAgentResult, setMediaAgentResult] = useState<any>(null);
   const [costDashboard, setCostDashboard] = useState<any>(null);
+  const [monthPlan, setMonthPlan] = useState<any>(null);
+  const [monthPlanLoading, setMonthPlanLoading] = useState(false);
 
   // Form states
   const [topic, setTopic] = useState("");
@@ -421,16 +426,6 @@ function BrandManagerPage() {
                     </select>
                   </div>
                 )}
-                <div className="space-y-1">
-                  <label className="text-sm text-muted-foreground">Style</label>
-                  <select value={style} onChange={e => setStyle(e.target.value)}
-                    className="w-full rounded-lg border border-border/60 bg-background p-2 text-sm">
-                    <option value="educational">Educational</option>
-                    <option value="storytelling">Storytelling</option>
-                    <option value="listicle">Listicle</option>
-                    <option value="tips">Tips</option>
-                  </select>
-                </div>
               </div>
 
               <button
@@ -630,15 +625,6 @@ function BrandManagerPage() {
                   <option value="youtube">YouTube</option>
                   <option value="instagram">Instagram</option>
                   <option value="tiktok">TikTok</option>
-                </select>
-                <select
-                  value={videoStyle}
-                  onChange={(e) => setVideoStyle(e.target.value as any)}
-                  className="rounded-lg border border-border/60 bg-background px-3 py-2 text-sm"
-                >
-                  <option value="educational">Educational</option>
-                  <option value="entertaining">Entertaining</option>
-                  <option value="promotional">Promotional</option>
                 </select>
               </div>
               <button
