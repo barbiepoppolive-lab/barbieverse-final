@@ -77,7 +77,7 @@ export {
   getBadgeLabel,
   getBadgeColor,
 } from "./content-quality";
-export type { QualityScore, ContentImprovement } from "./content-quality";
+export type { ContentImprovement } from "./content-quality";
 
 // Content Repurposing (one content → multiple formats)
 export {
@@ -117,6 +117,96 @@ export type {
   VideoScriptInput,
   VideoScriptResult,
 } from "./video-gen";
+
+// OpenRouter Video Generation (Kling, Seedance, Veo, Sora, Wan)
+export {
+  generateVideoOpenRouter,
+  generateVideosOpenRouter,
+  generateReelVideo,
+  submitVideoJob,
+  pollVideoJob,
+  estimateVideoCost,
+  getModelForBudget,
+  getBestModelForUseCase,
+  getVideoGenOpenRouterStatus,
+  compareVideoCosts,
+  VIDEO_MODELS,
+} from "./video-gen-openrouter";
+export type {
+  OpenRouterVideoInput,
+  OpenRouterVideoResult,
+  VideoModel,
+  VideoModelInfo,
+  VideoStatus,
+} from "./video-gen-openrouter";
+
+// Hook Engine (7 viral hook frameworks with rotation)
+export {
+  generateHook,
+  generateHookVariants,
+  getBestFrameworkForPlatform,
+  getPlatformHookTips,
+  resetRotation,
+  getRotationState,
+  HOOK_FRAMEWORKS,
+} from "./hooks";
+export type {
+  HookFramework,
+  HookPlatform,
+  HookInput,
+  HookResult,
+  HookRotation,
+} from "./hooks";
+
+// Quality Reviewer (AI content scoring + auto-revision)
+export {
+  reviewContent,
+  quickQualityCheck,
+  reviewVisualQuality,
+  autoReviseContent,
+} from "./quality-reviewer";
+export type {
+  QualityCheckInput,
+  QualityScore,
+  QualityIssue,
+} from "./quality-reviewer";
+
+// Visual Director (structured prompts for image/video generation)
+export {
+  generateVisualPrompt,
+  generateVideoVisualPrompt,
+  getVisualPreset,
+  quickVisualPrompt,
+} from "./visual-director";
+export type {
+  VisualPromptInput,
+  VisualPromptResult,
+} from "./visual-director";
+
+// Skill System (command-based content creation)
+export {
+  executeSkill,
+  parseSkillCommand,
+  isSkillCommand,
+  listSkills,
+  SKILLS,
+} from "./skills";
+export type {
+  SkillName,
+  SkillInput,
+  SkillResult,
+} from "./skills";
+
+// Media Generation Agent (orchestrates full pipeline)
+export {
+  generateMedia,
+  generateMediaQuick,
+} from "./media-agent";
+export type {
+  MediaAgentInput,
+  MediaAgentResult,
+  ContentPipeline,
+} from "./media-agent";
 
 // Brand Manager (free content creation)
 export {

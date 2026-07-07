@@ -27,6 +27,10 @@ import {
   getVideoGenStatus as getVideoGenStatusFn,
 } from "@/lib/api/video-gen.functions";
 import {
+  generateMediaAgent,
+  executeSkillCommand,
+} from "@/lib/api/media-agent.functions";
+import {
   generateBlogPost,
   generateSocialPost,
   listContentJobs,
@@ -49,7 +53,7 @@ export const Route = createFileRoute("/admin/brand-manager")({
 
 type Tab = "generators" | "video" | "content" | "queue" | "calendar" | "stats" | "templates";
 type GeneratorType = "carousel" | "reel" | "thumbnail" | "story" | "thread" | "poll";
-type ProviderChoice = "premium" | "free";
+type ProviderChoice = "premium" | "free" | "media-agent";
 
 function BrandManagerPage() {
   const [tab, setTab] = useState<Tab>("generators");
@@ -69,6 +73,8 @@ function BrandManagerPage() {
   const [videoPlatform, setVideoPlatform] = useState<"youtube" | "instagram" | "tiktok">("youtube");
   const [videoStyle, setVideoStyle] = useState<"educational" | "entertaining" | "promotional">("educational");
   const [videoResult, setVideoResult] = useState<any>(null);
+  const [skillCommand, setSkillCommand] = useState("");
+  const [mediaAgentResult, setMediaAgentResult] = useState<any>(null);
 
   // Form states
   const [topic, setTopic] = useState("");
@@ -90,6 +96,8 @@ function BrandManagerPage() {
   const videoServer = useServerFn(generateVideoFn);
   const voiceServer = useServerFn(generateVoiceFn);
   const fullVideoServer = useServerFn(generateFullVideoFn);
+  const mediaAgentServer = useServerFn(generateMediaAgent);
+  const skillServer = useServerFn(executeSkillCommand);
 
   const generators: { type: GeneratorType; label: string; icon: any; desc: string }[] = [
     { type: "carousel", label: "Carousel", icon: Layout, desc: "Multi-slide Instagram post" },
@@ -107,37 +115,67 @@ function BrandManagerPage() {
     setResult(null);
     setQualityScore(null);
     setSeoData(null);
+    setMediaAgentResult(null);
 
-    const providerName = provider === "premium" ? "Gemini 2.5 Pro" : "Gemini Flash";
+    const providerLabel = provider === "media-agent" ? "Media Agent" : provider === "premium" ? "Gemini 2.5 Pro" : "Gemini Flash";
     const genLabel = generators.find(g => g.type === activeGen)?.label || activeGen;
 
     try {
-      setStatus(`Generating ${genLabel.toLowerCase()} with ${providerName}...`);
+      setStatus(`Generating ${genLabel.toLowerCase()} with ${providerLabel}...`);
       let res;
-      switch (activeGen) {
-        case "carousel":
-          res = await generateCarousel({ data: { topic, slides, style: style as any, provider } });
-          break;
-        case "reel":
-          res = await generateReelScript({ data: { topic, duration, style: style as any, provider } });
-          break;
-        case "thumbnail":
-          res = await generateThumbnail({ data: { title: topic, style: style as any, provider } });
-          break;
-        case "story":
-          res = await generateStory({ data: { topic, slides: 3, provider } });
-          break;
-        case "thread":
-          res = await generateThread({ data: { topic, platform, tweets: 5, provider } });
-          break;
-        case "poll":
-          res = await generatePoll({ data: { topic, platform: platform as any, provider } });
-          break;
+
+      if (provider === "media-agent") {
+        // Media Agent pipeline — full 7-agent orchestration
+        const pipelineMap: Record<GeneratorType, string> = {
+          carousel: "carousel",
+          reel: "reel",
+          thumbnail: "reel",
+          story: "story",
+          thread: "thread",
+          poll: "post",
+        };
+        res = await mediaAgentServer({
+          data: {
+            topic,
+            pipeline: (pipelineMap[activeGen] || "reel") as any,
+            platform: activeGen === "thread" || activeGen === "poll" ? (platform === "linkedin" ? "linkedin" : "twitter") : "instagram",
+            with_video: false,
+            with_image: true,
+            quality_threshold: 70,
+            style,
+          },
+        });
+        const agentResult = (res as any)?.content || res;
+        setMediaAgentResult(agentResult);
+        setResult(agentResult.content);
+      } else {
+        // Standard free/premium generation
+        const stdProvider = (provider === "premium" ? "premium" : "free") as "free" | "premium";
+        switch (activeGen) {
+          case "carousel":
+            res = await generateCarousel({ data: { topic, slides, style: style as any, provider: stdProvider } });
+            break;
+          case "reel":
+            res = await generateReelScript({ data: { topic, duration, style: style as any, provider: stdProvider } });
+            break;
+          case "thumbnail":
+            res = await generateThumbnail({ data: { title: topic, style: style as any, provider: stdProvider } });
+            break;
+          case "story":
+            res = await generateStory({ data: { topic, slides: 3, provider: stdProvider } });
+            break;
+          case "thread":
+            res = await generateThread({ data: { topic, platform, tweets: 5, provider: stdProvider } });
+            break;
+          case "poll":
+            res = await generatePoll({ data: { topic, platform: platform as any, provider: stdProvider } });
+            break;
+        }
+        const content = (res as any)?.content || res;
+        setResult(content);
       }
 
-      const content = (res as any)?.content || res;
-      setResult(content);
-      setStatus(`Done! Generated with ${providerName}`);
+      setStatus(`Done! Generated with ${providerLabel}`);
     } catch (err: any) {
       setError(err.message || "Generation failed");
       setStatus("");
@@ -258,6 +296,20 @@ function BrandManagerPage() {
                     <p className="text-[10px] opacity-60">Free — Premium quality</p>
                   </div>
                 </button>
+                <button
+                  onClick={() => setProvider("media-agent")}
+                  className={`flex w-full items-center gap-2 rounded-lg border p-3 text-sm transition-all ${
+                    provider === "media-agent"
+                      ? "border-purple-500/50 bg-purple-500/10 text-purple-600"
+                      : "border-border/60 text-muted-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  <Wand2 className="h-4 w-4" />
+                  <div className="text-left">
+                    <p className="font-medium">Media Agent</p>
+                    <p className="text-[10px] opacity-60">Full pipeline — Hook + Content + Visual + QA</p>
+                  </div>
+                </button>
               </div>
             </div>
           </div>
@@ -281,6 +333,50 @@ function BrandManagerPage() {
                   rows={2}
                 />
               </div>
+
+              {/* Skill Command Input (Media Agent only) */}
+              {provider === "media-agent" && (
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">Quick Command (optional)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={skillCommand}
+                      onChange={(e) => setSkillCommand(e.target.value)}
+                      placeholder="/reel 5 side hustles for college students"
+                      className="flex-1 rounded-lg border border-purple-500/30 bg-background p-3 text-sm focus:border-purple-500 focus:outline-none font-mono"
+                    />
+                    <button
+                      onClick={async () => {
+                        if (!skillCommand.trim()) return;
+                        setLoading(true);
+                        setError("");
+                        setMediaAgentResult(null);
+                        setResult(null);
+                        try {
+                          setStatus("Running skill command...");
+                          const res = await skillServer({ data: { command: skillCommand } });
+                          setMediaAgentResult(res);
+                          setResult((res as any)?.content);
+                          setStatus("Skill executed!");
+                        } catch (e: any) {
+                          setError(e?.message || "Skill failed");
+                          setStatus("");
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading || !skillCommand.trim()}
+                      className="rounded-lg bg-purple-500 px-4 py-3 text-sm font-medium text-white hover:bg-purple-600 disabled:opacity-50"
+                    >
+                      Run
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Commands: /reel /carousel /story /post /thread /poll /moj /facebook /reddit /recruit /month /audit
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 {activeGen === "carousel" && (
@@ -328,13 +424,15 @@ function BrandManagerPage() {
                 onClick={handleGenerate}
                 disabled={loading || !topic.trim()}
                 className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-all disabled:opacity-50 ${
-                  provider === "premium"
-                    ? "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
-                    : "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                  provider === "media-agent"
+                    ? "bg-gradient-to-r from-purple-500 to-fuchsia-600 hover:from-purple-600 hover:to-fuchsia-700"
+                    : provider === "premium"
+                      ? "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+                      : "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
                 }`}
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                {loading ? "Generating..." : provider === "premium" ? "Generate with Gemini Pro" : "Generate with Gemini Flash"}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : provider === "media-agent" ? <Wand2 className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
+                {loading ? "Generating..." : provider === "media-agent" ? "Run Media Agent" : provider === "premium" ? "Generate with Gemini Pro" : "Generate with Gemini Flash"}
               </button>
 
               {status && (
@@ -348,6 +446,110 @@ function BrandManagerPage() {
 
               {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
             </div>
+
+            {/* Media Agent Result — Quality Score + Visual Prompt + Hooks */}
+            {mediaAgentResult && (
+              <div className="rounded-xl border border-purple-500/30 bg-purple-500/5 p-5 space-y-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-purple-600">
+                  <Wand2 className="h-4 w-4" /> Media Agent Pipeline Complete
+                </div>
+
+                {/* Quality Score */}
+                {mediaAgentResult.quality && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg bg-background/50 p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Quality Score</span>
+                        <span className={`text-lg font-bold ${
+                          mediaAgentResult.quality.overall >= 70 ? "text-green-600" :
+                          mediaAgentResult.quality.overall >= 50 ? "text-amber-600" : "text-red-600"
+                        }`}>
+                          {mediaAgentResult.quality.overall}/100
+                        </span>
+                      </div>
+                      <div className="mt-2 h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            mediaAgentResult.quality.overall >= 70 ? "bg-green-500" :
+                            mediaAgentResult.quality.overall >= 50 ? "bg-amber-500" : "bg-red-500"
+                          }`}
+                          style={{ width: `${mediaAgentResult.quality.overall}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="rounded-lg bg-background/50 p-3">
+                      <span className="text-xs text-muted-foreground">Verdict</span>
+                      <p className={`mt-1 text-sm font-semibold ${
+                        mediaAgentResult.quality.verdict === "pass" ? "text-green-600" :
+                        mediaAgentResult.quality.verdict === "revise" ? "text-amber-600" : "text-red-600"
+                      }`}>
+                        {mediaAgentResult.quality.verdict === "pass" ? "✓ Passed" :
+                         mediaAgentResult.quality.verdict === "revise" ? "⚠ Needs Revision" : "✕ Rejected"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {mediaAgentResult.revisions} revision{mediaAgentResult.revisions !== 1 ? "s" : ""} • ${mediaAgentResult.estimated_cost?.toFixed(3) || "0.000"} cost
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Dimension Scores */}
+                {mediaAgentResult.quality?.dimensions && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {Object.entries(mediaAgentResult.quality.dimensions).map(([key, val]) => (
+                      <div key={key} className="rounded bg-background/30 px-2 py-1">
+                        <span className="text-[10px] text-muted-foreground">{key.replace(/_/g, " ")}</span>
+                        <span className={`ml-1 text-xs font-medium ${(val as number) >= 70 ? "text-green-600" : (val as number) >= 50 ? "text-amber-600" : "text-red-600"}`}>
+                          {val as number}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Hook Display */}
+                {mediaAgentResult.hook && (
+                  <div className="rounded-lg bg-background/50 p-3">
+                    <span className="text-xs text-muted-foreground">Hook</span>
+                    <p className="mt-1 text-sm font-medium">"{mediaAgentResult.hook}"</p>
+                    {mediaAgentResult.hook_variants?.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <span className="text-[10px] text-muted-foreground">A/B Variants:</span>
+                        {mediaAgentResult.hook_variants.map((h: string, i: number) => (
+                          <p key={i} className="text-xs text-muted-foreground">"{h}"</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Visual Prompt */}
+                {mediaAgentResult.visual_prompt && (
+                  <div className="rounded-lg bg-background/50 p-3">
+                    <span className="text-xs text-muted-foreground">Visual Prompt</span>
+                    <p className="mt-1 text-xs text-muted-foreground line-clamp-3">{mediaAgentResult.visual_prompt}</p>
+                  </div>
+                )}
+
+                {/* Image */}
+                {mediaAgentResult.image_url && (
+                  <div className="rounded-lg overflow-hidden">
+                    <img src={mediaAgentResult.image_url} alt="Generated" className="w-full max-h-64 object-cover" />
+                  </div>
+                )}
+
+                {/* Agents Used */}
+                {mediaAgentResult.agents_used?.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {mediaAgentResult.agents_used.map((agent: string) => (
+                      <span key={agent} className="rounded-full bg-purple-500/10 px-2 py-0.5 text-[10px] text-purple-600">
+                        {agent}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Result Display */}
             {result && (
