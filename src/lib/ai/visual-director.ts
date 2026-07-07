@@ -5,6 +5,21 @@
 
 import { aiContent } from "./router";
 
+// ── Helpers ────────────────────────────────────────────
+
+function safeParseJson(text: string): any {
+  let clean = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+  clean = clean.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  clean = clean.replace(/,\s*([\]}])/g, "$1");
+  try { return JSON.parse(clean); } catch {}
+  const first = clean.indexOf("{");
+  const last = clean.lastIndexOf("}");
+  if (first >= 0 && last > first) {
+    try { return JSON.parse(clean.slice(first, last + 1)); } catch {}
+  }
+  return null;
+}
+
 // ── Types ──────────────────────────────────────────────
 
 export type AspectRatio = "9:16" | "16:9" | "1:1" | "4:3" | "3:4";
@@ -45,7 +60,7 @@ export interface VisualPromptResult {
 
 // ── Brand Aesthetic Constants ───────────────────────────
 
-const BARBIEVERSE_AESTHETIC = `BarbieVerse luxury aesthetic: pink and black color palette, rose gold accents, cinematic lighting with soft bokeh, glamorous and feminine, professional studio quality, 8K ultra-detailed, dramatic lighting, elegant typography space, shallow depth of field, editorial fashion photography style, high-end beauty magazine quality, sparkle and shimmer effects, royal crown motifs, dark moody backgrounds with pink neon glow, premium luxury feel, photorealistic, hyperdetailed skin texture, studio ring light reflection in eyes, magazine cover quality`;
+const BARBIEVERSE_AESTHETIC = `BarbieVerse luxury aesthetic: pink/magenta/rose gold color palette (#FF1493, #C71585, #FF69B4, #FF6EC7), rose gold crown motifs, cinematic pink lighting with soft bokeh, glamorous and feminine, professional studio quality, 8K ultra-detailed, dramatic rim lighting, elegant typography space, shallow depth of field, editorial fashion photography style, high-end beauty magazine quality, sparkle and shimmer effects, heart-shaped accents, dark moody backgrounds with pink neon glow, premium luxury feel, photorealistic, hyperdetailed skin texture, studio ring light reflection in eyes, magazine cover quality, streaming setup (microphone, headphones), sparkly sequin textures, warm pink ambient light, consistent brand identity throughout`;
 
 const NEGATIVE_PROMPT_BASE = `blurry, low quality, distorted face, extra fingers, bad anatomy, watermark, text overlay (unless requested), stock photo feel, generic, flat lighting, overexposed, underexposed, noisy, grainy, amateur, cheap, plastic, uncanny valley`;
 
@@ -177,7 +192,8 @@ Return EXACTLY this JSON:
     return fallbackPrompt(merged);
   }
 
-  const parsed = JSON.parse(jsonMatch[0]);
+  const parsed = safeParseJson(jsonMatch[0]);
+  if (!parsed) return fallbackPrompt(merged);
 
   // Build the full prompt by combining all dimensions
   const full_prompt = [
@@ -246,7 +262,7 @@ Return EXACTLY this JSON:
   );
 
   const moodJson = moodResult.text.match(/\{[\s\S]*\}/);
-  const moodParsed = moodJson ? JSON.parse(moodJson[0]) : {};
+  const moodParsed = moodJson ? safeParseJson(moodJson[0]) : {};
 
   return {
     scenes,

@@ -5,6 +5,21 @@
 
 import { aiContent, aiVision } from "./router";
 
+// ── Helpers ────────────────────────────────────────────
+
+function safeParseJson(text: string): any {
+  let clean = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+  clean = clean.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  clean = clean.replace(/,\s*([\]}])/g, "$1");
+  try { return JSON.parse(clean); } catch {}
+  const first = clean.indexOf("{");
+  const last = clean.lastIndexOf("}");
+  if (first >= 0 && last > first) {
+    try { return JSON.parse(clean.slice(first, last + 1)); } catch {}
+  }
+  return null;
+}
+
 // ── Types ──────────────────────────────────────────────
 
 export type Platform = "instagram" | "tiktok" | "youtube" | "twitter" | "moj" | "facebook" | "linkedin";
@@ -58,7 +73,8 @@ export async function reviewContent(input: QualityCheckInput): Promise<QualitySc
     return fallbackScore(input);
   }
 
-  const parsed = JSON.parse(jsonMatch[0]);
+  const parsed = safeParseJson(jsonMatch[0]);
+  if (!parsed) return fallbackScore(input);
 
   // Calculate overall score (weighted average)
   const dims = parsed.dimensions || {};
@@ -145,7 +161,8 @@ Return EXACTLY this JSON:
     return { score: 50, verdict: "revise", topIssue: "Could not analyze" };
   }
 
-  const parsed = JSON.parse(jsonMatch[0]);
+  const parsed = safeParseJson(jsonMatch[0]);
+  if (!parsed) return { score: 50, verdict: "revise", topIssue: "Could not analyze" };
   return {
     score: parsed.score || 50,
     verdict: parsed.verdict || "revise",
@@ -190,7 +207,9 @@ Return EXACTLY this JSON:
     return { score: 50, brandMatch: 50, issues: [], suggestions: [] };
   }
 
-  return JSON.parse(jsonMatch[0]);
+  const parsed = safeParseJson(jsonMatch[0]);
+  if (!parsed) return { score: 50, brandMatch: 50, issues: [], suggestions: [] };
+  return parsed;
 }
 
 // ── Helpers ────────────────────────────────────────────

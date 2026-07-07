@@ -88,6 +88,9 @@ export interface MediaAgentResult {
   generation_time_ms: number;
   agents_used: string[];
   summary: string;
+
+  // Error tracking — which steps failed and why
+  step_errors?: Record<string, string>;
 }
 
 // ── Media Agent ────────────────────────────────────────
@@ -101,6 +104,7 @@ export async function generateMedia(input: MediaAgentInput): Promise<MediaAgentR
   const platform = input.platform || "instagram";
   const qualityThreshold = input.quality_threshold || 70;
   const agentsUsed: string[] = [];
+  const stepErrors: Record<string, string> = {};
   let totalCost = 0;
   let revisions = 0;
 
@@ -134,6 +138,7 @@ export async function generateMedia(input: MediaAgentInput): Promise<MediaAgentR
     hookVariants = variants.map((v) => v.hook);
   } catch (err) {
     console.error("[MediaAgent] Hook generation failed:", err);
+    stepErrors["hook-engine"] = err instanceof Error ? err.message : "Hook generation failed";
   }
 
   // ── Agent 4+5: Script Writer + Caption Writer ──────
@@ -163,6 +168,7 @@ export async function generateMedia(input: MediaAgentInput): Promise<MediaAgentR
     agentsUsed.push("script-writer", "caption-writer");
   } catch (err) {
     console.error("[MediaAgent] Content generation failed:", err);
+    stepErrors["script-writer"] = err instanceof Error ? err.message : "Content generation failed";
     throw err;
   }
 
@@ -188,6 +194,7 @@ export async function generateMedia(input: MediaAgentInput): Promise<MediaAgentR
       }
     } catch (err) {
       console.error("[MediaAgent] Visual generation failed:", err);
+      stepErrors["visual-director"] = err instanceof Error ? err.message : "Visual generation failed";
     }
   }
 
@@ -214,6 +221,7 @@ export async function generateMedia(input: MediaAgentInput): Promise<MediaAgentR
       agentsUsed.push("video-generator");
     } catch (err) {
       console.error("[MediaAgent] Video generation failed:", err);
+      stepErrors["video-generator"] = err instanceof Error ? err.message : "Video generation failed";
     }
   }
 
@@ -228,7 +236,6 @@ export async function generateMedia(input: MediaAgentInput): Promise<MediaAgentR
       platform,
       contentType: input.pipeline === "full-video" ? "reel" : (input.pipeline as any),
       hook,
-      image_url: imageUrl,
     });
     agentsUsed.push("quality-reviewer");
 
@@ -265,7 +272,6 @@ export async function generateMedia(input: MediaAgentInput): Promise<MediaAgentR
         platform,
         contentType: input.pipeline === "full-video" ? "reel" : (input.pipeline as any),
         hook,
-        image_url: imageUrl,
       });
     }
   } catch (err) {
@@ -307,6 +313,7 @@ export async function generateMedia(input: MediaAgentInput): Promise<MediaAgentR
     generation_time_ms: elapsed,
     agents_used: agentsUsed,
     summary: `${input.pipeline} for "${input.topic}" on ${platform} — Score: ${quality.overall}/100, ${revisions} revisions, $${totalCost.toFixed(3)} cost`,
+    step_errors: Object.keys(stepErrors).length > 0 ? stepErrors : undefined,
   };
 }
 

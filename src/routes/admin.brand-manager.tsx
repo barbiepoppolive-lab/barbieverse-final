@@ -130,15 +130,15 @@ function BrandManagerPage() {
     setSeoData(null);
     setMediaAgentResult(null);
 
-    const providerLabel = provider === "media-agent" ? "Media Agent" : provider === "premium" ? "Gemini 2.5 Pro" : "Gemini Flash";
+    const providerLabel = provider === "media-agent" ? "Media Agent (Full Pipeline)" : provider === "premium" ? "Pro (7-Agent Pipeline)" : "Flash (Quick)";
     const genLabel = generators.find(g => g.type === activeGen)?.label || activeGen;
 
     try {
       setStatus(`Generating ${genLabel.toLowerCase()} with ${providerLabel}...`);
       let res;
 
-      if (provider === "media-agent") {
-        // Media Agent pipeline — full 7-agent orchestration
+      if (provider === "media-agent" || provider === "premium") {
+        // 7-agent pipeline — used by both Pro and Media Agent
         const pipelineMap: Record<GeneratorType, string> = {
           carousel: "carousel",
           reel: "reel",
@@ -152,7 +152,7 @@ function BrandManagerPage() {
             topic,
             pipeline: (pipelineMap[activeGen] || "reel") as any,
             platform: activeGen === "thread" || activeGen === "poll" ? (platform === "linkedin" ? "linkedin" : "twitter") : "instagram",
-            with_video: false,
+            with_video: provider === "media-agent",
             with_image: true,
             quality_threshold: 70,
             style,
@@ -162,26 +162,25 @@ function BrandManagerPage() {
         setMediaAgentResult(agentResult);
         setResult(agentResult.content);
       } else {
-        // Standard free/premium generation
-        const stdProvider = (provider === "premium" ? "premium" : "free") as "free" | "premium";
+        // Flash: direct Gemini call, no pipeline
         switch (activeGen) {
           case "carousel":
-            res = await generateCarousel({ data: { topic, slides, style: style as any, provider: stdProvider } });
+            res = await generateCarousel({ data: { topic, slides, style: style as any, provider: "free" } });
             break;
           case "reel":
-            res = await generateReelScript({ data: { topic, duration, style: style as any, provider: stdProvider } });
+            res = await generateReelScript({ data: { topic, duration, style: style as any, provider: "free" } });
             break;
           case "thumbnail":
-            res = await generateThumbnail({ data: { title: topic, style: style as any, provider: stdProvider } });
+            res = await generateThumbnail({ data: { title: topic, style: style as any, provider: "free" } });
             break;
           case "story":
-            res = await generateStory({ data: { topic, slides: 3, provider: stdProvider } });
+            res = await generateStory({ data: { topic, slides: 3, provider: "free" } });
             break;
           case "thread":
-            res = await generateThread({ data: { topic, platform, tweets: 5, provider: stdProvider } });
+            res = await generateThread({ data: { topic, platform, tweets: 5, provider: "free" } });
             break;
           case "poll":
-            res = await generatePoll({ data: { topic, platform: platform as any, provider: stdProvider } });
+            res = await generatePoll({ data: { topic, platform: platform as any, provider: "free" } });
             break;
         }
         const content = (res as any)?.content || res;
@@ -207,7 +206,7 @@ function BrandManagerPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold">AI Brand Manager</h1>
-            <p className="text-sm text-muted-foreground">Premium content generation with SEO, quality scoring & repurposing</p>
+            <p className="text-sm text-muted-foreground">Flash (quick text) · Pro (7-agent pipeline + images) · Media Agent (full pipeline + video)</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -297,7 +296,7 @@ function BrandManagerPage() {
                   <Zap className="h-4 w-4" />
                   <div className="text-left">
                     <p className="font-medium">Gemini Flash</p>
-                    <p className="text-[10px] opacity-60">Free — Good quality</p>
+                    <p className="text-[10px] opacity-60">Quick — Text only, no images</p>
                   </div>
                 </button>
                 <button
@@ -310,8 +309,8 @@ function BrandManagerPage() {
                 >
                   <Sparkles className="h-4 w-4" />
                   <div className="text-left">
-                    <p className="font-medium">Gemini Pro</p>
-                    <p className="text-[10px] opacity-60">Free — Premium quality</p>
+                    <p className="font-medium">Pro</p>
+                    <p className="text-[10px] opacity-60">7-Agent Pipeline — Text + Images</p>
                   </div>
                 </button>
                 <button
@@ -325,7 +324,7 @@ function BrandManagerPage() {
                   <Wand2 className="h-4 w-4" />
                   <div className="text-left">
                     <p className="font-medium">Media Agent</p>
-                    <p className="text-[10px] opacity-60">Full pipeline — Hook + Content + Visual + QA</p>
+                    <p className="text-[10px] opacity-60">Full Pipeline — Text + Images + Video</p>
                   </div>
                 </button>
               </div>
@@ -440,7 +439,7 @@ function BrandManagerPage() {
                 }`}
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : provider === "media-agent" ? <Wand2 className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
-                {loading ? "Generating..." : provider === "media-agent" ? "Run Media Agent" : provider === "premium" ? "Generate with Gemini Pro" : "Generate with Gemini Flash"}
+                {loading ? "Generating..." : provider === "media-agent" ? "Run Media Agent" : provider === "premium" ? "Generate with Pro Pipeline" : "Generate with Flash"}
               </button>
 
               {status && (
@@ -553,6 +552,18 @@ function BrandManagerPage() {
                       <span key={agent} className="rounded-full bg-purple-500/10 px-2 py-0.5 text-[10px] text-purple-600">
                         {agent}
                       </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Step Errors */}
+                {mediaAgentResult.step_errors && Object.keys(mediaAgentResult.step_errors).length > 0 && (
+                  <div className="rounded-lg bg-amber-500/10 p-3 space-y-1">
+                    <span className="text-xs font-medium text-amber-600">Step Warnings</span>
+                    {Object.entries(mediaAgentResult.step_errors).map(([step, msg]) => (
+                      <p key={step} className="text-[10px] text-amber-700">
+                        <span className="font-medium">{step}:</span> {msg}
+                      </p>
                     ))}
                   </div>
                 )}
