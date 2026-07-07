@@ -1,5 +1,6 @@
 // AI Router — Config-driven dispatch to best provider per task
 // Reads provider priority from env vars, auto-skips unavailable providers.
+// OpenRouter: auto-hops between free models, tracks costs, budget management.
 
 import type { Provider, ChatOptions } from "./providers";
 import {
@@ -12,6 +13,13 @@ import {
 } from "./providers";
 import { isRateLimited, trackUsage } from "./rate-limiter";
 import { logUsage } from "./usage-tracker";
+import {
+  selectBestModel,
+  hopOnFailure,
+  logCost,
+  calculateCost,
+  getActiveModel,
+} from "./openrouter-optimizer";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -240,41 +248,81 @@ export async function aiRoute(params: {
   // Try each provider in order
   for (const provider of providers) {
     const start = Date.now();
+
+    // OpenRouter: use optimizer to pick best free model
+    let effectiveModel = config.model;
+    if (provider === "openrouter") {
+      try {
+        effectiveModel = await selectBestModel(taskType as any);
+      } catch {
+        effectiveModel = config.model;
+      }
+    }
+
     try {
       let text: string;
+      const optsWithModel = { ...opts, model: effectiveModel };
+
       if (imageBase64 && (taskType === "vision" || PROVIDER_REGISTRY[provider].supportsVision)) {
-        text = await chatWithImage(provider, prompt, imageBase64, mimeType || "image/jpeg", opts);
+        text = await chatWithImage(provider, prompt, imageBase64, mimeType || "image/jpeg", optsWithModel);
       } else {
-        text = await chat(provider, prompt, opts);
+        text = await chat(provider, prompt, optsWithModel);
       }
 
       const latencyMs = Date.now() - start;
       const tokens = estimateTokens(text);
+      const cost = calculateCost(effectiveModel, estimateTokens(prompt), tokens);
 
       trackUsage(provider, tokens);
       logUsage({
         provider,
         task_type: taskType,
-        model: config.model,
+        model: effectiveModel,
         input_tokens: estimateTokens(prompt),
         output_tokens: tokens,
         latency_ms: latencyMs,
         success: true,
       });
 
-      return { text, provider, model: config.model, tokens, latencyMs };
+      // Log cost for OpenRouter optimizer tracking
+      if (provider === "openrouter") {
+        logCost({
+          model: effectiveModel,
+          task_type: taskType,
+          input_tokens: estimateTokens(prompt),
+          output_tokens: tokens,
+          cost_usd: cost,
+          latency_ms: latencyMs,
+          success: true,
+          provider,
+        });
+      }
+
+      return { text, provider, model: effectiveModel, tokens, latencyMs };
     } catch (err: any) {
       console.error(`[AIRouter] ${provider} failed:`, err.message);
       logUsage({
         provider,
         task_type: taskType,
-        model: config.model,
+        model: effectiveModel,
         input_tokens: estimateTokens(prompt),
         output_tokens: 0,
         latency_ms: Date.now() - start,
         success: false,
         error: err.message,
       });
+
+      // OpenRouter: auto-hop to next model on failure
+      if (provider === "openrouter") {
+        try {
+          const nextModel = await hopOnFailure(effectiveModel, taskType, err.message);
+          console.log(`[AIRouter] OpenRouter auto-hopped to: ${nextModel}`);
+          // Don't log cost for failed attempt
+        } catch {
+          // Hop failed, continue to next provider
+        }
+      }
+
       // Continue to next provider
     }
   }

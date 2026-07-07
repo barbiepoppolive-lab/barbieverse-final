@@ -31,6 +31,11 @@ import {
   executeSkillCommand,
 } from "@/lib/api/media-agent.functions";
 import {
+  getCostDashboard as getCostDashboardFn,
+  updateBudgetConfig as updateBudgetConfigFn,
+  refreshModels as refreshModelsFn,
+} from "@/lib/api/cost-monitor.functions";
+import {
   generateBlogPost,
   generateSocialPost,
   listContentJobs,
@@ -43,7 +48,7 @@ import {
   Send, Trash2, Copy, RefreshCw, Zap, Target, Hash, ArrowRight,
   X, Play, Pause, Volume2, Download, Eye, Music, ChevronDown,
   FileText, ExternalLink, Heart, Share2, Bookmark, Wand2, TrendingUp,
-  Search, Lightbulb, Trophy, AlertCircle, Repeat, Globe, Video
+  Search, Lightbulb, Trophy, AlertCircle, Repeat, Globe, Video, Activity
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/brand-manager")({
@@ -51,7 +56,7 @@ export const Route = createFileRoute("/admin/brand-manager")({
   component: BrandManagerPage,
 });
 
-type Tab = "generators" | "video" | "content" | "queue" | "calendar" | "stats" | "templates";
+type Tab = "generators" | "video" | "content" | "queue" | "calendar" | "stats" | "templates" | "costs";
 type GeneratorType = "carousel" | "reel" | "thumbnail" | "story" | "thread" | "poll";
 type ProviderChoice = "premium" | "free" | "media-agent";
 
@@ -75,6 +80,7 @@ function BrandManagerPage() {
   const [videoResult, setVideoResult] = useState<any>(null);
   const [skillCommand, setSkillCommand] = useState("");
   const [mediaAgentResult, setMediaAgentResult] = useState<any>(null);
+  const [costDashboard, setCostDashboard] = useState<any>(null);
 
   // Form states
   const [topic, setTopic] = useState("");
@@ -98,6 +104,8 @@ function BrandManagerPage() {
   const fullVideoServer = useServerFn(generateFullVideoFn);
   const mediaAgentServer = useServerFn(generateMediaAgent);
   const skillServer = useServerFn(executeSkillCommand);
+  const costDashboardServer = useServerFn(getCostDashboardFn);
+  const refreshModelsServer = useServerFn(refreshModelsFn);
 
   const generators: { type: GeneratorType; label: string; icon: any; desc: string }[] = [
     { type: "carousel", label: "Carousel", icon: Layout, desc: "Multi-slide Instagram post" },
@@ -227,15 +235,20 @@ function BrandManagerPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-xl bg-muted/50 p-1">
-        {(["generators", "video", "content", "queue", "calendar", "stats"] as Tab[]).map((t) => (
+        {(["generators", "video", "content", "queue", "calendar", "stats", "costs"] as Tab[]).map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => {
+              setTab(t);
+              if (t === "costs" && !costDashboard) {
+                costDashboardServer({}).then(setCostDashboard).catch(console.error);
+              }
+            }}
             className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
               tab === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "generators" ? "Content Studio" : t === "video" ? "Video Studio" : t === "content" ? "Blog & Social" : t === "queue" ? "Approval Queue" : t === "calendar" ? "Calendar" : "Analytics"}
+            {t === "generators" ? "Content Studio" : t === "video" ? "Video Studio" : t === "content" ? "Blog & Social" : t === "queue" ? "Approval Queue" : t === "calendar" ? "Calendar" : t === "costs" ? "Cost Monitor" : "Analytics"}
           </button>
         ))}
       </div>
@@ -750,6 +763,23 @@ function BrandManagerPage() {
 
       {/* Stats Tab */}
       {tab === "stats" && <StatsTab getStats={getStats} />}
+
+      {/* Cost Monitor Tab */}
+      {tab === "costs" && (
+        <CostMonitorTab
+          dashboard={costDashboard}
+          onRefresh={async () => {
+            setCostDashboard(null);
+            try {
+              const res = await refreshModelsServer({});
+              const dash = await costDashboardServer({});
+              setCostDashboard({ ...dash, refreshResult: res });
+            } catch (e) {
+              console.error(e);
+            }
+          }}
+        />
+      )}
 
       {/* Content Detail Drawer */}
       {detailItem && (
@@ -1670,6 +1700,181 @@ function StatsTab({ getStats }: { getStats: any }) {
               <div key={t.job_type} className="flex items-center justify-between">
                 <span className="text-sm">{t.job_type.replace(/_/g, " ")}</span>
                 <span className="text-sm font-medium">{t.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Cost Monitor Tab ───────────────────────────────────
+
+function CostMonitorTab({ dashboard, onRefresh }: { dashboard: any; onRefresh: () => void }) {
+  if (!dashboard) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">Loading cost data...</span>
+      </div>
+    );
+  }
+
+  const d = dashboard;
+  const budget = d.budget || {};
+  const today = d.today || {};
+  const week = d.this_week || {};
+  const month = d.this_month || {};
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-green-500" /> OpenRouter Cost Monitor
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Active model: <span className="font-mono text-foreground">{d.active_model || "none"}</span>
+            {" "} • {d.free_models_available || 0} free models available
+          </p>
+        </div>
+        <button
+          onClick={onRefresh}
+          className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm hover:bg-muted/80"
+        >
+          <RefreshCw className="h-4 w-4" /> Refresh
+        </button>
+      </div>
+
+      {/* Cost Cards */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {[
+          { label: "Today", requests: today.requests, cost: today.cost_usd, tokens: today.tokens, color: "text-green-500" },
+          { label: "This Week", requests: week.requests, cost: week.cost_usd, tokens: week.tokens, color: "text-blue-500" },
+          { label: "This Month", requests: month.requests, cost: month.cost_usd, tokens: month.tokens, color: "text-purple-500" },
+          { label: "Budget Remaining", requests: null, cost: budget.monthly_remaining, tokens: null, color: budget.monthly_pct > 0.8 ? "text-red-500" : "text-green-500", suffix: "left" },
+        ].map((card) => (
+          <div key={card.label} className="rounded-xl border border-border/60 bg-card/50 p-4">
+            <p className="text-xs text-muted-foreground">{card.label}</p>
+            <p className={`text-2xl font-bold ${card.color}`}>
+              {card.cost != null ? `$${card.cost.toFixed(3)}` : "—"}
+              {card.suffix && <span className="text-xs font-normal ml-1">{card.suffix}</span>}
+            </p>
+            {card.requests != null && (
+              <p className="text-xs text-muted-foreground mt-1">{card.requests} requests • {((card.tokens || 0) / 1000).toFixed(1)}K tokens</p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Budget Bars */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="rounded-xl border border-border/60 bg-card/50 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium">Daily Budget</span>
+            <span className="text-xs text-muted-foreground">${(budget.daily_pct * 100).toFixed(0)}% used</span>
+          </div>
+          <div className="h-3 rounded-full bg-muted overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${
+                budget.daily_pct > 0.8 ? "bg-red-500" : budget.daily_pct > 0.5 ? "bg-amber-500" : "bg-green-500"
+              }`}
+              style={{ width: `${Math.min(100, budget.daily_pct * 100)}%` }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">${budget.daily_remaining?.toFixed(2)} remaining of $2.00/day</p>
+        </div>
+        <div className="rounded-xl border border-border/60 bg-card/50 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium">Monthly Budget</span>
+            <span className="text-xs text-muted-foreground">${(budget.monthly_pct * 100).toFixed(0)}% used</span>
+          </div>
+          <div className="h-3 rounded-full bg-muted overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${
+                budget.monthly_pct > 0.8 ? "bg-red-500" : budget.monthly_pct > 0.5 ? "bg-amber-500" : "bg-green-500"
+              }`}
+              style={{ width: `${Math.min(100, budget.monthly_pct * 100)}%` }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">${budget.monthly_remaining?.toFixed(2)} remaining of $60.00/month</p>
+        </div>
+      </div>
+
+      {/* Model Health */}
+      {d.health?.length > 0 && (
+        <div className="rounded-xl border border-border/60 bg-card/50 p-5">
+          <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <Activity className="h-4 w-4" /> Model Health
+          </h3>
+          <div className="space-y-2">
+            {d.health.map((h: any) => (
+              <div key={h.model} className="flex items-center justify-between rounded-lg bg-background/50 px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <div className={`h-2 w-2 rounded-full ${h.available ? "bg-green-500" : "bg-red-500"}`} />
+                  <span className="text-sm font-mono">{h.model.split("/").pop()}</span>
+                </div>
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <span>{h.latency_ms}ms</span>
+                  <span>{(h.success_rate * 100).toFixed(0)}% success</span>
+                  <span>{h.total_attempts} attempts</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Model Switches */}
+      {d.recent_switches?.length > 0 && (
+        <div className="rounded-xl border border-border/60 bg-card/50 p-5">
+          <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <Repeat className="h-4 w-4" /> Recent Model Switches
+          </h3>
+          <div className="space-y-1">
+            {d.recent_switches.slice(0, 10).map((s: any, i: number) => (
+              <div key={i} className="flex items-center justify-between text-sm">
+                <span className="font-mono text-xs">
+                  {s.from.split("/").pop()} → {s.to.split("/").pop()}
+                </span>
+                <span className="text-muted-foreground text-xs">{s.reason}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cost by Task Type */}
+      {d.task_costs && Object.keys(d.task_costs).length > 0 && (
+        <div className="rounded-xl border border-border/60 bg-card/50 p-5">
+          <h3 className="font-semibold mb-3">Cost by Task (7 days)</h3>
+          <div className="space-y-2">
+            {Object.entries(d.task_costs).map(([task, data]: [string, any]) => (
+              <div key={task} className="flex items-center justify-between rounded-lg bg-background/50 px-3 py-2">
+                <span className="text-sm">{task}</span>
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <span>{data.requests} req</span>
+                  <span>{((data.tokens || 0) / 1000).toFixed(1)}K tok</span>
+                  <span>{data.avg_latency?.toFixed(0)}ms avg</span>
+                  <span className="font-medium text-foreground">${data.cost?.toFixed(4) || "0"}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Free Models List */}
+      {d.free_models_list?.length > 0 && (
+        <div className="rounded-xl border border-border/60 bg-card/50 p-5">
+          <h3 className="font-semibold mb-3">Available Free Models ({d.free_models_list.length})</h3>
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
+            {d.free_models_list.map((m: any) => (
+              <div key={m.id} className="rounded-lg bg-background/50 px-3 py-2">
+                <p className="text-xs font-mono truncate">{m.name || m.id.split("/").pop()}</p>
+                <p className="text-[10px] text-muted-foreground">{m.context} ctx • {m.modality}</p>
               </div>
             ))}
           </div>

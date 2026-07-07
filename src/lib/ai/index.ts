@@ -238,3 +238,30 @@ export type {
 export { generateEmbedding, cosineSimilarity, findSimilar } from "./utils/embeddings";
 export type { EmbeddingProvider } from "./utils/embeddings";
 export { PROMPTS } from "./utils/prompts";
+
+// OpenRouter Optimizer (free model discovery, auto-hop, cost tracking, budget)
+export {
+  discoverFreeModels,
+  getFreeModelsByCapability,
+  testModelHealth,
+  checkAllModelHealth,
+  selectBestModel,
+  getActiveModel,
+  hopOnFailure,
+  logCost,
+  calculateCost,
+  getCostDashboard,
+  getCostByTaskType,
+  updateOptimizerConfig,
+  getOptimizerConfig,
+  getRecentCosts,
+  pruneCostLog,
+} from "./openrouter-optimizer";
+export type {
+  FreeModel,
+  ModelHealth,
+  CostEntry,
+  BudgetConfig,
+  OptimizerConfig,
+  CostDashboard,
+} from "./openrouter-optimizer";
