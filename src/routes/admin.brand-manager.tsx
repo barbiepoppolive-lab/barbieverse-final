@@ -716,20 +716,9 @@ function BrandManagerPage() {
                     </h4>
                     {videoResult.video.video_url ? (
                       <div className="space-y-2">
-                        <video
-                          controls
-                          className="w-full rounded-lg"
-                          src={videoResult.video.video_url}
-                          onError={(e) => {
-                            const target = e.target as HTMLVideoElement;
-                            target.style.display = "none";
-                            const fallback = target.nextElementSibling as HTMLElement;
-                            if (fallback) fallback.style.display = "block";
-                          }}
-                        />
-                        <p className="hidden text-sm text-muted-foreground" style={{display: "none"}}>
-                          Video preview unavailable. Use download button below.
-                        </p>
+                        <video controls className="w-full rounded-lg" src={videoResult.video.video_url}>
+                          Your browser doesn't support video playback.
+                        </video>
                         <a
                           href={videoResult.video.video_url}
                           download="barbieverse-video.mp4"
@@ -737,7 +726,7 @@ function BrandManagerPage() {
                           rel="noopener noreferrer"
                           className="flex items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm text-white hover:bg-blue-600"
                         >
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                          <Download className="h-4 w-4" />
                           Download Video
                         </a>
                       </div>
