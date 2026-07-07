@@ -851,97 +851,203 @@ function ContentPreview({ content, type, onImprove, onRegenerate }: {
       </div>
 
       {/* Carousel Preview */}
-      {type === "carousel" && content.slides && (
+      {type === "carousel" && (content.slides || content.title) && (
         <div className="space-y-3">
-          <h4 className="text-sm font-medium">{content.title}</h4>
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {content.slides.map((slide: any, i: number) => (
-              <div key={i} className="min-w-[200px] rounded-xl border border-border/60 bg-background overflow-hidden">
-                {slide.image_url && (
-                  <img src={slide.image_url} alt={slide.headline} className="h-40 w-full object-cover" />
-                )}
-                <div className="p-3 space-y-1">
-                  <p className="text-xs font-bold line-clamp-2">{slide.headline}</p>
-                  <p className="text-[10px] text-muted-foreground line-clamp-3">{slide.body}</p>
+          {content.title && <h4 className="text-sm font-medium">{content.title}</h4>}
+          {content.slides && (
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {content.slides.map((slide: any, i: number) => (
+                <div key={i} className="min-w-[200px] rounded-xl border border-border/60 bg-background overflow-hidden">
+                  {slide.image_url && (
+                    <img src={slide.image_url} alt={slide.headline || ""} className="h-40 w-full object-cover" />
+                  )}
+                  <div className="p-3 space-y-1">
+                    <p className="text-xs font-bold line-clamp-2">{slide.headline || slide.text || ""}</p>
+                    <p className="text-[10px] text-muted-foreground line-clamp-3">{slide.body || ""}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-          <p className="text-sm text-muted-foreground">{content.caption}</p>
-          <div className="flex flex-wrap gap-1">
-            {content.hashtags?.map((tag: string, i: number) => (
-              <span key={i} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">#{tag}</span>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
+          {content.caption && <p className="text-sm text-muted-foreground">{content.caption}</p>}
+          {content.hashtags?.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {content.hashtags.map((tag: string, i: number) => (
+                <span key={i} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">#{tag}</span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* Reel Script Preview */}
-      {type === "reel" && content.scenes && (
+      {type === "reel" && (
         <div className="space-y-3">
-          <div className="rounded-lg bg-amber-500/10 p-2 text-xs text-amber-600 font-medium">Hook: {content.hook}</div>
-          <div className="space-y-2">
-            {content.scenes.map((scene: any, i: number) => (
-              <div key={i} className="flex gap-3 rounded-lg border border-border/60 bg-background p-3">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{i + 1}</div>
-                <div className="flex-1 space-y-1">
-                  <p className="text-[10px] text-muted-foreground">{scene.duration}</p>
-                  <p className="text-xs font-medium">{scene.visual}</p>
-                  <p className="text-xs text-blue-500">{scene.audio}</p>
-                  {scene.text_overlay && <p className="text-[10px] bg-muted rounded px-2 py-1">{scene.text_overlay}</p>}
+          {content.hook && (
+            <div className="rounded-lg bg-amber-500/10 p-2 text-xs text-amber-600 font-medium">Hook: {content.hook}</div>
+          )}
+          {content.scenes && content.scenes.length > 0 ? (
+            <div className="space-y-2">
+              {content.scenes.map((scene: any, i: number) => (
+                <div key={i} className="flex gap-3 rounded-lg border border-border/60 bg-background p-3">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{i + 1}</div>
+                  <div className="flex-1 space-y-1">
+                    <p className="text-[10px] text-muted-foreground">{scene.duration}</p>
+                    <p className="text-xs font-medium">{scene.visual}</p>
+                    <p className="text-xs text-blue-500">{scene.audio}</p>
+                    {scene.text_overlay && <p className="text-[10px] bg-muted rounded px-2 py-1">{scene.text_overlay}</p>}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-          <p className="text-sm text-muted-foreground">{content.caption}</p>
+              ))}
+            </div>
+          ) : content.text ? (
+            <div className="rounded-lg border border-border/60 bg-background p-3">
+              <p className="text-sm whitespace-pre-wrap">{content.text}</p>
+            </div>
+          ) : null}
+          {content.caption && <p className="text-sm text-muted-foreground">{content.caption}</p>}
+          {content.music_suggestion && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Music className="h-3 w-3" /> {content.music_suggestion}
+            </p>
+          )}
+          {content.hashtags?.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {content.hashtags.map((tag: string, i: number) => (
+                <span key={i} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">#{tag}</span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* Story Preview */}
-      {type === "story" && content.slides && (
-        <div className="flex gap-3 overflow-x-auto pb-2">
-          {content.slides.map((slide: any, i: number) => (
-            <div key={i} className="min-w-[160px] rounded-xl border border-border/60 bg-background overflow-hidden">
-              {slide.image_url && <img src={slide.image_url} alt="" className="h-48 w-full object-cover" />}
-              <div className="p-3 space-y-1">
-                <p className="text-xs font-medium line-clamp-3">{slide.text}</p>
-                {slide.cta && <p className="text-[10px] text-primary font-medium">{slide.cta}</p>}
-              </div>
+      {type === "story" && (
+        <div className="space-y-3">
+          {content.slides && content.slides.length > 0 ? (
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {content.slides.map((slide: any, i: number) => (
+                <div key={i} className="min-w-[160px] rounded-xl border border-border/60 bg-background overflow-hidden">
+                  {slide.image_url && <img src={slide.image_url} alt="" className="h-48 w-full object-cover" />}
+                  <div className="p-3 space-y-1">
+                    <p className="text-xs font-medium line-clamp-3">{slide.text || slide.headline || ""}</p>
+                    {(slide.cta || slide.call_to_action) && (
+                      <p className="text-[10px] text-primary font-medium">{slide.cta || slide.call_to_action}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          ) : content.text ? (
+            <div className="rounded-lg border border-border/60 bg-background p-3">
+              <p className="text-sm whitespace-pre-wrap">{content.text}</p>
+            </div>
+          ) : null}
+          {content.hashtags?.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {content.hashtags.map((tag: string, i: number) => (
+                <span key={i} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">#{tag}</span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* Thread Preview */}
-      {type === "thread" && content.tweets && (
+      {type === "thread" && (
         <div className="space-y-2">
-          {content.tweets.map((tweet: string, i: number) => (
-            <div key={i} className="rounded-lg border border-border/60 bg-background p-3">
-              <p className="text-xs text-muted-foreground mb-1">Tweet {i + 1}/{content.tweets.length}</p>
-              <p className="text-sm">{tweet}</p>
+          {content.tweets && content.tweets.length > 0 ? (
+            content.tweets.map((tweet: string, i: number) => (
+              <div key={i} className="rounded-lg border border-border/60 bg-background p-3">
+                <p className="text-xs text-muted-foreground mb-1">Tweet {i + 1}/{content.tweets.length}</p>
+                <p className="text-sm">{tweet}</p>
+              </div>
+            ))
+          ) : content.text ? (
+            <div className="rounded-lg border border-border/60 bg-background p-3">
+              <p className="text-sm whitespace-pre-wrap">{content.text}</p>
             </div>
-          ))}
+          ) : null}
+          {content.hashtags?.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {content.hashtags.map((tag: string, i: number) => (
+                <span key={i} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">#{tag}</span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* Poll Preview */}
-      {type === "poll" && content.question && (
+      {type === "poll" && (
         <div className="rounded-lg border border-border/60 bg-background p-4 space-y-3">
-          <p className="font-medium">{content.question}</p>
+          {content.question && <p className="font-medium">{content.question}</p>}
           {content.options?.map((opt: string, i: number) => (
             <div key={i} className="flex items-center gap-2 rounded-lg border border-border/60 p-2">
               <div className="h-4 w-4 rounded-full border-2 border-primary/30" />
               <span className="text-sm">{opt}</span>
             </div>
           ))}
+          {content.caption && <p className="text-sm text-muted-foreground">{content.caption}</p>}
         </div>
       )}
 
       {/* Thumbnail Preview */}
-      {type === "thumbnail" && content.image_url && (
+      {type === "thumbnail" && (
         <div className="space-y-2">
-          <img src={content.image_url} alt="Thumbnail" className="w-full rounded-lg" />
-          <p className="text-xs text-muted-foreground">{content.image_prompt}</p>
+          {content.image_url ? (
+            <img src={content.image_url} alt="Thumbnail" className="w-full rounded-lg" />
+          ) : content.image_prompt ? (
+            <div className="rounded-lg border border-border/60 bg-background p-3">
+              <p className="text-xs text-muted-foreground">Image prompt: {content.image_prompt}</p>
+            </div>
+          ) : null}
+          {content.image_prompt && content.image_url && (
+            <p className="text-xs text-muted-foreground">{content.image_prompt}</p>
+          )}
+        </div>
+      )}
+
+      {/* Generic Fallback — if no specific preview matched */}
+      {type !== "carousel" && type !== "reel" && type !== "story" && type !== "thread" && type !== "poll" && type !== "thumbnail" && content && (
+        <div className="rounded-lg border border-border/60 bg-background p-3">
+          <pre className="text-xs text-muted-foreground whitespace-pre-wrap overflow-auto max-h-64">
+            {JSON.stringify(content, null, 2)}
+          </pre>
+        </div>
+      )}
+
+      {/* Fallback: show raw if specific section didn't render */}
+      {type === "carousel" && !content.slides && !content.title && content && (
+        <div className="rounded-lg border border-border/60 bg-background p-3">
+          <p className="text-xs text-muted-foreground mb-2">Generated content:</p>
+          <pre className="text-xs text-muted-foreground whitespace-pre-wrap overflow-auto max-h-64">
+            {JSON.stringify(content, null, 2)}
+          </pre>
+        </div>
+      )}
+      {type === "reel" && !content.scenes && !content.text && content && (
+        <div className="rounded-lg border border-border/60 bg-background p-3">
+          <p className="text-xs text-muted-foreground mb-2">Generated content:</p>
+          <pre className="text-xs text-muted-foreground whitespace-pre-wrap overflow-auto max-h-64">
+            {JSON.stringify(content, null, 2)}
+          </pre>
+        </div>
+      )}
+      {type === "story" && !content.slides && !content.text && content && (
+        <div className="rounded-lg border border-border/60 bg-background p-3">
+          <p className="text-xs text-muted-foreground mb-2">Generated content:</p>
+          <pre className="text-xs text-muted-foreground whitespace-pre-wrap overflow-auto max-h-64">
+            {JSON.stringify(content, null, 2)}
+          </pre>
+        </div>
+      )}
+      {type === "thread" && !content.tweets && !content.text && content && (
+        <div className="rounded-lg border border-border/60 bg-background p-3">
+          <p className="text-xs text-muted-foreground mb-2">Generated content:</p>
+          <pre className="text-xs text-muted-foreground whitespace-pre-wrap overflow-auto max-h-64">
+            {JSON.stringify(content, null, 2)}
+          </pre>
         </div>
       )}
 
