@@ -10,7 +10,7 @@ export interface VideoGenInput {
   image_url?: string;
   duration?: "5" | "10";
   aspect_ratio?: "16:9" | "9:16" | "1:1";
-  model?: "kling" | "hailuo";
+  model?: "kling" | "hailuo" | "seedance";
   platform?: string;
 }
 
@@ -52,59 +52,78 @@ export interface VideoScriptResult {
   hashtags: string[];
 }
 
-// ── Video Generation (fal.ai) ──────────────────────────
+// ── Video Generation (OpenRouter) ──────────────────────────
 
-const FAL_API_URL = "https://fal.run";
+const OPENROUTER_API = "https://openrouter.ai/api/v1";
 
 const VIDEO_MODELS: Record<string, { model: string; cost: number }> = {
-  kling: { model: "fal-ai/kling-video/v1", cost: 0.05 },
-  hailuo: { model: "fal-ai/minimax-video/video-01-live", cost: 0.03 },
+  kling: { model: "kling-3.0-standard", cost: 0.07 },
+  seedance: { model: "seedance-2.0", cost: 0.036 },
+  hailuo: { model: "wan-2.7", cost: 0.04 },
 };
 
 export async function generateVideo(input: VideoGenInput): Promise<VideoGenResult> {
-  const falKey = process.env.FAL_KEY;
-  if (!falKey) throw new Error("FAL_KEY not configured");
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error("OPENROUTER_API_KEY not configured");
 
-  const modelConfig = VIDEO_MODELS[input.model || "kling"];
+  const modelConfig = VIDEO_MODELS[input.model || "seedance"];
   const duration = input.duration || "5";
   const aspect_ratio = input.aspect_ratio || "9:16";
 
   // Build prompt with AI enhancement
   const enhancedPrompt = await enhanceVideoPrompt(input.prompt, input.platform);
 
-  const body: any = {
-    prompt: enhancedPrompt,
-    duration,
-    aspect_ratio,
-  };
-
-  if (input.image_url) {
-    body.image_url = input.image_url;
-  }
-
-  const response = await fetch(`${FAL_API_URL}/${modelConfig.model}`, {
+  // Submit video job to OpenRouter
+  const submitRes = await fetch(`${OPENROUTER_API}/videos`, {
     method: "POST",
     headers: {
-      "Authorization": `Key ${falKey}`,
+      "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
+      "HTTP-Referer": "https://barbieverse.org",
+      "X-Title": "BarbieVerse Video Gen",
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      model: modelConfig.model,
+      prompt: enhancedPrompt,
+      duration: parseInt(duration),
+      aspect_ratio,
+      ...(input.image_url && { image_url: input.image_url }),
+    }),
   });
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`fal.ai error: ${err}`);
+  if (!submitRes.ok) {
+    const err = await submitRes.text();
+    throw new Error(`OpenRouter video error: ${err}`);
   }
 
-  const result = await response.json();
+  const submitted = await submitRes.json();
+  const jobId = submitted.id;
 
-  return {
-    video_url: result.video?.url || result.output?.video_url || "",
-    duration,
-    aspect_ratio,
-    model: input.model || "kling",
-    cost: modelConfig.cost,
-  };
+  // Poll for completion
+  let attempts = 0;
+  const maxAttempts = 60;
+  while (attempts < maxAttempts) {
+    await new Promise(r => setTimeout(r, 2000));
+    const pollRes = await fetch(`${OPENROUTER_API}/videos/${jobId}`, {
+      headers: { "Authorization": `Bearer ${apiKey}` },
+    });
+    const status = await pollRes.json();
+    if (status.status === "completed") {
+      return {
+        video_url: status.output?.video_url || status.output?.url || "",
+        duration,
+        aspect_ratio,
+        model: input.model || "seedance",
+        cost: modelConfig.cost * parseInt(duration),
+      };
+    }
+    if (status.status === "failed") {
+      throw new Error(`OpenRouter video failed: ${status.error || "Unknown error"}`);
+    }
+    attempts++;
+  }
+
+  throw new Error("OpenRouter video generation timed out");
 }
 
 // ── Voice Generation (ElevenLabs) ──────────────────────
@@ -243,19 +262,17 @@ export async function generateFullVideo(input: {
 
   const result: any = { script };
 
-  // Step 2: Generate video (if fal.ai configured)
-  if (process.env.FAL_KEY) {
-    try {
-      result.video = await generateVideo({
-        prompt: script.scenes.map(s => s.visual).join(". "),
-        image_url: input.image_url,
-        duration: input.duration === "60" ? "10" : "5",
-        aspect_ratio: input.platform === "youtube" ? "16:9" : "9:16",
-        model: "kling",
-      });
-    } catch (err) {
-      console.error("[VideoGen] Video generation failed:", err);
-    }
+  // Step 2: Generate video (try OpenRouter)
+  try {
+    result.video = await generateVideo({
+      prompt: script.scenes.map(s => s.visual).join(". "),
+      image_url: input.image_url,
+      duration: input.duration === "60" ? "10" : "5",
+      aspect_ratio: input.platform === "youtube" ? "16:9" : "9:16",
+      model: "seedance",
+    });
+  } catch (err) {
+    console.error("[VideoGen] Video generation failed:", err);
   }
 
   // Step 3: Generate voiceover (if ElevenLabs configured)

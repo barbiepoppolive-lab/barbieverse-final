@@ -715,12 +715,24 @@ function BrandManagerPage() {
                       <Video className="h-4 w-4 text-blue-500" /> Generated Video
                     </h4>
                     {videoResult.video.video_url ? (
-                      <video controls className="w-full rounded-lg" src={videoResult.video.video_url} />
+                      <div className="space-y-2">
+                        <video controls className="w-full rounded-lg" src={videoResult.video.video_url} />
+                        <a
+                          href={videoResult.video.video_url}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm text-white hover:bg-blue-600"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                          Download Video
+                        </a>
+                      </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground">Video queued (fal.ai processing...)</p>
+                      <p className="text-sm text-muted-foreground">Video queued (processing...)</p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      Model: {videoResult.video.model} | Duration: {videoResult.video.duration}s | Cost: ${videoResult.video.cost}
+                      Model: {videoResult.video.model} | Duration: {videoResult.video.duration}s | Cost: ${(videoResult.video.cost || 0).toFixed(3)}
                     </p>
                   </div>
                 )}
