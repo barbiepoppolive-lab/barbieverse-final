@@ -163,13 +163,13 @@ export function getModelForBudget(budgetUsd: number, durationSec: number): Video
 export function getBestModelForUseCase(useCase: "reel" | "hero" | "broll" | "budget"): VideoModel {
   switch (useCase) {
     case "reel":
-      return "seedance-2.0"; // Best cost/quality ratio
+      return "kling-3.0-standard";
     case "hero":
-      return "veo-3.1-full"; // Highest quality
+      return "veo-3.1-full";
     case "broll":
-      return "kling-3.0-standard"; // Good quality, cheap
+      return "seedance-2.0";
     case "budget":
-      return "wan-2.7"; // Cheapest
+      return "wan-2.7";
     default:
       return "kling-3.0-standard";
   }
@@ -260,10 +260,19 @@ export async function pollVideoJob(
     const data = await response.json();
 
     if (data.status === "completed" || data.status === "succeeded") {
+      // Try ALL possible video URL fields across different OpenRouter model responses
+      const videoUrl = data.video_url
+        || data.output?.video_url
+        || data.output?.url
+        || data.url
+        || data.video?.url
+        || data.video
+        || data.output
+        || "";
       return {
         job_id: data.id || data.job_id || "",
         status: "completed",
-        video_url: data.video_url || data.output?.video_url || data.url || "",
+        video_url: typeof videoUrl === "string" ? videoUrl : (videoUrl?.url || ""),
         duration: data.duration || 5,
         aspect_ratio: data.aspect_ratio || "9:16",
         model: data.model || "unknown",

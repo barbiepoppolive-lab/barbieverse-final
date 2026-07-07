@@ -68,14 +68,14 @@ export async function generateVideo(input: VideoGenInput): Promise<VideoGenResul
     image_url: input.image_url,
     duration: parseInt(input.duration || "5"),
     aspect_ratio: input.aspect_ratio || "9:16",
-    model: (modelMap[input.model || "seedance"]) as any,
+    model: (modelMap[input.model || "kling"]) as any,
   });
 
   return {
     video_url: result.video_url || "",
     duration: input.duration || "5",
     aspect_ratio: input.aspect_ratio || "9:16",
-    model: input.model || "seedance",
+    model: input.model || "kling",
     cost: result.cost_estimate || 0,
   };
 }
