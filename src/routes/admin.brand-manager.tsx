@@ -716,10 +716,23 @@ function BrandManagerPage() {
                     </h4>
                     {videoResult.video.video_url ? (
                       <div className="space-y-2">
-                        <video controls className="w-full rounded-lg" src={videoResult.video.video_url} />
+                        <video
+                          controls
+                          className="w-full rounded-lg"
+                          src={videoResult.video.video_url}
+                          onError={(e) => {
+                            const target = e.target as HTMLVideoElement;
+                            target.style.display = "none";
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = "block";
+                          }}
+                        />
+                        <p className="hidden text-sm text-muted-foreground" style={{display: "none"}}>
+                          Video preview unavailable. Use download button below.
+                        </p>
                         <a
                           href={videoResult.video.video_url}
-                          download
+                          download="barbieverse-video.mp4"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm text-white hover:bg-blue-600"
