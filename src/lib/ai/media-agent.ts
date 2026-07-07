@@ -32,6 +32,21 @@ import {
   type ProviderChoice,
 } from "./modules/brand-manager";
 
+// ── Helpers ─────────────────────────────────────────────
+
+function safeParseJson(text: string): any {
+  let clean = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+  clean = clean.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  clean = clean.replace(/,\s*([\]}])/g, "$1");
+  try { return JSON.parse(clean); } catch {}
+  const first = clean.indexOf("{");
+  const last = clean.lastIndexOf("}");
+  if (first >= 0 && last > first) {
+    try { return JSON.parse(clean.slice(first, last + 1)); } catch {}
+  }
+  return null;
+}
+
 // ── Types ──────────────────────────────────────────────
 
 export type ContentPipeline = "reel" | "carousel" | "story" | "post" | "thread" | "full-video";
@@ -235,7 +250,7 @@ export async function generateMedia(input: MediaAgentInput): Promise<MediaAgentR
       try {
         const jsonMatch = revisedContent.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          currentContent = JSON.parse(jsonMatch[0]);
+          currentContent = safeParseJson(jsonMatch[0]) || currentContent;
         }
       } catch {
         // Keep original if parse fails
@@ -347,7 +362,7 @@ Return JSON: { "text": "...", "hook": "...", "cta": "...", "hashtags": [...] }`,
   );
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
-  return jsonMatch ? JSON.parse(jsonMatch[0]) : { text: result.text, hook, cta: "", hashtags: [] };
+  return jsonMatch ? safeParseJson(jsonMatch[0]) || { text: result.text, hook, cta: "", hashtags: [] } : { text: result.text, hook, cta: "", hashtags: [] };
 }
 
 async function generateThreadPipeline(input: MediaAgentInput, platform: Platform) {

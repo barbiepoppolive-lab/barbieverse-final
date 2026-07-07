@@ -17,6 +17,19 @@ import {
 } from "../music";
 import { generateContentSEO, type ContentSEO, type Platform } from "../content-seo";
 
+function safeParseJson(text: string): any {
+  let clean = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+  clean = clean.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  clean = clean.replace(/,\s*([\]}])/g, "$1");
+  try { return JSON.parse(clean); } catch {}
+  const first = clean.indexOf("{");
+  const last = clean.lastIndexOf("}");
+  if (first >= 0 && last > first) {
+    try { return JSON.parse(clean.slice(first, last + 1)); } catch {}
+  }
+  return null;
+}
+
 // Inline types (audio-gen.server.ts removed from client bundle)
 type AudioGenResult = { audioPath: string; audioUrl: string; voice: string; sizeKb: number; subtitlePath?: string; subtitleUrl?: string };
 type CarouselAudio = { slides: { text: string; audioUrl: string }[]; fullNarration: { audioUrl: string; duration: string } };
@@ -206,7 +219,7 @@ Return EXACTLY this JSON:
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("Failed to parse carousel content");
-  const parsed = JSON.parse(jsonMatch[0]);
+  const parsed = safeParseJson(jsonMatch[0]);
 
   const carousel: CarouselWithAudio = {
     title: parsed.title || input.topic,
@@ -302,7 +315,7 @@ Return EXACTLY this JSON:
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("Failed to parse reel script");
-  const parsed = JSON.parse(jsonMatch[0]);
+  const parsed = safeParseJson(jsonMatch[0]);
 
   const reel: ReelScriptWithAudio = {
     hook: parsed.hook || "",
@@ -375,7 +388,7 @@ Return EXACTLY this JSON:
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("Failed to parse thumbnail prompt");
-  const parsed = JSON.parse(jsonMatch[0]);
+  const parsed = safeParseJson(jsonMatch[0]);
 
   const imageResult = generateImageUrl({
     prompt: parsed.image_prompt || input.title,
@@ -431,7 +444,7 @@ Return EXACTLY this JSON:
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("Failed to parse story content");
-  const parsed = JSON.parse(jsonMatch[0]);
+  const parsed = safeParseJson(jsonMatch[0]);
 
   const storySlides = parsed.slides || [];
   const storyResult: { slides: (typeof storySlides)[0] & { image_url?: string }[]; audio?: { slides: AudioGenResult[]; full: AudioGenResult }; music?: MusicRecommendation } = { slides: storySlides };
@@ -510,7 +523,7 @@ Return EXACTLY this JSON:
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("Failed to parse thread content");
-  const parsed = JSON.parse(jsonMatch[0]);
+  const parsed = safeParseJson(jsonMatch[0]);
 
   return enrichWithSEO({
     tweets: parsed.tweets || [],
@@ -549,7 +562,7 @@ Return EXACTLY this JSON:
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("Failed to parse poll content");
-  const parsed = JSON.parse(jsonMatch[0]);
+  const parsed = safeParseJson(jsonMatch[0]);
 
   return enrichWithSEO({
     question: parsed.question || "",
@@ -599,7 +612,7 @@ Return EXACTLY this JSON:
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("Failed to parse content plan");
-  const parsed = JSON.parse(jsonMatch[0]);
+  const parsed = safeParseJson(jsonMatch[0]);
 
   return (parsed.plan || []).map((entry: any) => ({
     date: entry.date || "",
