@@ -71,7 +71,7 @@ function getTaskRoutes(): Record<TaskType, RouteConfig> {
     },
     analysis: {
       primary: envProvider("AI_ROUTE_ANALYSIS_PRIMARY", "gemini"),
-      fallback: envProvider("AI_ROUTE_ANALYSIS_FALLBACK", "gemini"),
+      fallback: envProvider("AI_ROUTE_ANALYSIS_FALLBACK", "openrouter"),
       model: process.env.AI_ROUTE_ANALYSIS_MODEL || "gemini-2.5-flash",
       maxTokens: 2048,
       reason: "Gemini best reasoning",
@@ -87,7 +87,7 @@ function getTaskRoutes(): Record<TaskType, RouteConfig> {
     },
     content: {
       primary: envProvider("AI_ROUTE_CONTENT_PRIMARY", "gemini"),
-      fallback: envProvider("AI_ROUTE_CONTENT_FALLBACK", "gemini"),
+      fallback: envProvider("AI_ROUTE_CONTENT_FALLBACK", "openrouter"),
       model: process.env.AI_ROUTE_CONTENT_MODEL || "gemini-2.5-flash",
       maxTokens: 2048,
       systemPrompt: `You are a world-class content strategist and writer for BarbieVerse — a creator economy platform that helps people earn money through live streaming on Poppo Live and Vone Live.
@@ -156,7 +156,7 @@ Write content that converts. Make them feel something.`,
     },
     reasoning: {
       primary: envProvider("AI_ROUTE_REASONING_PRIMARY", "gemini"),
-      fallback: envProvider("AI_ROUTE_REASONING_FALLBACK", "gemini"),
+      fallback: envProvider("AI_ROUTE_REASONING_FALLBACK", "openrouter"),
       model: process.env.AI_ROUTE_REASONING_MODEL || "gemini-2.5-flash",
       maxTokens: 4096,
       reason: "Gemini wins GPQA benchmark",
