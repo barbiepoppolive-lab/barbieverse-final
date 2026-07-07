@@ -17,8 +17,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   ]);
 }
 
-const STEP_TIMEOUT = 30_000; // 30s per step
-const OVERALL_TIMEOUT = 90_000; // 90s total
+const STEP_TIMEOUT = 30_000;
+const OVERALL_TIMEOUT = 300_000; // 5 minutes (was 90s)
 
 export const Route = createFileRoute("/api/public/cron-scrape")({
   server: {
@@ -66,7 +66,47 @@ async function handleCron(request: Request): Promise<Response> {
     results.push(`Scrapes ERROR: ${err.message}`);
   }
 
-  // 2. Auto-score new leads (quick — DB + AI for up to 20 leads)
+  // 2. PHASE 1: Discover — fast, no AI, stores ALL posts (60s timeout)
+  let discoveryResult: any = null;
+  try {
+    const { discoverAllPlatforms } = await import("@/lib/social-monitor/index");
+    discoveryResult = await withTimeout(
+      discoverAllPlatforms(),
+      STEP_TIMEOUT * 2,
+      "Discovery"
+    );
+    results.push(`Discovery: ${discoveryResult.totalDiscovered} found, ${discoveryResult.totalStored} stored`);
+    for (const platform of ["youtube", "reddit", "twitter", "facebook", "instagram", "tiktok"]) {
+      const p = discoveryResult[platform];
+      if (p) {
+        const status = p.skipped ? "SKIPPED" : `${p.found} found, ${p.stored} stored`;
+        const error = p.errors > 0 ? ` (${p.errors} errors)` : "";
+        results.push(`  ${platform}: ${status}${error}`);
+      }
+    }
+  } catch (err: any) {
+    results.push(`Discovery ERROR: ${err.message}`);
+  }
+
+  // 3. PHASE 2: Process — AI comments for batch of leads (90s timeout)
+  let processResult: any = null;
+  try {
+    const { processDiscoveredLeads } = await import("@/lib/social-monitor/index");
+    processResult = await withTimeout(
+      processDiscoveredLeads(20),
+      STEP_TIMEOUT * 3,
+      "Processing"
+    );
+    results.push(`Processing: ${processResult.processed} processed (${processResult.hotAlerts} hot, ${processResult.warmAlerts} warm)`);
+    results.push(`  Keywords generated: ${processResult.keywordsGenerated}`);
+    if (processResult.errors > 0) {
+      results.push(`  Errors: ${processResult.errors}`);
+    }
+  } catch (err: any) {
+    results.push(`Processing ERROR: ${err.message}`);
+  }
+
+  // 4. Auto-score new leads (quick — DB + AI for up to 20 leads)
   try {
     const scoreResult = await withTimeout(
       autoScoreNewLeads(),
@@ -78,7 +118,7 @@ async function handleCron(request: Request): Promise<Response> {
     results.push(`Scoring ERROR: ${err.message}`);
   }
 
-  // 3. Run outreach cycle (quick — DB query + Telegram alerts)
+  // 5. Run outreach cycle (quick — DB query + Telegram alerts)
   try {
     const outreachResult = await withTimeout(
       runOutreachCycle(),
@@ -90,22 +130,17 @@ async function handleCron(request: Request): Promise<Response> {
     results.push(`Outreach ERROR: ${err.message}`);
   }
 
-  // 4. Run social media monitoring (HEAVIEST — has per-platform timeouts)
+  // 6. PHASE 3: Evolve keywords (15s timeout)
   try {
-    const { monitorAllPlatforms } = await import("@/lib/social-monitor/index");
-    const socialResult = await withTimeout(
-      monitorAllPlatforms(),
-      STEP_TIMEOUT * 3, // 90s for social (Facebook/Instagram actors can take 60s each, but they run in parallel)
-      "Social"
+    const { evolveKeywords } = await import("@/lib/social-monitor/keyword-intel");
+    const evoResult = await withTimeout(
+      evolveKeywords(),
+      15_000,
+      "Evolution"
     );
-    results.push(`Social: ${socialResult.total} total leads (${socialResult.hotAlerts} hot, ${socialResult.warmAlerts} warm)`);
-    results.push(`  YouTube: ${socialResult.youtube.found} found, ${socialResult.youtube.stored} stored${socialResult.youtube.skipped ? " (SKIPPED - interval)" : ""}`);
-    results.push(`  Reddit: ${socialResult.reddit.found} found, ${socialResult.reddit.stored} stored${socialResult.reddit.skipped ? " (SKIPPED - interval)" : ""}`);
-    results.push(`  Twitter: ${socialResult.twitter.found} found, ${socialResult.twitter.stored} stored${socialResult.twitter.skipped ? " (SKIPPED - interval)" : ""}`);
-    results.push(`  Facebook: ${socialResult.facebook.found} found, ${socialResult.facebook.stored} stored${socialResult.facebook.skipped ? " (SKIPPED - interval)" : ""}`);
-    results.push(`  Instagram: ${socialResult.instagram.found} found, ${socialResult.instagram.stored} stored${socialResult.instagram.skipped ? " (SKIPPED - interval)" : ""}`);
+    results.push(`Evolution: ${evoResult.promoted} promoted, ${evoResult.demoted} demoted, ${evoResult.retired} retired`);
   } catch (err: any) {
-    results.push(`Social ERROR: ${err.message}`);
+    results.push(`Evolution ERROR: ${err.message}`);
   }
 
   clearTimeout(overallTimer);

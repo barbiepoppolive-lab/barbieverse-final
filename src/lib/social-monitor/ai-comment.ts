@@ -10,6 +10,11 @@ export interface GeneratedComment {
   confidence: number;
   category: "hot" | "warm" | "cold";
   reasoning: string;
+  bioKeywords: string[];
+  hashtags: string[];
+  mentions: string[];
+  niche: string;
+  tier: string;
 }
 
 const SYSTEM_PROMPT = `You are writing a comment to post on social media. You are NOT an AI. You are a 22-year-old Indian guy who streams part-time on Poppo Live and Vone Live. You have a normal life — you study/working, you stream at night, you've made some money but it's not your whole personality.
@@ -94,12 +99,24 @@ CATEGORY:
 - "warm": talking about streaming casually, mentioned Poppo/Vone, interested but not asking directly
 - "cold": barely related, passing mention, not really interested
 
+ALSO EXTRACT FROM THE POST:
+- bioKeywords: key terms from the post that indicate their streaming niche (e.g. "poppo", "live streamer", "gaming", "earn money")
+- hashtags: any hashtags used in the post (include the #)
+- mentions: any usernames mentioned (@username)
+- niche: classify the author's content as one of: "gaming", "beauty", "irl", "music", "lifestyle", "education", "other"
+- tier: estimate the author's audience size as: "new" (<100 followers/low engagement), "growing" (100-10K), or "established" (>10K)
+
 Return ONLY this JSON, nothing else:
 {
   "comment": "your comment here — 1-3 sentences, sounds like a real person typed it on their phone",
   "confidence": 0.0-1.0,
   "category": "hot|warm|cold",
-  "reasoning": "one line why"
+  "reasoning": "one line why",
+  "bioKeywords": ["keyword1", "keyword2"],
+  "hashtags": ["#tag1", "#tag2"],
+  "mentions": ["@user1"],
+  "niche": "gaming|beauty|irl|music|lifestyle|education|other",
+  "tier": "new|growing|established"
 }`;
 
 export async function generateComment(
@@ -136,6 +153,13 @@ ${context}`;
           ? parsed.category
           : "warm",
         reasoning: parsed.reasoning || "",
+        bioKeywords: Array.isArray(parsed.bioKeywords) ? parsed.bioKeywords.slice(0, 10) : [],
+        hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags.slice(0, 10) : [],
+        mentions: Array.isArray(parsed.mentions) ? parsed.mentions.slice(0, 5) : [],
+        niche: ["gaming", "beauty", "irl", "music", "lifestyle", "education"].includes(parsed.niche)
+          ? parsed.niche : "other",
+        tier: ["new", "growing", "established"].includes(parsed.tier)
+          ? parsed.tier : "growing",
       };
     }
 
@@ -144,6 +168,11 @@ ${context}`;
       confidence: 0.3,
       category: "warm",
       reasoning: "Could not parse JSON",
+      bioKeywords: [],
+      hashtags: [],
+      mentions: [],
+      niche: "other",
+      tier: "growing",
     };
   } catch (e: any) {
     console.error("[ai-comment] Generation failed:", e?.message);
@@ -152,6 +181,11 @@ ${context}`;
       confidence: 0,
       category: "cold",
       reasoning: `Error: ${e?.message}`,
+      bioKeywords: [],
+      hashtags: [],
+      mentions: [],
+      niche: "other",
+      tier: "growing",
     };
   }
 }

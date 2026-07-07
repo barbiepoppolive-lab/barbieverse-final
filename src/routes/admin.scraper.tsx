@@ -44,7 +44,7 @@ function ScraperDashboard() {
   const [dashboard, setDashboard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [providerStatus, setProviderStatus] = useState<any>(null);
-  const [tab, setTab] = useState<"overview" | "scrape" | "import" | "jobs" | "keywords">("overview");
+  const [tab, setTab] = useState<"overview" | "scrape" | "import" | "jobs" | "keywords" | "intel">("overview");
 
   // Scrape form
   const [scrapeProvider, setScrapeProvider] = useState<"apify" | "phantombuster">("apify");
@@ -217,7 +217,7 @@ function ScraperDashboard() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-900 rounded-lg p-1">
-        {(["overview", "scrape", "keywords", "import", "jobs"] as const).map((t) => (
+        {(["overview", "scrape", "keywords", "intel", "import", "jobs"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -228,6 +228,7 @@ function ScraperDashboard() {
             {t === "overview" && "Overview"}
             {t === "scrape" && "Scrape"}
             {t === "keywords" && "Keywords"}
+            {t === "intel" && "Search Intel"}
             {t === "import" && "CSV Import"}
             {t === "jobs" && "Jobs"}
           </button>
@@ -511,6 +512,11 @@ function ScraperDashboard() {
         <KeywordsTab />
       )}
 
+      {/* Search Intel Tab */}
+      {tab === "intel" && (
+        <SearchIntelTab />
+      )}
+
       {/* Jobs Tab */}
       {tab === "jobs" && dashboard && (
         <div className="space-y-4">
@@ -714,8 +720,68 @@ function KeywordsTab() {
 
   if (loading) return <div className="text-gray-400 py-8 text-center">Loading keywords...</div>;
 
+  const platformToggles = [
+    { key: "scraper_enabled_youtube", label: "YouTube", icon: Youtube, color: "text-red-400", tier: "FREE" },
+    { key: "scraper_enabled_reddit", label: "Reddit", icon: Globe, color: "text-orange-400", tier: "FREE" },
+    { key: "scraper_enabled_twitter", label: "Twitter/X", icon: Twitter, color: "text-sky-400", tier: "FREE" },
+    { key: "scraper_enabled_tiktok", label: "TikTok", icon: Globe, color: "text-white", tier: "PAID" },
+    { key: "scraper_enabled_facebook", label: "Facebook", icon: Facebook, color: "text-blue-400", tier: "PAID" },
+    { key: "scraper_enabled_instagram", label: "Instagram", icon: Instagram, color: "text-pink-400", tier: "PAID" },
+  ];
+
+  const togglePlatform = async (key: string) => {
+    const current = draft[key] || "true";
+    const next = current === "true" ? "false" : "true";
+    setDraft({ ...draft, [key]: next });
+    try {
+      const { updateSetting } = await import("@/lib/api/settings.functions");
+      await updateSetting({ data: { key, value: next } });
+    } catch (e: any) {
+      alert("Toggle failed: " + e.message);
+      setDraft({ ...draft, [key]: current });
+    }
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Platform Toggles */}
+      <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
+        <h3 className="text-lg font-semibold text-white mb-1">Platform Monitoring</h3>
+        <p className="text-sm text-gray-400 mb-4">Toggle platforms on/off. Disabled platforms will not be scraped.</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {platformToggles.map(({ key, label, icon: Icon, color, tier }) => {
+            const enabled = draft[key] !== "false";
+            return (
+              <button
+                key={key}
+                onClick={() => togglePlatform(key)}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${
+                  enabled
+                    ? "bg-green-900/20 border-green-700 hover:bg-green-900/30"
+                    : "bg-gray-800 border-gray-700 opacity-50 hover:opacity-70"
+                }`}
+              >
+                <Icon className={`w-6 h-6 ${enabled ? color : "text-gray-500"}`} />
+                <span className={`text-sm font-medium ${enabled ? "text-white" : "text-gray-400"}`}>{label}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  tier === "FREE"
+                    ? "bg-green-900/50 text-green-400 border border-green-800"
+                    : "bg-yellow-900/50 text-yellow-400 border border-yellow-800"
+                }`}>{tier}</span>
+                <div className={`w-10 h-5 rounded-full transition-colors relative ${
+                  enabled ? "bg-green-600" : "bg-gray-600"
+                }`}>
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                    enabled ? "left-5" : "left-0.5"
+                  }`} />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Keywords */}
       <div>
         <h3 className="text-lg font-semibold text-white">Monitor Keywords</h3>
         <p className="text-sm text-gray-400">One keyword per line. Used by the social monitor to find leads on Reddit, Facebook, Twitter, YouTube, TikTok.</p>
@@ -739,6 +805,150 @@ function KeywordsTab() {
           </button>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ── Search Intel Tab ─────────────────────────────────────
+
+function SearchIntelTab() {
+  const [keywords, setKeywords] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "proven" | "ai_discovered" | "experimental">("all");
+
+  useEffect(() => {
+    loadKeywords();
+  }, []);
+
+  const loadKeywords = async () => {
+    setLoading(true);
+    try {
+      const { getKeywordStats } = await import("@/lib/social-monitor/keyword-intel");
+      const data = await getKeywordStats();
+      setKeywords(data);
+    } catch (e) {
+      console.error("Failed to load keyword stats:", e);
+    }
+    setLoading(false);
+  };
+
+  const filtered = filter === "all" ? keywords : keywords.filter(k => k.pool === filter);
+
+  const poolColors: Record<string, string> = {
+    proven: "bg-green-900/30 text-green-400 border-green-800",
+    ai_discovered: "bg-blue-900/30 text-blue-400 border-blue-800",
+    experimental: "bg-yellow-900/30 text-yellow-400 border-yellow-800",
+  };
+
+  if (loading) return <div className="text-gray-400 py-8 text-center">Loading search intel...</div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Search Intelligence</h3>
+          <p className="text-sm text-gray-400">Keyword performance, auto-discovered terms, and evolution status.</p>
+        </div>
+        <button onClick={loadKeywords} className="text-gray-400 hover:text-white">
+          <RefreshCw className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Pool Filter */}
+      <div className="flex gap-2">
+        {(["all", "proven", "ai_discovered", "experimental"] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => setFilter(p)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+              filter === p
+                ? "bg-purple-600 text-white border-purple-500"
+                : "bg-gray-800 text-gray-400 border-gray-700 hover:text-white"
+            }`}
+          >
+            {p === "all" ? "All" : p === "ai_discovered" ? "AI Discovered" : p.charAt(0).toUpperCase() + p.slice(1)}
+            <span className="ml-1.5 text-xs opacity-70">
+              ({p === "all" ? keywords.length : keywords.filter(k => k.pool === p).length})
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Stats Summary */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-green-900/20 border border-green-800 rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold text-green-400">
+            {keywords.filter(k => k.pool === "proven").length}
+          </p>
+          <p className="text-sm text-gray-400">Proven Keywords</p>
+        </div>
+        <div className="bg-blue-900/20 border border-blue-800 rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold text-blue-400">
+            {keywords.filter(k => k.pool === "ai_discovered").length}
+          </p>
+          <p className="text-sm text-gray-400">AI Discovered</p>
+        </div>
+        <div className="bg-yellow-900/20 border border-yellow-800 rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold text-yellow-400">
+            {keywords.filter(k => k.pool === "experimental").length}
+          </p>
+          <p className="text-sm text-gray-400">Experimental</p>
+        </div>
+      </div>
+
+      {/* Keywords Table */}
+      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-800">
+              <th className="text-left px-4 py-3 text-sm text-gray-400 font-medium">Keyword</th>
+              <th className="text-left px-4 py-3 text-sm text-gray-400 font-medium">Platform</th>
+              <th className="text-left px-4 py-3 text-sm text-gray-400 font-medium">Pool</th>
+              <th className="text-left px-4 py-3 text-sm text-gray-400 font-medium">Score</th>
+              <th className="text-left px-4 py-3 text-sm text-gray-400 font-medium">Searches</th>
+              <th className="text-left px-4 py-3 text-sm text-gray-400 font-medium">Streamers</th>
+              <th className="text-left px-4 py-3 text-sm text-gray-400 font-medium">Hot</th>
+              <th className="text-left px-4 py-3 text-sm text-gray-400 font-medium">Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((kw) => (
+              <tr key={kw.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50">
+                <td className="px-4 py-3 text-white font-mono text-sm">{kw.keyword}</td>
+                <td className="px-4 py-3 text-gray-300 text-sm capitalize">{kw.platform}</td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${poolColors[kw.pool] || ""}`}>
+                    {kw.pool === "ai_discovered" ? "AI" : kw.pool}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 h-2 bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          kw.score >= 80 ? "bg-green-400" : kw.score >= 50 ? "bg-yellow-400" : "bg-red-400"
+                        }`}
+                        style={{ width: `${Math.min(100, kw.score)}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-400">{Math.round(kw.score)}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-gray-300 text-sm">{kw.total_searches}</td>
+                <td className="px-4 py-3 text-green-400 text-sm">{kw.unique_streamers}</td>
+                <td className="px-4 py-3 text-red-400 text-sm">{kw.hot_leads}</td>
+                <td className="px-4 py-3 text-gray-500 text-xs">{kw.source}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {filtered.length === 0 && (
+          <div className="text-center py-12 text-gray-500">
+            No keywords tracked yet. Keywords are auto-discovered as the monitor finds streamers.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
