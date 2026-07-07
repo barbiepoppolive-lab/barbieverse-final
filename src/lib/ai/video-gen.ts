@@ -338,16 +338,16 @@ Return ONLY the enhanced prompt, no JSON.`,
 // ── Provider Status ────────────────────────────────────
 
 export async function getVideoGenStatus(): Promise<{
-  fal: boolean;
+  openrouter: boolean;
   elevenlabs: boolean;
   models: string[];
 }> {
-  const fal = !!process.env.FAL_KEY;
+  const openrouter = !!process.env.OPENROUTER_API_KEY;
   const elevenlabs = !!process.env.ELEVENLABS_API_KEY;
 
   return {
-    fal,
+    openrouter,
     elevenlabs,
-    models: fal ? ["kling", "hailuo"] : [],
+    models: openrouter ? ["seedance", "kling", "wan"] : [],
   };
 }
