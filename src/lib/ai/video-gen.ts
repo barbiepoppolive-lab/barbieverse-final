@@ -2,6 +2,7 @@
 // Free tier: fal.ai has trial credits, ElevenLabs has 10k chars/month
 
 import { aiContent } from "./router";
+import { generateVideoOpenRouter } from "./video-gen-openrouter";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -55,8 +56,6 @@ export interface VideoScriptResult {
 // ── Video Generation (OpenRouter) ──────────────────────────
 
 export async function generateVideo(input: VideoGenInput): Promise<VideoGenResult> {
-  const { generateVideoOpenRouter } = await import("./video-gen-openrouter");
-
   const modelMap: Record<string, string> = {
     seedance: "seedance-2.0",
     kling: "kling-3.0-standard",
