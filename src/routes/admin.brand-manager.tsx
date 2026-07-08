@@ -738,6 +738,12 @@ function BrandManagerPage() {
                     </p>
                   </div>
                 )}
+                {videoResult.video_error && (
+                  <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+                    <p className="text-xs font-medium text-red-600">Video generation failed</p>
+                    <p className="text-xs text-red-500/80 mt-1">{videoResult.video_error}</p>
+                  </div>
+                )}
                 {videoResult.voiceover && (
                   <div className="rounded-xl border border-border/60 bg-card/50 p-5 space-y-2">
                     <h4 className="font-semibold flex items-center gap-2">

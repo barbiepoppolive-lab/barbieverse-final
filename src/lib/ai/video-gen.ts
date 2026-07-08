@@ -257,6 +257,7 @@ export async function generateFullVideo(input: {
   script: VideoScriptResult;
   video?: VideoGenResult;
   voiceover?: VoiceGenResult;
+  video_error?: string;
 }> {
   // Step 1: Generate script
   const script = await generateVideoScript({
@@ -275,10 +276,12 @@ export async function generateFullVideo(input: {
       image_url: input.image_url,
       duration: input.duration === "60" ? "10" : "5",
       aspect_ratio: input.platform === "youtube" ? "16:9" : "9:16",
-      model: "seedance",
+      model: "kling",
     });
   } catch (err) {
-    console.error("[VideoGen] Video generation failed:", err);
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    console.error("[VideoGen] Video generation failed:", msg);
+    result.video_error = msg;
   }
 
   // Step 3: Generate voiceover (if ElevenLabs configured)
