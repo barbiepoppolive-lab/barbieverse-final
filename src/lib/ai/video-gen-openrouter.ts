@@ -43,6 +43,7 @@ export interface OpenRouterVideoResult {
 
 export interface VideoModelInfo {
   id: VideoModel;
+  openrouter_id: string;
   name: string;
   provider: string;
   cost_per_second: number;
@@ -58,6 +59,7 @@ export interface VideoModelInfo {
 export const VIDEO_MODELS: Record<VideoModel, VideoModelInfo> = {
   "kling-3.0-pro": {
     id: "kling-3.0-pro",
+    openrouter_id: "kwaivgi/kling-v3.0-pro",
     name: "Kling 3.0 Pro",
     provider: "kwaivgi",
     cost_per_second: 0.17,
@@ -69,6 +71,7 @@ export const VIDEO_MODELS: Record<VideoModel, VideoModelInfo> = {
   },
   "kling-3.0-standard": {
     id: "kling-3.0-standard",
+    openrouter_id: "kwaivgi/kling-v3.0-std",
     name: "Kling 3.0 Standard",
     provider: "kwaivgi",
     cost_per_second: 0.07,
@@ -80,6 +83,7 @@ export const VIDEO_MODELS: Record<VideoModel, VideoModelInfo> = {
   },
   "seedance-2.0": {
     id: "seedance-2.0",
+    openrouter_id: "bytedance/seedance-2.0",
     name: "Seedance 2.0",
     provider: "seedance",
     cost_per_second: 0.036,
@@ -91,6 +95,7 @@ export const VIDEO_MODELS: Record<VideoModel, VideoModelInfo> = {
   },
   "veo-3.1-fast": {
     id: "veo-3.1-fast",
+    openrouter_id: "google/veo-3.1-fast",
     name: "Veo 3.1 Fast",
     provider: "google",
     cost_per_second: 0.10,
@@ -102,6 +107,7 @@ export const VIDEO_MODELS: Record<VideoModel, VideoModelInfo> = {
   },
   "veo-3.1-full": {
     id: "veo-3.1-full",
+    openrouter_id: "google/veo-3.1",
     name: "Veo 3.1 Full",
     provider: "google",
     cost_per_second: 0.40,
@@ -113,6 +119,7 @@ export const VIDEO_MODELS: Record<VideoModel, VideoModelInfo> = {
   },
   "sora-2-pro": {
     id: "sora-2-pro",
+    openrouter_id: "openai/sora-2-pro",
     name: "Sora 2 Pro",
     provider: "openai",
     cost_per_second: 0.70,
@@ -124,6 +131,7 @@ export const VIDEO_MODELS: Record<VideoModel, VideoModelInfo> = {
   },
   "wan-2.7": {
     id: "wan-2.7",
+    openrouter_id: "alibaba/wan-2.7",
     name: "Wan 2.7",
     provider: "wan",
     cost_per_second: 0.04,
@@ -135,6 +143,7 @@ export const VIDEO_MODELS: Record<VideoModel, VideoModelInfo> = {
   },
   "wan-2.6": {
     id: "wan-2.6",
+    openrouter_id: "alibaba/wan-2.6",
     name: "Wan 2.6",
     provider: "wan",
     cost_per_second: 0.04,
@@ -197,7 +206,7 @@ export async function submitVideoJob(
   const modelInfo = VIDEO_MODELS[model];
 
   const body: any = {
-    model: `${modelInfo.provider}/${model}`,
+    model: modelInfo.openrouter_id,
     prompt: input.prompt,
     duration: input.duration || 5,
     aspect_ratio: input.aspect_ratio || "9:16",
