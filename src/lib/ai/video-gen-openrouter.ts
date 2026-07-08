@@ -197,7 +197,7 @@ export async function submitVideoJob(
   const modelInfo = VIDEO_MODELS[model];
 
   const body: any = {
-    model: `openrouter/${model}`,
+    model: `${modelInfo.provider}/${model}`,
     prompt: input.prompt,
     duration: input.duration || 5,
     aspect_ratio: input.aspect_ratio || "9:16",
