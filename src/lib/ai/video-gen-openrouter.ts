@@ -277,6 +277,8 @@ export async function pollVideoJob(
         || data.video?.url
         || data.video
         || data.output
+        || data.unsigned_urls?.[0]
+        || (Array.isArray(data.urls) ? data.urls[0] : undefined)
         || "";
       return {
         job_id: data.id || data.job_id || "",

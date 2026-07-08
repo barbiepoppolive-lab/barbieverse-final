@@ -3,6 +3,8 @@
 
 import { aiContent } from "./router";
 import { generateVideoOpenRouter } from "./video-gen-openrouter";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -70,8 +72,31 @@ export async function generateVideo(input: VideoGenInput): Promise<VideoGenResul
     model: (modelMap[input.model || "kling"]) as any,
   });
 
+  // Download video from OpenRouter (requires auth header) and save to public/
+  let publicUrl = result.video_url || "";
+  if (publicUrl) {
+    try {
+      const apiKey = process.env.OPENROUTER_API_KEY;
+      if (apiKey) {
+        const videoRes = await fetch(publicUrl, {
+          headers: { Authorization: `Bearer ${apiKey}` },
+        });
+        if (videoRes.ok) {
+          const buffer = Buffer.from(await videoRes.arrayBuffer());
+          const dir = path.join(process.cwd(), "public", "generated-videos");
+          fs.mkdirSync(dir, { recursive: true });
+          const filename = `reel-${Date.now()}.mp4`;
+          fs.writeFileSync(path.join(dir, filename), buffer);
+          publicUrl = `/generated-videos/${filename}`;
+        }
+      }
+    } catch (e) {
+      console.warn("[VideoGen] Could not download video locally, using original URL:", e);
+    }
+  }
+
   return {
-    video_url: result.video_url || "",
+    video_url: publicUrl,
     duration: input.duration || "5",
     aspect_ratio: input.aspect_ratio || "9:16",
     model: input.model || "kling",
