@@ -9,8 +9,10 @@ import { aiContent } from "./router";
 export type VideoModel =
   | "kling-3.0-pro"
   | "kling-3.0-standard"
+  | "seedance-1.5-pro"
   | "seedance-2.0"
   | "veo-3.1-fast"
+  | "veo-3.1-lite"
   | "veo-3.1-full"
   | "sora-2-pro"
   | "wan-2.7"
@@ -81,6 +83,18 @@ export const VIDEO_MODELS: Record<VideoModel, VideoModelInfo> = {
     supports_image: true,
     supports_audio: false,
   },
+  "seedance-1.5-pro": {
+    id: "seedance-1.5-pro",
+    openrouter_id: "bytedance/seedance-1-5-pro",
+    name: "Seedance 1.5 Pro",
+    provider: "bytedance",
+    cost_per_second: 0.05,
+    max_duration: 12,
+    resolutions: ["480p", "720p", "1080p"],
+    aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
+    supports_image: true,
+    supports_audio: true,
+  },
   "seedance-2.0": {
     id: "seedance-2.0",
     openrouter_id: "bytedance/seedance-2.0",
@@ -102,6 +116,18 @@ export const VIDEO_MODELS: Record<VideoModel, VideoModelInfo> = {
     max_duration: 8,
     resolutions: ["720p", "1080p"],
     aspect_ratios: ["16:9", "9:16", "1:1"],
+    supports_image: true,
+    supports_audio: true,
+  },
+  "veo-3.1-lite": {
+    id: "veo-3.1-lite",
+    openrouter_id: "google/veo-3.1-lite",
+    name: "Veo 3.1 Lite",
+    provider: "google",
+    cost_per_second: 0.05,
+    max_duration: 8,
+    resolutions: ["720p", "1080p"],
+    aspect_ratios: ["16:9", "9:16"],
     supports_image: true,
     supports_audio: true,
   },
@@ -172,15 +198,15 @@ export function getModelForBudget(budgetUsd: number, durationSec: number): Video
 export function getBestModelForUseCase(useCase: "reel" | "hero" | "broll" | "budget"): VideoModel {
   switch (useCase) {
     case "reel":
-      return "kling-3.0-standard";
+      return "seedance-1.5-pro";
     case "hero":
-      return "veo-3.1-full";
+      return "veo-3.1-fast";
     case "broll":
-      return "seedance-2.0";
+      return "seedance-1.5-pro";
     case "budget":
-      return "wan-2.7";
+      return "veo-3.1-lite";
     default:
-      return "kling-3.0-standard";
+      return "seedance-1.5-pro";
   }
 }
 
