@@ -71,23 +71,23 @@ function getTaskRoutes(): Record<TaskType, RouteConfig> {
     },
     analysis: {
       primary: envProvider("AI_ROUTE_ANALYSIS_PRIMARY", "gemini"),
-      fallback: envProvider("AI_ROUTE_ANALYSIS_FALLBACK", "openrouter"),
+      fallback: envProvider("AI_ROUTE_ANALYSIS_FALLBACK", "groq"),
       model: process.env.AI_ROUTE_ANALYSIS_MODEL || "gemini-2.5-flash",
       maxTokens: 2048,
-      reason: "Gemini best reasoning",
+      reason: "Gemini best reasoning, Groq free fallback",
     },
     code: {
-      primary: envProvider("AI_ROUTE_CODE_PRIMARY", "openrouter"),
-      fallback: envProvider("AI_ROUTE_CODE_FALLBACK", "gemini"),
-      model: process.env.AI_ROUTE_CODE_MODEL || "qwen/qwen-2.5-coder-32b-instruct",
+      primary: envProvider("AI_ROUTE_CODE_PRIMARY", "gemini"),
+      fallback: envProvider("AI_ROUTE_CODE_FALLBACK", "groq"),
+      model: process.env.AI_ROUTE_CODE_MODEL || "gemini-2.5-flash",
       maxTokens: 4096,
       systemPrompt:
         "You are an expert TypeScript/React developer. Write clean, production-ready code. Follow existing code patterns and conventions. Never add comments unless asked.",
-      reason: "OpenRouter Qwen Coder for best code quality, Gemini fallback",
+      reason: "Gemini for code, Groq free fallback",
     },
     content: {
       primary: envProvider("AI_ROUTE_CONTENT_PRIMARY", "gemini"),
-      fallback: envProvider("AI_ROUTE_CONTENT_FALLBACK", "openrouter"),
+      fallback: envProvider("AI_ROUTE_CONTENT_FALLBACK", "groq"),
       model: process.env.AI_ROUTE_CONTENT_MODEL || "gemini-2.5-flash",
       maxTokens: 2048,
       systemPrompt: `You are a world-class content strategist and writer for BarbieVerse — a creator economy platform that helps people earn money through live streaming on Poppo Live and Vone Live.
@@ -152,14 +152,14 @@ OUTPUT FORMAT:
 - Under 500 words for articles
 
 Write content that converts. Make them feel something.`,
-      reason: "OpenRouter free models auto-selects best available (Nemotron, Qwen, Gemini, etc.)",
+      reason: "Gemini for premium content quality (free)",
     },
     reasoning: {
       primary: envProvider("AI_ROUTE_REASONING_PRIMARY", "gemini"),
-      fallback: envProvider("AI_ROUTE_REASONING_FALLBACK", "openrouter"),
+      fallback: envProvider("AI_ROUTE_REASONING_FALLBACK", "groq"),
       model: process.env.AI_ROUTE_REASONING_MODEL || "gemini-2.5-flash",
       maxTokens: 4096,
-      reason: "Gemini wins GPQA benchmark",
+      reason: "Gemini for reasoning, Groq free fallback",
     },
     embedding: {
       primary: envProvider("AI_ROUTE_EMBEDDING_PRIMARY", "ollama"),

@@ -11,7 +11,7 @@ import * as path from "node:path";
 export interface VideoGenInput {
   prompt: string;
   image_url?: string;
-  duration?: "5" | "10";
+  duration?: "4" | "5" | "6" | "7" | "8" | "9" | "10";
   aspect_ratio?: "16:9" | "9:16" | "1:1";
   model?: "kling" | "hailuo" | "seedance";
   platform?: string;
@@ -224,10 +224,24 @@ Return EXACTLY this JSON:
     { maxTokens: 2048 }
   );
 
-  const jsonMatch = result.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
+  // Extract JSON from response - Gemini wraps in ```json ... ```
+  // First try safeParseJson directly on full response (it strips markdown)
+  let parsed = safeParseJson(result.text);
+  
+  // If that failed, try more aggressive extraction
+  if (!parsed) {
+    // Try to find JSON between first { and last }
+    const firstBrace = result.text.indexOf("{");
+    const lastBrace = result.text.lastIndexOf("}");
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      const jsonCandidate = result.text.slice(firstBrace, lastBrace + 1);
+      parsed = safeParseJson(jsonCandidate);
+    }
+  }
+  
+  if (!parsed) {
     // Fallback: construct script from plain text response
-    const lines = result.text.split("\n").filter(l => l.trim());
+    const lines = result.text.split("\n").filter(l => l.trim() && !l.startsWith("```") && !l.startsWith("\""));
     return {
       title: input.topic,
       hook: lines[0] || "Watch this till the end!",
@@ -238,21 +252,6 @@ Return EXACTLY this JSON:
       })),
       voiceover: lines.join(". ").slice(0, 500),
       hashtags: [input.topic.toLowerCase().replace(/\s+/g, ""), "viral", "trending"],
-    };
-  }
-
-  const parsed = safeParseJson(jsonMatch[0]);
-  if (!parsed) {
-    return {
-      title: input.topic,
-      hook: (result.text.match(/[""]([^""]+)[""]/)?.[1]) || "Watch this!",
-      scenes: result.text.split("\n").filter(l => l.trim() && !l.startsWith("{") && !l.startsWith("}")).slice(0, 5).map((line, i) => ({
-        text: line.replace(/^[-*]\s*/, "").trim(),
-        duration: `${3 + i}s`,
-        visual: `Scene about ${input.topic}`,
-      })),
-      voiceover: result.text.slice(0, 500),
-      hashtags: ["barbieverse", "creator"],
     };
   }
 
@@ -281,6 +280,8 @@ export async function generateFullVideo(input: {
   script: VideoScriptResult;
   video?: VideoGenResult;
   voiceover?: VoiceGenResult;
+  clips?: { url: string; scene: number; cost: number }[];
+  final_video?: string;
   video_error?: string;
 }> {
   // Step 1: Generate script
@@ -291,32 +292,161 @@ export async function generateFullVideo(input: {
     style: input.style,
   });
 
+  console.log("[VideoGen] Script generated:", script.scenes.length, "scenes");
   const result: any = { script };
 
-  // Step 2: Generate video (try OpenRouter)
-  try {
-    result.video = await generateVideo({
-      prompt: script.scenes.map(s => s.visual).join(". "),
-      image_url: input.image_url,
-      duration: input.duration === "60" ? "10" : "5",
-      aspect_ratio: input.platform === "youtube" ? "16:9" : "9:16",
-      model: "kling",
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    console.error("[VideoGen] Video generation failed:", msg);
-    result.video_error = msg;
+  // Step 2: Generate video clips for each scene (parallel)
+  const clips: { url: string; scene: number; cost: number }[] = [];
+  const aspectRatio = input.platform === "youtube" ? "16:9" : "9:16";
+
+  // Generate clips in parallel for speed
+  const clipPromises = script.scenes.map(async (scene, i) => {
+    const sceneDuration = parseInt(scene.duration) || 5;
+    const cappedDuration = Math.max(4, Math.min(sceneDuration, 10)) as "4" | "5" | "6" | "7" | "8" | "9" | "10";
+
+    try {
+      console.log(`[VideoGen] Generating clip ${i + 1}/${script.scenes.length} (${cappedDuration}s)...`);
+      const clip = await generateVideo({
+        prompt: scene.visual || scene.text,
+        image_url: input.image_url,
+        duration: cappedDuration,
+        aspect_ratio: aspectRatio,
+        model: "seedance",
+      });
+      return { url: clip.video_url, scene: i, cost: clip.cost };
+    } catch (err) {
+      console.error(`[VideoGen] Clip ${i + 1} failed:`, err);
+      return null;
+    }
+  });
+
+  const clipResults = await Promise.allSettled(clipPromises);
+  for (const result of clipResults) {
+    if (result.status === "fulfilled" && result.value) {
+      clips.push(result.value);
+    }
   }
 
-  // Step 3: Generate voiceover (if ElevenLabs configured)
-  if (input.withVoiceover && process.env.ELEVENLABS_API_KEY) {
+  result.clips = clips;
+
+  // Step 3: Generate voiceover with Edge TTS fallback
+  if (input.withVoiceover) {
+    // Try ElevenLabs first
+    if (process.env.ELEVENLABS_API_KEY) {
+      try {
+        result.voiceover = await generateVoice({
+          text: script.voiceover,
+          voice: input.voice || "jenny",
+        });
+      } catch (err) {
+        console.log("[VideoGen] ElevenLabs failed, trying Edge TTS...");
+        // Edge TTS fallback
+        const fs = await import("fs");
+        const path = await import("path");
+        const videoDir = path.join(process.cwd(), "public", "generated-videos");
+        fs.mkdirSync(videoDir, { recursive: true });
+        const ttsPath = path.join(videoDir, `voiceover-${Date.now()}.mp3`);
+
+        if (await generateEdgeTTS(script.voiceover, ttsPath)) {
+          result.voiceover = {
+            audio_url: `/generated-videos/${path.basename(ttsPath)}`,
+            duration: `${Math.round(script.voiceover.split(/\s+/).length / 150 * 60)}s`,
+            size_kb: Math.round(fs.statSync(ttsPath).size / 1024),
+            voice: "edge-jenny",
+          };
+        }
+      }
+    } else {
+      // No ElevenLabs, use Edge TTS directly
+      const fs = await import("fs");
+      const path = await import("path");
+      const videoDir = path.join(process.cwd(), "public", "generated-videos");
+      fs.mkdirSync(videoDir, { recursive: true });
+      const ttsPath = path.join(videoDir, `voiceover-${Date.now()}.mp3`);
+
+      if (await generateEdgeTTS(script.voiceover, ttsPath)) {
+        result.voiceover = {
+          audio_url: `/generated-videos/${path.basename(ttsPath)}`,
+          duration: `${Math.round(script.voiceover.split(/\s+/).length / 150 * 60)}s`,
+          size_kb: Math.round(fs.statSync(ttsPath).size / 1024),
+          voice: "edge-jenny",
+        };
+      }
+    }
+  }
+
+  // Step 4: Stitch clips together with FFmpeg
+  if (clips.length > 0) {
     try {
-      result.voiceover = await generateVoice({
-        text: script.voiceover,
-        voice: input.voice || "jenny",
-      });
+      const { execSync } = await import("child_process");
+      const fs = await import("fs");
+      const path = await import("path");
+
+      const videoDir = path.join(process.cwd(), "public", "generated-videos");
+      fs.mkdirSync(videoDir, { recursive: true });
+
+      // Download all clips to disk
+      const downloadedFiles: string[] = [];
+      const apiKey = process.env.OPENROUTER_API_KEY;
+
+      for (let i = 0; i < clips.length; i++) {
+        const clip = clips[i];
+        const filename = `scene-${i}.mp4`;
+        const localPath = path.join(videoDir, filename);
+
+        // If URL starts with / it's already local
+        if (clip.url.startsWith("/")) {
+          const localSrc = path.join(process.cwd(), "public", clip.url);
+          if (fs.existsSync(localSrc)) {
+            fs.copyFileSync(localSrc, localPath);
+            downloadedFiles.push(localPath);
+            continue;
+          } else {
+            console.error(`[VideoGen] Local file not found: ${localSrc}`);
+          }
+        }
+
+        // Download from OpenRouter
+        try {
+          console.log(`[VideoGen] Downloading clip ${i + 1}...`);
+          const res = await fetch(clip.url, {
+            headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
+          });
+          if (res.ok) {
+            const buffer = Buffer.from(await res.arrayBuffer());
+            fs.writeFileSync(localPath, buffer);
+            downloadedFiles.push(localPath);
+          } else {
+            console.error(`[VideoGen] Download ${i + 1} failed: HTTP ${res.status}`);
+          }
+        } catch (e) {
+          console.error(`[VideoGen] Download failed for clip ${i}:`, e);
+        }
+      }
+
+      if (downloadedFiles.length === 0) {
+        console.error("[VideoGen] No clips downloaded, skipping stitch");
+        return result;
+      }
+
+      // Create concat file with absolute paths
+      const concatFile = path.join(videoDir, "concat.txt");
+      const concatContent = downloadedFiles.map(f => `file '${f.replace(/\\/g, "/")}'`).join("\n");
+      fs.writeFileSync(concatFile, concatContent, "utf8");
+
+      console.log(`[VideoGen] Stitching ${downloadedFiles.length} clips...`);
+
+      // Concatenate clips
+      const outputFile = `reel-${Date.now()}.mp4`;
+      const outputPath = path.join(videoDir, outputFile);
+      execSync(`ffmpeg -y -f concat -safe 0 -i "${concatFile}" -c copy "${outputPath}"`, { stdio: "ignore" });
+
+      if (fs.existsSync(outputPath)) {
+        result.final_video = `/generated-videos/${outputFile}`;
+        console.log(`[VideoGen] Final video: ${result.final_video}`);
+      }
     } catch (err) {
-      console.error("[VideoGen] Voice generation failed:", err);
+      console.error("[VideoGen] FFmpeg stitching failed:", err);
     }
   }
 
@@ -338,4 +468,61 @@ export async function getVideoGenStatus(): Promise<{
     elevenlabs,
     models: openrouter ? ["seedance-2.0", "kling-3.0-standard", "wan-2.7"] : [],
   };
+}
+
+// ── Edge TTS Fallback ──────────────────────────────────
+
+export async function generateEdgeTTS(text: string, outputPath: string): Promise<boolean> {
+  try {
+    const { execSync } = await import("child_process");
+    const fs = await import("fs");
+    const path = await import("path");
+
+    // Find edge-tts executable
+    const userScripts = path.join(
+      process.env.USERPROFILE || "",
+      "AppData",
+      "Roaming",
+      "Python",
+      "Python311",
+      "Scripts"
+    );
+    const edgeTtsPath = path.join(userScripts, "edge-tts.exe");
+
+    if (!fs.existsSync(edgeTtsPath)) {
+      console.error("[EdgeTTS] edge-tts.exe not found at:", edgeTtsPath);
+      return false;
+    }
+
+    // Clean text - remove JSON artifacts, markdown, etc.
+    let cleanText = text
+      .replace(/```[\s\S]*?```/g, "") // Remove code blocks
+      .replace(/["\[\]{}]/g, "") // Remove JSON chars
+      .replace(/\\n/g, " ") // Remove newlines
+      .replace(/\s+/g, " ") // Normalize whitespace
+      .trim();
+
+    if (!cleanText || cleanText.length < 10) {
+      console.error("[EdgeTTS] Text too short after cleaning:", cleanText);
+      return false;
+    }
+
+    // Truncate to reasonable length
+    if (cleanText.length > 2000) {
+      cleanText = cleanText.slice(0, 2000);
+    }
+
+    // Escape for command line
+    const escapedText = cleanText.replace(/"/g, '\\"').replace(/%/g, "%%");
+
+    // Generate TTS
+    execSync(`"${edgeTtsPath}" --voice "en-US-JennyNeural" --text "${escapedText}" --write-media "${outputPath}" --rate "+10%"`, {
+      stdio: "ignore",
+    });
+
+    return fs.existsSync(outputPath);
+  } catch (err) {
+    console.error("[EdgeTTS] Failed:", err);
+    return false;
+  }
 }
