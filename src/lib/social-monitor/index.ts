@@ -18,6 +18,7 @@ import { monitorInstagram } from "./instagram";
 import { monitorTikTok } from "./tiktok";
 import { monitorMoj } from "./moj";
 import { generateComment } from "./ai-comment";
+import { scoreMojLead } from "./moj-score";
 import { sendSocialLeadAlert, sendSocialDigest } from "./telegram-alert";
 import { DEFAULT_MONITOR_CONFIG, loadMonitorConfig } from "./types";
 import type { SocialPost, SocialPlatform, MonitorConfig } from "./types";
@@ -566,8 +567,22 @@ export async function processDiscoveredLeads(batchSize: number = 20): Promise<Pr
             post.groupName
           );
 
+          // For Moj posts, use the scoring model to override category
+          let finalCategory = aiResult.category;
+          let mojScore = null;
+          if (post.platform === "moj") {
+            const profile = (post.raw as any)?.profile || null;
+            mojScore = scoreMojLead(post, profile);
+            // Trust Moj scoring model if it's more confident
+            if (mojScore.total >= 65 && aiResult.category !== "hot") {
+              finalCategory = "hot";
+            } else if (mojScore.total >= 40 && aiResult.category === "cold") {
+              finalCategory = "warm";
+            }
+          }
+
           // Store with AI results (updates existing discovered record)
-          await storeSocialLead(post, aiResult);
+          await storeSocialLead(post, { ...aiResult, category: finalCategory });
 
           // Score the keyword that found this post
           if (lead.keyword_matched) {
@@ -575,7 +590,7 @@ export async function processDiscoveredLeads(batchSize: number = 20): Promise<Pr
               lead.keyword_matched,
               lead.platform,
               true, // new streamer
-              aiResult.category
+              finalCategory
             );
           }
 
@@ -590,11 +605,14 @@ export async function processDiscoveredLeads(batchSize: number = 20): Promise<Pr
           );
 
           // Send Telegram alerts for hot/warm
-          if (aiResult.category === "hot" || aiResult.category === "warm") {
+          if (finalCategory === "hot" || finalCategory === "warm") {
+            const mojScoreText = mojScore
+              ? `\n[Moj Score: ${mojScore.total}/100 P:${mojScore.profile} E:${mojScore.engagement} C:${mojScore.content}]`
+              : "";
             await sendSocialLeadAlert({
               platform: post.platform,
               postUrl: post.postUrl,
-              postText: post.postText,
+              postText: (post.postText || "") + mojScoreText,
               authorName: post.authorName,
               authorUsername: post.authorUsername,
               keywordMatched: post.keywordMatched,
@@ -607,7 +625,7 @@ export async function processDiscoveredLeads(batchSize: number = 20): Promise<Pr
           }
 
           return {
-            category: aiResult.category,
+            category: finalCategory,
             newKeywords: newKeywords.length,
           };
         })
