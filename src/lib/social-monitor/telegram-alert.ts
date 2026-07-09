@@ -25,7 +25,10 @@ function getPlatformBadge(platform: string): string {
   if (platform === "facebook") return "[Facebook]";
   if (platform === "twitter") return "[Twitter]";
   if (platform === "youtube") return "[YouTube]";
-  return platform;
+  if (platform === "instagram") return "[Instagram]";
+  if (platform === "tiktok") return "[TikTok]";
+  if (platform === "moj") return "[Moj]";
+  return `[${platform}]`;
 }
 
 function truncate(str: string, len: number): string {
