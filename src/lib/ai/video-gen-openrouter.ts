@@ -276,7 +276,7 @@ export async function submitVideoJob(
  */
 export async function pollVideoJob(
   pollUrl: string,
-  maxWaitMs: number = 300_000,
+  maxWaitMs: number = 600_000,
   intervalMs: number = 5_000
 ): Promise<OpenRouterVideoResult> {
   const apiKey = await getApiKey();
