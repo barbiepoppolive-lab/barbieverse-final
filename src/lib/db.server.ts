@@ -12,10 +12,7 @@ if (!connectionString) {
 
 export const pool = new Pool({
   connectionString,
-  ssl:
-    process.env.NODE_ENV === "development" || process.env.DB_SSL_INSECURE === "true"
-      ? { rejectUnauthorized: false }
-      : { rejectUnauthorized: true },
+  ssl: { rejectUnauthorized: false },
   max: 2,
   idleTimeoutMillis: 5000,
 });
