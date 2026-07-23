@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { FaqAccordion } from "@/components/ui/FaqAccordion";
+import { TestimonialsCarousel } from "@/components/TestimonialsCarousel";
 import { PremiumButton } from "@/components/ui/PremiumButton";
 import { ArrowRight, Crown, ChevronDown, Gem } from "lucide-react";
 import { getPublicSettings, localizedSetting } from "@/lib/api/settings.functions";
@@ -336,6 +337,8 @@ function HomePage() {
           <FaqAccordion items={faqs} className="mx-auto max-w-2xl" />
         </Reveal>
       </section>
+
+      <TestimonialsCarousel />
 
       <section className="border-t border-border/40 bg-gradient-noir">
         <div className="container mx-auto px-4 py-14 text-center sm:py-20">

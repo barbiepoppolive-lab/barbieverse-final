@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Crown, X, Home, Coins, UserPlus, BookOpen } from "lucide-react";
+import { Crown, X, Home, Coins, UserPlus, BookOpen, TrendingUp } from "lucide-react";
 import { useState, useEffect } from "react";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useLang } from "@/lib/i18n";
@@ -11,6 +11,7 @@ export function SiteHeader() {
 
   const links = [
     { to: "/",      label: t("nav.home"), icon: Home },
+    { to: "/earnings", label: "Earnings", icon: TrendingUp },
     { to: "/academy", label: t("nav.academy"), icon: BookOpen },
     { to: "/join",  label: t("nav.join"), icon: UserPlus },
     { to: "/coins", label: t("nav.coins"), icon: Coins },

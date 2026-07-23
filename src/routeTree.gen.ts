@@ -15,6 +15,7 @@ import { Route as TrackRouteImport } from './routes/track'
 import { Route as TestAiRouteImport } from './routes/test-ai'
 import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as RobotsTxtRouteImport } from './routes/robots[.]txt'
 import { Route as RechargePolicyRouteImport } from './routes/recharge-policy'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as JoinRouteImport } from './routes/join'
@@ -92,6 +93,11 @@ const TermsAndConditionsRoute = TermsAndConditionsRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsTxtRoute = RobotsTxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RechargePolicyRoute = RechargePolicyRouteImport.update({
@@ -352,6 +358,7 @@ export interface FileRoutesByFullPath {
   '/join': typeof JoinRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/recharge-policy': typeof RechargePolicyRoute
+  '/robots.txt': typeof RobotsTxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/test-ai': typeof TestAiRoute
@@ -406,6 +413,7 @@ export interface FileRoutesByTo {
   '/join': typeof JoinRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/recharge-policy': typeof RechargePolicyRoute
+  '/robots.txt': typeof RobotsTxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/test-ai': typeof TestAiRoute
@@ -463,6 +471,7 @@ export interface FileRoutesById {
   '/join': typeof JoinRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/recharge-policy': typeof RechargePolicyRoute
+  '/robots.txt': typeof RobotsTxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/test-ai': typeof TestAiRoute
@@ -745,6 +754,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsTxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recharge-policy': {
@@ -1192,6 +1208,7 @@ const rootRouteChildren: RootRouteChildren = {
   JoinRoute: JoinRouteWithChildren,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   RechargePolicyRoute: RechargePolicyRoute,
+  RobotsTxtRoute: RobotsTxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsAndConditionsRoute: TermsAndConditionsRoute,
   TestAiRoute: TestAiRoute,

@@ -22,6 +22,7 @@ export function SiteFooter() {
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gold">{t("footer.agency")}</div>
           <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
             <li><Link to="/join" className="hover:text-foreground">{t("footer.join")}</Link></li>
+            <li><Link to="/earnings" className="hover:text-foreground">Earnings Guide</Link></li>
             <li><Link to="/academy" className="hover:text-foreground">Academy</Link></li>
             <li><Link to="/coins" className="hover:text-foreground">{t("footer.recharge")}</Link></li>
             <li><Link to="/track-application" className="hover:text-foreground">{t("footer.track")}</Link></li>
