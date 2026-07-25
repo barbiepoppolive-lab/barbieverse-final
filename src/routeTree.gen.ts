@@ -15,8 +15,9 @@ import { Route as TrackRouteImport } from './routes/track'
 import { Route as TestAiRouteImport } from './routes/test-ai'
 import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as RobotsTxtRouteImport } from './routes/robots[.]txt'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as RechargePolicyRouteImport } from './routes/recharge-policy'
+import { Route as ProofRouteImport } from './routes/proof'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as EarningsRouteImport } from './routes/earnings'
@@ -63,6 +64,9 @@ import { Route as ApiPublicOrderActionRouteImport } from './routes/api/public/or
 import { Route as ApiPublicInteraktActionRouteImport } from './routes/api/public/interakt-action'
 import { Route as ApiPublicCronSocialRouteImport } from './routes/api/public/cron-social'
 import { Route as ApiPublicCronScrapeRouteImport } from './routes/api/public/cron-scrape'
+import { Route as ApiPublicCronMojRouteImport } from './routes/api/public/cron-moj'
+import { Route as ApiPublicCronIgmojRouteImport } from './routes/api/public/cron-igmoj'
+import { Route as ApiPublicCronContentRouteImport } from './routes/api/public/cron-content'
 import { Route as ApiPublicChatRouteImport } from './routes/api/public/chat'
 
 const VerifyRoute = VerifyRouteImport.update({
@@ -95,7 +99,7 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RobotsTxtRoute = RobotsTxtRouteImport.update({
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
   id: '/robots.txt',
   path: '/robots.txt',
   getParentRoute: () => rootRouteImport,
@@ -103,6 +107,11 @@ const RobotsTxtRoute = RobotsTxtRouteImport.update({
 const RechargePolicyRoute = RechargePolicyRouteImport.update({
   id: '/recharge-policy',
   path: '/recharge-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProofRoute = ProofRouteImport.update({
+  id: '/proof',
+  path: '/proof',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
@@ -340,6 +349,21 @@ const ApiPublicCronScrapeRoute = ApiPublicCronScrapeRouteImport.update({
   path: '/api/public/cron-scrape',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronMojRoute = ApiPublicCronMojRouteImport.update({
+  id: '/api/public/cron-moj',
+  path: '/api/public/cron-moj',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCronIgmojRoute = ApiPublicCronIgmojRouteImport.update({
+  id: '/api/public/cron-igmoj',
+  path: '/api/public/cron-igmoj',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCronContentRoute = ApiPublicCronContentRouteImport.update({
+  id: '/api/public/cron-content',
+  path: '/api/public/cron-content',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicChatRoute = ApiPublicChatRouteImport.update({
   id: '/api/public/chat',
   path: '/api/public/chat',
@@ -357,8 +381,9 @@ export interface FileRoutesByFullPath {
   '/earnings': typeof EarningsRoute
   '/join': typeof JoinRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/proof': typeof ProofRoute
   '/recharge-policy': typeof RechargePolicyRoute
-  '/robots.txt': typeof RobotsTxtRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/test-ai': typeof TestAiRoute
@@ -396,6 +421,9 @@ export interface FileRoutesByFullPath {
   '/academy/': typeof AcademyIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/api/public/chat': typeof ApiPublicChatRoute
+  '/api/public/cron-content': typeof ApiPublicCronContentRoute
+  '/api/public/cron-igmoj': typeof ApiPublicCronIgmojRoute
+  '/api/public/cron-moj': typeof ApiPublicCronMojRoute
   '/api/public/cron-scrape': typeof ApiPublicCronScrapeRoute
   '/api/public/cron-social': typeof ApiPublicCronSocialRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
@@ -412,8 +440,9 @@ export interface FileRoutesByTo {
   '/earnings': typeof EarningsRoute
   '/join': typeof JoinRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/proof': typeof ProofRoute
   '/recharge-policy': typeof RechargePolicyRoute
-  '/robots.txt': typeof RobotsTxtRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/test-ai': typeof TestAiRoute
@@ -451,6 +480,9 @@ export interface FileRoutesByTo {
   '/academy': typeof AcademyIndexRoute
   '/admin': typeof AdminIndexRoute
   '/api/public/chat': typeof ApiPublicChatRoute
+  '/api/public/cron-content': typeof ApiPublicCronContentRoute
+  '/api/public/cron-igmoj': typeof ApiPublicCronIgmojRoute
+  '/api/public/cron-moj': typeof ApiPublicCronMojRoute
   '/api/public/cron-scrape': typeof ApiPublicCronScrapeRoute
   '/api/public/cron-social': typeof ApiPublicCronSocialRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
@@ -470,8 +502,9 @@ export interface FileRoutesById {
   '/earnings': typeof EarningsRoute
   '/join': typeof JoinRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/proof': typeof ProofRoute
   '/recharge-policy': typeof RechargePolicyRoute
-  '/robots.txt': typeof RobotsTxtRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/test-ai': typeof TestAiRoute
@@ -509,6 +542,9 @@ export interface FileRoutesById {
   '/academy/': typeof AcademyIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/api/public/chat': typeof ApiPublicChatRoute
+  '/api/public/cron-content': typeof ApiPublicCronContentRoute
+  '/api/public/cron-igmoj': typeof ApiPublicCronIgmojRoute
+  '/api/public/cron-moj': typeof ApiPublicCronMojRoute
   '/api/public/cron-scrape': typeof ApiPublicCronScrapeRoute
   '/api/public/cron-social': typeof ApiPublicCronSocialRoute
   '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
@@ -529,7 +565,9 @@ export interface FileRouteTypes {
     | '/earnings'
     | '/join'
     | '/privacy-policy'
+    | '/proof'
     | '/recharge-policy'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/terms-and-conditions'
     | '/test-ai'
@@ -567,6 +605,9 @@ export interface FileRouteTypes {
     | '/academy/'
     | '/admin/'
     | '/api/public/chat'
+    | '/api/public/cron-content'
+    | '/api/public/cron-igmoj'
+    | '/api/public/cron-moj'
     | '/api/public/cron-scrape'
     | '/api/public/cron-social'
     | '/api/public/interakt-action'
@@ -583,7 +624,9 @@ export interface FileRouteTypes {
     | '/earnings'
     | '/join'
     | '/privacy-policy'
+    | '/proof'
     | '/recharge-policy'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/terms-and-conditions'
     | '/test-ai'
@@ -621,6 +664,9 @@ export interface FileRouteTypes {
     | '/academy'
     | '/admin'
     | '/api/public/chat'
+    | '/api/public/cron-content'
+    | '/api/public/cron-igmoj'
+    | '/api/public/cron-moj'
     | '/api/public/cron-scrape'
     | '/api/public/cron-social'
     | '/api/public/interakt-action'
@@ -639,7 +685,9 @@ export interface FileRouteTypes {
     | '/earnings'
     | '/join'
     | '/privacy-policy'
+    | '/proof'
     | '/recharge-policy'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/terms-and-conditions'
     | '/test-ai'
@@ -677,6 +725,9 @@ export interface FileRouteTypes {
     | '/academy/'
     | '/admin/'
     | '/api/public/chat'
+    | '/api/public/cron-content'
+    | '/api/public/cron-igmoj'
+    | '/api/public/cron-moj'
     | '/api/public/cron-scrape'
     | '/api/public/cron-social'
     | '/api/public/interakt-action'
@@ -696,7 +747,9 @@ export interface RootRouteChildren {
   EarningsRoute: typeof EarningsRoute
   JoinRoute: typeof JoinRouteWithChildren
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
+  ProofRoute: typeof ProofRoute
   RechargePolicyRoute: typeof RechargePolicyRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsAndConditionsRoute: typeof TermsAndConditionsRoute
   TestAiRoute: typeof TestAiRoute
@@ -704,6 +757,9 @@ export interface RootRouteChildren {
   TrackApplicationRoute: typeof TrackApplicationRoute
   VerifyRoute: typeof VerifyRoute
   ApiPublicChatRoute: typeof ApiPublicChatRoute
+  ApiPublicCronContentRoute: typeof ApiPublicCronContentRoute
+  ApiPublicCronIgmojRoute: typeof ApiPublicCronIgmojRoute
+  ApiPublicCronMojRoute: typeof ApiPublicCronMojRoute
   ApiPublicCronScrapeRoute: typeof ApiPublicCronScrapeRoute
   ApiPublicCronSocialRoute: typeof ApiPublicCronSocialRoute
   ApiPublicInteraktActionRoute: typeof ApiPublicInteraktActionRoute
@@ -760,7 +816,7 @@ declare module '@tanstack/react-router' {
       id: '/robots.txt'
       path: '/robots.txt'
       fullPath: '/robots.txt'
-      preLoaderRoute: typeof RobotsTxtRouteImport
+      preLoaderRoute: typeof RobotsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recharge-policy': {
@@ -768,6 +824,13 @@ declare module '@tanstack/react-router' {
       path: '/recharge-policy'
       fullPath: '/recharge-policy'
       preLoaderRoute: typeof RechargePolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proof': {
+      id: '/proof'
+      path: '/proof'
+      fullPath: '/proof'
+      preLoaderRoute: typeof ProofRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy-policy': {
@@ -1092,6 +1155,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronScrapeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron-moj': {
+      id: '/api/public/cron-moj'
+      path: '/api/public/cron-moj'
+      fullPath: '/api/public/cron-moj'
+      preLoaderRoute: typeof ApiPublicCronMojRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron-igmoj': {
+      id: '/api/public/cron-igmoj'
+      path: '/api/public/cron-igmoj'
+      fullPath: '/api/public/cron-igmoj'
+      preLoaderRoute: typeof ApiPublicCronIgmojRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron-content': {
+      id: '/api/public/cron-content'
+      path: '/api/public/cron-content'
+      fullPath: '/api/public/cron-content'
+      preLoaderRoute: typeof ApiPublicCronContentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/chat': {
       id: '/api/public/chat'
       path: '/api/public/chat'
@@ -1207,8 +1291,9 @@ const rootRouteChildren: RootRouteChildren = {
   EarningsRoute: EarningsRoute,
   JoinRoute: JoinRouteWithChildren,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
+  ProofRoute: ProofRoute,
   RechargePolicyRoute: RechargePolicyRoute,
-  RobotsTxtRoute: RobotsTxtRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsAndConditionsRoute: TermsAndConditionsRoute,
   TestAiRoute: TestAiRoute,
@@ -1216,6 +1301,9 @@ const rootRouteChildren: RootRouteChildren = {
   TrackApplicationRoute: TrackApplicationRoute,
   VerifyRoute: VerifyRoute,
   ApiPublicChatRoute: ApiPublicChatRoute,
+  ApiPublicCronContentRoute: ApiPublicCronContentRoute,
+  ApiPublicCronIgmojRoute: ApiPublicCronIgmojRoute,
+  ApiPublicCronMojRoute: ApiPublicCronMojRoute,
   ApiPublicCronScrapeRoute: ApiPublicCronScrapeRoute,
   ApiPublicCronSocialRoute: ApiPublicCronSocialRoute,
   ApiPublicInteraktActionRoute: ApiPublicInteraktActionRoute,
