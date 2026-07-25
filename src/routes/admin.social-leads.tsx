@@ -2,10 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
 import { listSocialLeads, getSocialLeadStats, updateSocialLeadStatus, runSocialMonitor } from "@/lib/api/social-leads.functions";
+import { resolveLeadUrl, isProfileFallback } from "@/lib/social-monitor/lead-url";
 import {
   Globe, Facebook, Twitter, Youtube, MessageCircle,
   ExternalLink, Copy, CheckCircle, Flame, Sun, Snowflake,
   RefreshCw, Eye, Send, Loader2, AlertCircle, Hash, Camera,
+  Music2, Clock,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/social-leads")({
@@ -18,6 +20,8 @@ const PLATFORM_CONFIG: Record<string, { icon: any; color: string; label: string 
   twitter: { icon: Twitter, color: "text-sky-400", label: "Twitter" },
   youtube: { icon: Youtube, color: "text-red-400", label: "YouTube" },
   instagram: { icon: Camera, color: "text-pink-400", label: "Instagram" },
+  tiktok: { icon: Music2, color: "text-fuchsia-400", label: "TikTok" },
+  moj: { icon: Music2, color: "text-purple-400", label: "Moj" },
 };
 
 const CATEGORY_CONFIG: Record<string, { icon: any; color: string; bg: string }> = {
@@ -26,7 +30,8 @@ const CATEGORY_CONFIG: Record<string, { icon: any; color: string; bg: string }> 
   cold: { icon: Snowflake, color: "text-blue-400", bg: "bg-blue-500/10" },
 };
 
-type FilterTab = "all" | "facebook" | "reddit" | "twitter" | "youtube" | "instagram" | "hot" | "warm" | "cold";
+type FilterTab = "all" | "facebook" | "reddit" | "twitter" | "youtube" | "instagram" | "tiktok" | "moj" | "hot" | "warm" | "cold";
+const PLATFORMS: FilterTab[] = ["facebook", "reddit", "twitter", "youtube", "instagram", "tiktok", "moj"];
 
 function SocialLeadsDashboard() {
   const [leads, setLeads] = useState<any[]>([]);
@@ -50,7 +55,7 @@ function SocialLeadsDashboard() {
       const [leadsResult, statsResult] = await Promise.all([
         fetchLeads({
           data: {
-            platform: ["facebook", "reddit", "twitter", "youtube", "instagram"].includes(filter) ? filter as any : undefined,
+            platform: PLATFORMS.includes(filter) ? filter as any : undefined,
             category: ["hot", "warm", "cold"].includes(filter) ? filter as any : undefined,
             sort,
             page,
@@ -103,6 +108,8 @@ function SocialLeadsDashboard() {
     { id: "instagram", label: "Instagram", count: stats?.byPlatform?.instagram },
     { id: "reddit", label: "Reddit", count: stats?.byPlatform?.reddit },
     { id: "twitter", label: "Twitter", count: stats?.byPlatform?.twitter },
+    { id: "tiktok", label: "TikTok", count: stats?.byPlatform?.tiktok },
+    { id: "moj", label: "Moj", count: stats?.byPlatform?.moj },
     { id: "hot", label: "Hot", count: stats?.hot },
     { id: "warm", label: "Warm", count: stats?.warm },
     { id: "cold", label: "Cold", count: stats?.cold },
@@ -193,6 +200,10 @@ function SocialLeadsDashboard() {
           const catConf = CATEGORY_CONFIG[lead.ai_category] || CATEGORY_CONFIG.cold;
           const PlatIcon = platConf.icon;
           const CatIcon = catConf.icon;
+          // A hot/warm lead nobody has acted on in 48h+ is exactly the kind
+          // of thing that quietly rots in a Telegram feed — flag it here too.
+          const hoursOld = (Date.now() - new Date(lead.discovered_at).getTime()) / 3_600_000;
+          const isStale = lead.status !== "commented" && (lead.ai_category === "hot" || lead.ai_category === "warm") && hoursOld > 48;
 
           return (
             <div
@@ -217,6 +228,11 @@ function SocialLeadsDashboard() {
                     {lead.status === "commented" && (
                       <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold text-green-400 bg-green-500/10">
                         <CheckCircle className="h-3 w-3" /> Commented
+                      </span>
+                    )}
+                    {isStale && (
+                      <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold text-red-400 bg-red-500/10">
+                        <Clock className="h-3 w-3" /> {Math.floor(hoursOld / 24)}d old — act now
                       </span>
                     )}
                   </div>
@@ -250,13 +266,22 @@ function SocialLeadsDashboard() {
 
                 {/* Actions */}
                 <div className="flex flex-col gap-2 shrink-0">
+                  {/* resolveLeadUrl, not lead.post_url — older rows stored a
+                      raw CDN .mp4 which downloads the video instead of
+                      opening the post, making it impossible to comment. */}
                   <a
-                    href={lead.post_url}
+                    href={resolveLeadUrl(lead)}
                     target="_blank"
                     rel="noopener noreferrer"
+                    title={
+                      isProfileFallback(lead)
+                        ? "Exact post link wasn't stored — opening their profile instead"
+                        : "Open the post to comment"
+                    }
                     className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-card/40 px-3 text-xs font-semibold text-muted-foreground hover:text-foreground"
                   >
-                    <ExternalLink className="h-3.5 w-3.5" /> Open
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    {isProfileFallback(lead) ? "Profile" : "Open"}
                   </a>
                   <button
                     onClick={() => copyComment(lead.ai_generated_comment || "", lead.id)}

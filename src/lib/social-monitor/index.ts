@@ -25,6 +25,7 @@ import type { SocialPost, SocialPlatform, MonitorConfig } from "./types";
 import {
   scoreKeywordAfterDiscovery,
   selectKeywordsForPlatform,
+  seedKeywordsFromConfig,
   ingestDiscoveryKeywords,
   evolveKeywords,
 } from "./keyword-intel";
@@ -42,6 +43,30 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 }
 
 const PLATFORM_TIMEOUT = 60_000;
+
+// ── Resolve search keywords for a platform ─────────────
+// The adaptive keyword_scores pool (selectKeywordsForPlatform) was designed
+// to self-improve over time, but it started empty for every platform and
+// nothing ever seeded it — so every run silently fell back to the static
+// settings list and the "self-improving" part never actually ran. Fix: the
+// first time the adaptive pool is empty for a platform, seed it from the
+// static list (seedKeywordsFromConfig already existed but was never called
+// anywhere) so future runs use real scoring instead of falling back forever.
+// If the static list is ALSO empty (nothing configured in /admin/scraper),
+// this returns [] — that's a config gap, not something code can fix.
+
+async function resolveKeywords(
+  platform: SocialPlatform,
+  staticList: string[],
+  count: number
+): Promise<string[]> {
+  let kws = await selectKeywordsForPlatform(platform, count);
+  if (kws.length === 0 && staticList.length > 0) {
+    await seedKeywordsFromConfig(staticList, platform);
+    kws = await selectKeywordsForPlatform(platform, count);
+  }
+  return kws.length > 0 ? kws : staticList.slice(0, count);
+}
 
 // ── Last run tracking (per-platform intervals) ─────────
 
@@ -87,6 +112,8 @@ async function shouldRunPlatform(
 
 // ── Database: store a raw discovered post (no AI) ──────
 
+const AUTHOR_COOLDOWN_DAYS = 14;
+
 async function storeDiscoveredPost(post: SocialPost): Promise<string | null> {
   const { q } = await import("@/lib/db.server");
 
@@ -96,6 +123,22 @@ async function storeDiscoveredPost(post: SocialPost): Promise<string | null> {
   );
 
   if (existing.length > 0) return existing[0].id;
+
+  // Cross-post author cooldown: the same person posting three times in a
+  // week shouldn't turn into three separate action-queue items telling you
+  // to go comment on them again — that's how a well-meaning human comment
+  // starts reading as a bot following someone around. Skip if we already
+  // have a lead for this author+platform from the last 14 days.
+  if (post.authorUsername) {
+    const recentSameAuthor = await q<{ id: string }>(
+      `SELECT id FROM social_leads
+       WHERE platform = $1 AND author_username = $2
+         AND discovered_at > now() - interval '${AUTHOR_COOLDOWN_DAYS} days'
+       LIMIT 1`,
+      [post.platform, post.authorUsername]
+    );
+    if (recentSameAuthor.length > 0) return null;
+  }
 
   const engagementScore = post.likes + post.comments + post.shares;
 
@@ -256,13 +299,13 @@ async function loadPlatformEnabled(): Promise<Record<SocialPlatform, boolean>> {
 // ═══════════════════════════════════════════════════════
 
 export interface DiscoveryResult {
-  facebook: { found: number; stored: number; errors: number; skipped: boolean };
-  reddit: { found: number; stored: number; errors: number; skipped: boolean };
-  twitter: { found: number; stored: number; errors: number; skipped: boolean };
-  youtube: { found: number; stored: number; errors: number; skipped: boolean };
-  instagram: { found: number; stored: number; errors: number; skipped: boolean };
-  tiktok: { found: number; stored: number; errors: number; skipped: boolean };
-  moj: { found: number; stored: number; errors: number; skipped: boolean };
+  facebook: { found: number; stored: number; errors: number; skipped: boolean; noKeywords: boolean };
+  reddit: { found: number; stored: number; errors: number; skipped: boolean; noKeywords: boolean };
+  twitter: { found: number; stored: number; errors: number; skipped: boolean; noKeywords: boolean };
+  youtube: { found: number; stored: number; errors: number; skipped: boolean; noKeywords: boolean };
+  instagram: { found: number; stored: number; errors: number; skipped: boolean; noKeywords: boolean };
+  tiktok: { found: number; stored: number; errors: number; skipped: boolean; noKeywords: boolean };
+  moj: { found: number; stored: number; errors: number; skipped: boolean; noKeywords: boolean };
   totalDiscovered: number;
   totalStored: number;
 }
@@ -275,13 +318,13 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
   const intervals = cfg.platformIntervals;
 
   const results: DiscoveryResult = {
-    facebook: { found: 0, stored: 0, errors: 0, skipped: false },
-    reddit: { found: 0, stored: 0, errors: 0, skipped: false },
-    twitter: { found: 0, stored: 0, errors: 0, skipped: false },
-    youtube: { found: 0, stored: 0, errors: 0, skipped: false },
-    instagram: { found: 0, stored: 0, errors: 0, skipped: false },
-    tiktok: { found: 0, stored: 0, errors: 0, skipped: false },
-    moj: { found: 0, stored: 0, errors: 0, skipped: false },
+    facebook: { found: 0, stored: 0, errors: 0, skipped: false, noKeywords: false },
+    reddit: { found: 0, stored: 0, errors: 0, skipped: false, noKeywords: false },
+    twitter: { found: 0, stored: 0, errors: 0, skipped: false, noKeywords: false },
+    youtube: { found: 0, stored: 0, errors: 0, skipped: false, noKeywords: false },
+    instagram: { found: 0, stored: 0, errors: 0, skipped: false, noKeywords: false },
+    tiktok: { found: 0, stored: 0, errors: 0, skipped: false, noKeywords: false },
+    moj: { found: 0, stored: 0, errors: 0, skipped: false, noKeywords: false },
     totalDiscovered: 0,
     totalStored: 0,
   };
@@ -319,9 +362,8 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
   const promises: Promise<void>[] = [];
 
   if (runYT) {
-    const kws = (await selectKeywordsForPlatform("youtube", 3)).length > 0
-      ? await selectKeywordsForPlatform("youtube", 3)
-      : cfg.youtubeQueries.slice(0, 2);
+    const kws = await resolveKeywords("youtube", cfg.youtubeQueries, 3);
+    results.youtube.noKeywords = kws.length === 0;
     promises.push(
       withTimeout(
         monitorYouTube(kws, cfg.maxResultsPerPlatform),
@@ -332,9 +374,8 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
   }
 
   if (runReddit) {
-    const kws = (await selectKeywordsForPlatform("reddit", 3)).length > 0
-      ? await selectKeywordsForPlatform("reddit", 3)
-      : cfg.keywords.slice(0, 5);
+    const kws = await resolveKeywords("reddit", cfg.keywords, 5);
+    results.reddit.noKeywords = kws.length === 0;
     promises.push(
       withTimeout(
         monitorReddit(kws, cfg.redditSubreddits, cfg.maxResultsPerPlatform),
@@ -345,9 +386,8 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
   }
 
   if (runTwitter) {
-    const kws = (await selectKeywordsForPlatform("twitter", 3)).length > 0
-      ? await selectKeywordsForPlatform("twitter", 3)
-      : cfg.twitterQueries.slice(0, 5);
+    const kws = await resolveKeywords("twitter", cfg.twitterQueries, 5);
+    results.twitter.noKeywords = kws.length === 0;
     promises.push(
       withTimeout(
         monitorTwitter(kws, cfg.maxResultsPerPlatform),
@@ -358,9 +398,8 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
   }
 
   if (runFB) {
-    const kws = (await selectKeywordsForPlatform("facebook", 3)).length > 0
-      ? await selectKeywordsForPlatform("facebook", 3)
-      : cfg.facebookQueries.slice(0, 3);
+    const kws = await resolveKeywords("facebook", cfg.facebookQueries, 3);
+    results.facebook.noKeywords = kws.length === 0;
     promises.push(
       withTimeout(
         monitorFacebook(kws, cfg.maxResultsPerPlatform),
@@ -371,9 +410,8 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
   }
 
   if (runIG) {
-    const kws = (await selectKeywordsForPlatform("instagram", 2)).length > 0
-      ? await selectKeywordsForPlatform("instagram", 2)
-      : cfg.instagramHashtags.slice(0, 2);
+    const kws = await resolveKeywords("instagram", cfg.instagramHashtags, 2);
+    results.instagram.noKeywords = kws.length === 0;
     promises.push(
       withTimeout(
         monitorInstagram(kws, cfg.maxResultsPerPlatform),
@@ -384,9 +422,8 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
   }
 
   if (runTikTok) {
-    const kws = (await selectKeywordsForPlatform("tiktok", 2)).length > 0
-      ? await selectKeywordsForPlatform("tiktok", 2)
-      : cfg.tiktokQueries.slice(0, 2);
+    const kws = await resolveKeywords("tiktok", cfg.tiktokQueries, 2);
+    results.tiktok.noKeywords = kws.length === 0;
     promises.push(
       withTimeout(
         monitorTikTok(kws, cfg.maxResultsPerPlatform),
@@ -397,9 +434,8 @@ export async function discoverAllPlatforms(config?: Partial<MonitorConfig>): Pro
   }
 
   if (runMoj) {
-    const kws = (await selectKeywordsForPlatform("moj", 2)).length > 0
-      ? await selectKeywordsForPlatform("moj", 2)
-      : cfg.mojQueries.slice(0, 2);
+    const kws = await resolveKeywords("moj", cfg.mojQueries, 2);
+    results.moj.noKeywords = kws.length === 0;
     promises.push(
       withTimeout(
         monitorMoj(kws, cfg.maxResultsPerPlatform),
@@ -536,10 +572,22 @@ export async function processDiscoveredLeads(batchSize: number = 20): Promise<Pr
 
     console.log(`[social-monitor] Processing ${leads.length} discovered leads`);
 
+    // Seed anti-repetition context with recently generated comments, so the
+    // model doesn't converge on the same phrasing across dozens of leads.
+    // Updated between batches (not within — these run in parallel) so later
+    // batches in this same run also avoid repeating earlier ones.
+    const recentCommentsRows = await q<{ ai_generated_comment: string }>(
+      `SELECT ai_generated_comment FROM social_leads
+       WHERE ai_generated_comment IS NOT NULL AND ai_generated_comment != ''
+       ORDER BY updated_at DESC LIMIT 15`
+    );
+    let recentComments = recentCommentsRows.map((r) => r.ai_generated_comment);
+
     // Process in parallel batches of 5 (Groq allows 30 RPM)
     const PARALLEL_BATCH = 5;
     for (let i = 0; i < leads.length; i += PARALLEL_BATCH) {
       const batch = leads.slice(i, i + PARALLEL_BATCH);
+      const batchRecentComments = recentComments.slice(0, 10);
 
       const batchResults = await Promise.allSettled(
         batch.map(async (lead) => {
@@ -564,7 +612,8 @@ export async function processDiscoveredLeads(batchSize: number = 20): Promise<Pr
             post.platform,
             post.authorName,
             post.subreddit,
-            post.groupName
+            post.groupName,
+            batchRecentComments
           );
 
           // For Moj posts, use the scoring model to override category
@@ -627,6 +676,7 @@ export async function processDiscoveredLeads(batchSize: number = 20): Promise<Pr
           return {
             category: finalCategory,
             newKeywords: newKeywords.length,
+            comment: aiResult.comment,
           };
         })
       );
@@ -637,6 +687,7 @@ export async function processDiscoveredLeads(batchSize: number = 20): Promise<Pr
           if (r.value.category === "hot") result.hotAlerts++;
           else if (r.value.category === "warm") result.warmAlerts++;
           result.keywordsGenerated += r.value.newKeywords;
+          if (r.value.comment) recentComments = [r.value.comment, ...recentComments].slice(0, 15);
         } else {
           result.errors++;
           console.error("[social-monitor] Process error:", r.reason?.message);

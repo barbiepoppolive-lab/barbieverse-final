@@ -69,12 +69,17 @@ async function generateViaComfyUI(
     { useFaceDetailer: input.useFaceDetailer },
   );
 
-  // Convert first image buffer to data URL
+  // Save to public/generated-videos/ and return a local URL
   const imgBuffer = result.images[0];
   if (!imgBuffer) throw new Error("ComfyUI returned no images");
 
-  const base64 = imgBuffer.toString("base64");
-  const url = `data:image/png;base64,${base64}`;
+  const fs = await import("fs");
+  const path = await import("path");
+  const dir = path.join(process.cwd(), "public", "generated-videos");
+  fs.mkdirSync(dir, { recursive: true });
+  const filename = `moj-${Date.now()}-${Math.floor(Math.random() * 1e6)}.png`;
+  fs.writeFileSync(path.join(dir, filename), imgBuffer);
+  const url = `/generated-videos/${filename}`;
 
   return {
     url,

@@ -8,6 +8,11 @@ import { runScrapeJob } from "@/lib/api/scraper.functions";
 import { getScrapeSchedules, createScrapeSchedule, toggleScrapeSchedule, runScheduledScrapes, autoScoreNewLeads } from "@/lib/automation/scraper-cron";
 import { enrichAllUnenriched } from "@/lib/automation/lead-enrichment";
 import { runOutreachCycle } from "@/lib/automation/outreach-sender";
+import { runSocialOutreach } from "@/lib/automation/social-outreach";
+import { runContentCycle, type PublishPlatform } from "@/lib/social-publish";
+import { runMojPipeline } from "@/lib/automation/moj-pipeline";
+import { runInstagramMojPipeline } from "@/lib/automation/instagram-moj-pipeline";
+import { handleGroupMessage } from "@/lib/social-monitor/telegram-groups";
 
 export const Route = createFileRoute("/api/public/telegram-bot")({
   server: {
@@ -25,6 +30,29 @@ export const Route = createFileRoute("/api/public/telegram-bot")({
           const text = message.text?.trim() || "";
           const botToken = process.env.TELEGRAM_BOT_TOKEN;
           const adminChatId = process.env.TELEGRAM_CHAT_ID;
+          const chatType = message.chat.type; // private | group | supergroup
+
+          // Messages from groups/supergroups are host-group chatter, not
+          // admin commands. Score them for buying intent instead of ignoring
+          // them (previously anything not from the admin chat was dropped).
+          //
+          // Requires privacy mode OFF for the bot: @BotFather → /setprivacy
+          // → Disable. Otherwise Telegram only forwards commands and this
+          // never fires.
+          if (chatType === "group" || chatType === "supergroup") {
+            if (text && !text.startsWith("/")) {
+              await handleGroupMessage({
+                chatId,
+                chatTitle: message.chat.title || "unknown group",
+                messageId: message.message_id,
+                userId: message.from?.id ?? 0,
+                username: message.from?.username,
+                firstName: message.from?.first_name,
+                text,
+              });
+            }
+            return new Response("ok");
+          }
 
           // Only process commands from admin
           if (chatId !== adminChatId) {
@@ -58,6 +86,21 @@ export const Route = createFileRoute("/api/public/telegram-bot")({
 
             case "/run":
               return await handleRunNowCommand(chatId, args, botToken);
+
+            case "/content":
+              return await handleContentCommand(chatId, args, botToken);
+
+            case "/moj":
+              return await handleMojCommand(chatId, args, botToken);
+
+            case "/igmoj":
+              return await handleIgMojCommand(chatId, botToken);
+
+            case "/pitch":
+              return await handlePitchCommand(chatId, botToken);
+
+            case "/social-outreach":
+              return await handleSocialOutreachCommand(chatId, args, botToken);
 
             default:
               return new Response("ok");
@@ -405,6 +448,191 @@ async function handleOutreachCommand(
     );
   } catch (err: any) {
     await sendTelegramMessage(chatId, `❌ Outreach failed: ${err.message}`, botToken);
+  }
+
+  return new Response("ok");
+}
+
+// ── Social Outreach Command ─────────────────────────────
+// /social-outreach — send Telegram comment alerts for hot/warm social leads
+
+async function handleSocialOutreachCommand(
+  chatId: string,
+  args: string[],
+  botToken?: string,
+): Promise<Response> {
+  await sendTelegramMessage(chatId, "📱 Running social outreach...", botToken);
+
+  try {
+    const result = await runSocialOutreach();
+
+    await sendTelegramMessage(
+      chatId,
+      `📱 <b>Social Outreach Complete</b>\n\n` +
+      `🔥 Hot alerts sent: ${result.hotSent}\n` +
+      `🌤️ Warm digest sent: ${result.warmDigest ? "Yes" : "No"}`,
+      botToken,
+    );
+  } catch (err: any) {
+    await sendTelegramMessage(chatId, `❌ Social outreach failed: ${err.message}`, botToken);
+  }
+
+  return new Response("ok");
+}
+
+// ── Content Publish Command ────────────────────────────
+// /content <topic...>            — generate + publish to all configured platforms
+// /content facebook <topic...>   — just one platform
+// Note: this text command can't attach an image, so Instagram will report
+// "skipped — no image" (Instagram has no text-only post type). Use the
+// admin panel for image posts, or attach a photo to this message in a
+// future version of this handler.
+
+/**
+ * /pitch — the offer message, for AFTER someone replies.
+ *
+ * First messages deliberately contain no numbers (a stranger's DM that opens
+ * with pricing reads as spam and gets ignored). Once they answer, this is
+ * the follow-up. It's a fixed template on purpose — commercial terms should
+ * be stated identically every time, not paraphrased by an AI.
+ */
+async function handlePitchCommand(chatId: string, botToken?: string): Promise<Response> {
+  const { offerFollowUp } = await import("@/lib/ai/modules/outreach-writer");
+  await sendTelegramMessage(
+    chatId,
+    `💬 <b>Send this once they reply:</b>\n\n<code>${offerFollowUp()}</code>`,
+    botToken,
+  );
+  return new Response("ok");
+}
+
+/**
+ * /igmoj — find Moj creators on Instagram.
+ *
+ * The higher-yield sibling of /moj: Instagram has hashtag search and DMs,
+ * so this needs no seeds and every result is reachable.
+ */
+async function handleIgMojCommand(chatId: string, botToken?: string): Promise<Response> {
+  await sendTelegramMessage(
+    chatId,
+    `📸 Searching Instagram for Moj creators… this takes a few minutes (Apify runs are slow).`,
+    botToken,
+  );
+
+  try {
+    const result = await runInstagramMojPipeline();
+    await sendTelegramMessage(
+      chatId,
+      `📸 <b>Done</b>\n\nScanned ${result.postsScanned} posts → ${result.stored} new leads ` +
+      `(${result.skippedDuplicate} already seen, ${result.rejectedAsNoise} rejected as not-really-Moj).`,
+      botToken,
+    );
+  } catch (err: any) {
+    await sendTelegramMessage(chatId, `❌ Instagram run failed: ${err.message}`, botToken);
+  }
+
+  return new Response("ok");
+}
+
+/**
+ * /moj — run the Moj creator-recruitment crawl.
+ *
+ * The pipeline reports its own detailed results to Telegram (one message per
+ * contactable lead, plus a batched manual-comment queue), so this handler
+ * only needs to kick it off and confirm the headline numbers.
+ */
+async function handleMojCommand(
+  chatId: string,
+  args: string[],
+  botToken?: string,
+): Promise<Response> {
+  if (args[0] === "help") {
+    await sendTelegramMessage(
+      chatId,
+      `🎯 <b>Moj Recruitment</b>\n\n` +
+      `/moj — crawl Moj for creators to recruit\n` +
+      `/moj &lt;pages&gt; — limit how many pages to crawl (default 25)\n\n` +
+      `Results split two ways:\n` +
+      `✅ <b>Contactable</b> — they published an Instagram/WhatsApp in their Moj bio. You get a tappable link + a ready opener.\n` +
+      `📋 <b>Manual queue</b> — nothing reachable published, so you comment inside the Moj app. Suggested comment included.\n\n` +
+      `⚠️ Crawl quality depends entirely on <code>scraper_moj_seeds</code> in settings. Moj has no keyword search, so the crawler walks outward from seed videos through the related-video feed. Seed it with 3-4 videos about live streaming or earning from home.`,
+      botToken,
+    );
+    return new Response("ok");
+  }
+
+  const maxPages = args[0] && /^\d+$/.test(args[0]) ? parseInt(args[0], 10) : undefined;
+
+  await sendTelegramMessage(chatId, `🎯 Crawling Moj for creators… this takes a few minutes.`, botToken);
+
+  try {
+    const result = await runMojPipeline({ maxPages });
+    await sendTelegramMessage(
+      chatId,
+      `🎯 <b>Moj run finished</b>\n\n` +
+      `Candidates: ${result.candidates}\n` +
+      `✅ Contactable: ${result.contactable}\n` +
+      `📋 Manual queue: ${result.queued}\n` +
+      `↩️ Already seen: ${result.skippedDuplicate}`,
+      botToken,
+    );
+  } catch (err: any) {
+    await sendTelegramMessage(chatId, `❌ Moj run failed: ${err.message}`, botToken);
+  }
+
+  return new Response("ok");
+}
+
+async function handleContentCommand(
+  chatId: string,
+  args: string[],
+  botToken?: string,
+): Promise<Response> {
+  if (args.length === 0) {
+    await sendTelegramMessage(
+      chatId,
+      `📝 <b>Content Publish</b>\n\n` +
+      `/content <topic> — generate + publish to Facebook, Instagram, Moj, YouTube\n` +
+      `/content facebook|instagram|moj|youtube <topic> — just one platform\n\n` +
+      `Instagram and YouTube need a media file (no text-only posts) — this command can't attach one, so both will show "skipped" unless you supply an image/video URL from the admin panel.`,
+      botToken,
+    );
+    return new Response("ok");
+  }
+
+  const knownPlatforms: PublishPlatform[] = ["facebook", "instagram", "moj", "youtube"];
+  let platforms: PublishPlatform[] | undefined;
+  let topicWords = args;
+
+  if (knownPlatforms.includes(args[0].toLowerCase() as PublishPlatform)) {
+    platforms = [args[0].toLowerCase() as PublishPlatform];
+    topicWords = args.slice(1);
+  }
+
+  const topic = topicWords.join(" ").trim();
+  if (!topic) {
+    await sendTelegramMessage(chatId, "Usage: /content <topic>", botToken);
+    return new Response("ok");
+  }
+
+  await sendTelegramMessage(chatId, `✍️ Generating + publishing: "${topic}"...`, botToken);
+
+  try {
+    const results = await runContentCycle({ topic, platforms });
+
+    let msg = `📝 <b>Content Cycle Complete</b>\n\n<b>${topic}</b>\n\n`;
+    for (const r of results) {
+      const emoji = r.status === "published" ? "✅" : r.status === "sent_for_manual" ? "📲" : r.status === "skipped" ? "⏭️" : "❌";
+      const detail = r.status === "published" ? `posted (${r.postId})`
+        : r.status === "sent_for_manual" ? "sent above for manual upload"
+        : r.status === "skipped" ? r.error
+        : `failed — ${r.error}`;
+      msg += `${emoji} <b>${r.platform}</b>: ${detail}\n`;
+    }
+
+    await sendTelegramMessage(chatId, msg, botToken);
+  } catch (err: any) {
+    await sendTelegramMessage(chatId, `❌ Content cycle failed: ${err.message}`, botToken);
   }
 
   return new Response("ok");

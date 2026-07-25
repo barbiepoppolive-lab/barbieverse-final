@@ -85,21 +85,37 @@ export async function toggleScrapeSchedule(id: string, enabled: boolean): Promis
 }
 
 // ── Check if schedule should run ───────────────────────
-// Simple cron matcher — supports "0 9 * * *" (daily at 9am UTC)
+// Simple cron matcher — supports "0 9 * * *" (daily at 9am UTC),
+// "0 9 * * 1" (every Monday), "0 9 1 * *" (1st of month), etc.
+// Each field may be "*" or a comma-separated list of exact integers
+// (no ranges/steps — e.g. "1-5" or "*/15" are not supported).
+
+function fieldMatches(field: string, value: number): boolean {
+  if (field === "*") return true;
+  return field
+    .split(",")
+    .map((f) => parseInt(f.trim(), 10))
+    .some((n) => n === value);
+}
 
 function shouldRunNow(cronExpr: string, lastRunAt?: string): boolean {
   const now = new Date();
   const parts = cronExpr.split(" ");
   if (parts.length !== 5) return false;
 
-  const [minute, hour, , , ] = parts;
+  const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
 
-  // Check hour and minute match
   const currentMinute = now.getUTCMinutes();
   const currentHour = now.getUTCHours();
+  const currentDayOfMonth = now.getUTCDate();
+  const currentMonth = now.getUTCMonth() + 1; // cron months are 1-12
+  const currentDayOfWeek = now.getUTCDay(); // 0 (Sun) - 6 (Sat)
 
-  if (minute !== "*" && parseInt(minute) !== currentMinute) return false;
-  if (hour !== "*" && parseInt(hour) !== currentHour) return false;
+  if (!fieldMatches(minute, currentMinute)) return false;
+  if (!fieldMatches(hour, currentHour)) return false;
+  if (!fieldMatches(dayOfMonth, currentDayOfMonth)) return false;
+  if (!fieldMatches(month, currentMonth)) return false;
+  if (!fieldMatches(dayOfWeek, currentDayOfWeek)) return false;
 
   // Don't run if already ran in last 30 minutes
   if (lastRunAt) {

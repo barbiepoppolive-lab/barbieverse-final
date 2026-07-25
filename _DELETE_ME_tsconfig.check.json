@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/routeTree.gen.ts",
+    "src/lib/social-publish/index.ts",
+    "src/lib/social-publish/linkedin.ts",
+    "src/lib/social-publish/facebook.ts",
+    "src/lib/social-publish/instagram.ts",
+    "src/lib/social-publish/youtube.ts",
+    "src/lib/social-publish/moj.ts",
+    "src/lib/ai/modules/content-ai.ts",
+    "src/lib/ai/content-quality.ts",
+    "src/lib/ai/image-gen.ts",
+    "src/routes/api/public/cron-content.ts"
+  ]
+}

@@ -188,14 +188,14 @@ function buildTxt2ImgWorkflow(input: GenerateImageInput, checkpoint: string): Co
       class_type: "CLIPTextEncode",
       inputs: {
         text: input.prompt,
-        clip: ["7", 0],
+        clip: ["6", 1],
       },
     },
     "3": {
       class_type: "CLIPTextEncode",
       inputs: {
         text: input.negativePrompt || "blurry, low quality, distorted, deformed, ugly, bad anatomy",
-        clip: ["7", 0],
+        clip: ["6", 1],
       },
     },
     "4": {
@@ -237,7 +237,7 @@ function buildTxt2ImgWorkflow(input: GenerateImageInput, checkpoint: string): Co
       class_type: "VAEDecode",
       inputs: {
         samples: ["5", 0],
-        vae: ["1", 2],
+        vae: ["6", 2],
       },
     },
     "9": {
@@ -277,8 +277,8 @@ function buildTxt2ImgWithFaceDetailer(
     inputs: {
       image: ["8", 0],
       model: ["6", 0],
-      clip: ["7", 0],
-      vae: ["1", 2],
+      clip: ["6", 1],
+      vae: ["6", 2],
       positive: ["2", 0],
       negative: ["3", 0],
       bbox_detector: ["10", 0],

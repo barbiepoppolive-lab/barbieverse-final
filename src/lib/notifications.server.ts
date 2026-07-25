@@ -201,25 +201,56 @@ async function getTodayEmailCount(): Promise<number> {
 async function logEmailSend(
   recipient: string,
   subject: string,
-  status: "sent" | "queued" | "skipped"
+  status: "sent" | "queued" | "skipped",
+  opts?: { toName?: string; htmlContent?: string }
 ) {
   await q(
-    `INSERT INTO email_send_log (recipient, subject, status) VALUES ($1, $2, $3)`,
-    [recipient, subject, status]
+    `INSERT INTO email_send_log (recipient, subject, status, to_name, html_content) VALUES ($1, $2, $3, $4, $5)`,
+    [recipient, subject, status, opts?.toName || null, opts?.htmlContent || null]
   );
 }
 
 // ─── Email (Brevo) ──────────────────────────────────────────────────────────
+
+async function alertAdminTelegram(text: string) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!botToken || !chatId) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" }),
+    });
+  } catch (err) {
+    console.error("[brevo-alert] Telegram notify failed:", err);
+  }
+}
+
+// Only nag the admin once per process about a missing key, not on every email
+let warnedMissingBrevoKey = false;
+
 export async function sendBrevoEmail(opts: {
   to: string;
   toName?: string;
   subject: string;
   htmlContent: string;
   bypassWarmup?: boolean;
+  /** Internal: skip inserting a new log row on success (used when the caller
+   *  is resending an existing queued row and will update it itself). */
+  skipLogOnSuccess?: boolean;
 }) {
   const apiKey = process.env.BREVO_API_KEY;
   if (!apiKey) {
     console.warn("[brevo] BREVO_API_KEY not set, skipping email to", opts.to);
+    if (!warnedMissingBrevoKey) {
+      warnedMissingBrevoKey = true;
+      await alertAdminTelegram(
+        `⚠️ <b>EMAIL NOT SENT — BREVO_API_KEY missing</b>\n\n` +
+        `An email to ${opts.to} ("${opts.subject}") was skipped because BREVO_API_KEY isn't configured. ` +
+        `This will keep happening for every email until it's set. (This alert only fires once per server restart.)`
+      );
+    }
     return { ok: false, skipped: true };
   }
 
@@ -234,7 +265,10 @@ export async function sendBrevoEmail(opts: {
         `[brevo-warmup] Daily limit reached (${todayCount}/${limit}), queuing email to`,
         opts.to
       );
-      await logEmailSend(opts.to, opts.subject, "queued");
+      await logEmailSend(opts.to, opts.subject, "queued", {
+        toName: opts.toName,
+        htmlContent: opts.htmlContent,
+      });
       return { ok: false, queued: true, limit, todayCount };
     }
   }
@@ -258,13 +292,22 @@ export async function sendBrevoEmail(opts: {
       }),
     });
     if (!res.ok) {
-      console.error("[brevo] send failed", res.status, await res.text());
+      const errBody = await res.text();
+      console.error("[brevo] send failed", res.status, errBody);
+      await alertAdminTelegram(
+        `🚨 <b>EMAIL SEND FAILED</b>\n\n` +
+        `To: ${opts.to}\nSubject: ${opts.subject}\nBrevo status: ${res.status}`
+      );
       return { ok: false };
     }
-    await logEmailSend(opts.to, opts.subject, "sent");
+    if (!opts.skipLogOnSuccess) await logEmailSend(opts.to, opts.subject, "sent");
     return { ok: true };
-  } catch (e) {
+  } catch (e: any) {
     console.error("[brevo] error", e);
+    await alertAdminTelegram(
+      `🚨 <b>EMAIL SEND FAILED</b>\n\n` +
+      `To: ${opts.to}\nSubject: ${opts.subject}\nError: ${e?.message || "unknown"}`
+    );
     return { ok: false };
   }
 }
@@ -296,27 +339,52 @@ export async function getEmailWarmupStats() {
   };
 }
 
-/** Process queued emails (call from cron) */
+/** Process queued (warmup-throttled) emails — actually resends them via Brevo.
+ *  Requires the 20260724_001_email_send_log_content.sql migration (adds
+ *  to_name/html_content columns) so there's something to resend. Rows queued
+ *  before that migration ran have no html_content and are marked 'skipped'
+ *  instead of being silently marked 'sent' without ever going out. */
 export async function processQueuedEmails() {
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) return { processed: 0, skipped: 0, reason: "BREVO_API_KEY not set" };
+
   const limit = await getEmailDailyLimit();
   const todayCount = await getTodayEmailCount();
   const remaining = limit - todayCount;
-  if (remaining <= 0) return { processed: 0 };
+  if (remaining <= 0) return { processed: 0, skipped: 0 };
 
-  const queued = await q<{ id: string; recipient: string; subject: string }>(
-    `SELECT id, recipient, subject FROM email_send_log
+  const queued = await q<{ id: string; recipient: string; subject: string; to_name: string | null; html_content: string | null }>(
+    `SELECT id, recipient, subject, to_name, html_content FROM email_send_log
      WHERE status = 'queued' ORDER BY created_at ASC LIMIT $1`,
     [remaining]
   );
-  if (!queued.length) return { processed: 0 };
+  if (!queued.length) return { processed: 0, skipped: 0 };
 
   let processed = 0;
+  let skipped = 0;
   for (const row of queued) {
-    // Mark as sent — actual re-send logic can be added per template
-    await q(`UPDATE email_send_log SET status = 'sent' WHERE id = $1`, [row.id]);
-    processed++;
+    if (!row.html_content) {
+      // Nothing to resend (queued before content was captured) — don't lie about it
+      await q(`UPDATE email_send_log SET status = 'skipped' WHERE id = $1`, [row.id]);
+      skipped++;
+      continue;
+    }
+    const result = await sendBrevoEmail({
+      to: row.recipient,
+      toName: row.to_name || undefined,
+      subject: row.subject,
+      htmlContent: row.html_content,
+      bypassWarmup: true, // already counted against the limit when originally queued
+      skipLogOnSuccess: true, // we update this row's status directly below instead of double-logging
+    });
+    if (result.ok) {
+      await q(`UPDATE email_send_log SET status = 'sent' WHERE id = $1`, [row.id]);
+      processed++;
+    }
+    // On failure, leave status = 'queued' so the next cron run retries it.
+    // sendBrevoEmail() already alerts the admin via Telegram on failure.
   }
-  return { processed };
+  return { processed, skipped };
 }
 
 // ─── Email HTML Templates ───────────────────────────────────────────────────

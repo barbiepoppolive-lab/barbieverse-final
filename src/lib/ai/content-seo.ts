@@ -5,7 +5,12 @@ import { aiContent } from "./router";
 
 // ── Types ──────────────────────────────────────────────
 
-export type Platform = "instagram" | "twitter" | "linkedin" | "facebook" | "youtube" | "tiktok";
+// "moj" belongs here because generateSocialPost() has supported Moj as a
+// target for a while and passes the platform straight through to the SEO
+// enricher — it just never type-checked, so the call site was silently
+// widening. Moj is India-first short video, so its limits/timings mirror
+// TikTok rather than Instagram.
+export type Platform = "instagram" | "twitter" | "linkedin" | "facebook" | "youtube" | "tiktok" | "moj";
 
 export interface SEOData {
   meta_title: string;
@@ -46,6 +51,7 @@ const PLATFORM_LIMITS: Record<Platform, number> = {
   facebook: 3,
   youtube: 15,
   tiktok: 5,
+  moj: 8,
 };
 
 // ── Branded Hashtags ────────────────────────────────────
@@ -286,6 +292,12 @@ export function getBestPostingTimes(platform: Platform): { time: string; label: 
       { time: "07:00", label: "Early Morning (7 AM IST)" },
       { time: "12:00", label: "Lunch (12 PM IST)" },
       { time: "19:00", label: "Evening (7 PM IST)" },
+    ],
+    // Moj skews to post-work and late-night viewing in tier-2/3 India
+    moj: [
+      { time: "13:00", label: "Lunch (1 PM IST)" },
+      { time: "20:00", label: "Evening (8 PM IST)" },
+      { time: "22:30", label: "Late Night (10:30 PM IST)" },
     ],
   };
 

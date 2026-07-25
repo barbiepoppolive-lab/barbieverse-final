@@ -62,18 +62,24 @@ export async function searchTikTok(
     }
 
     for (const item of items) {
-      const videoUrl = item.video?.playAddr || item.webVideoUrl || "";
+      // item.video.playAddr is a raw CDN .mp4 — putting that in postUrl made
+      // "Open" download the video instead of loading the post, which made it
+      // impossible to actually comment. Only webVideoUrl is a real page, so
+      // prefer it and construct a page URL otherwise. playAddr is kept in
+      // `raw` for anyone who genuinely wants the media file.
+      const webUrl = item.webVideoUrl || "";
       const authorUrl = item.author?.url || "";
       const authorId = item.author?.id || item.authorId || "";
+      const handle = item.author?.uniqueId || item.author?.username || authorId;
       const authorName = item.author?.nickname || item.author?.name || "Unknown";
 
       posts.push({
         platform: "tiktok",
-        postUrl: videoUrl || `https://tiktok.com/@${authorId}/video/${item.id}`,
+        postUrl: webUrl || (handle && item.id ? `https://www.tiktok.com/@${handle}/video/${item.id}` : `https://www.tiktok.com/@${handle}`),
         postText: item.desc || item.text || "",
         authorName,
-        authorUsername: item.author?.uniqueId || item.author?.username || authorId,
-        authorProfileUrl: authorUrl || `https://tiktok.com/@${authorId}`,
+        authorUsername: handle,
+        authorProfileUrl: authorUrl || `https://www.tiktok.com/@${handle}`,
         keywordMatched: keyword,
         likes: item.stats?.diggCount || item.likes || 0,
         comments: item.stats?.commentCount || item.comments || 0,

@@ -1,6 +1,16 @@
 // Social Media Monitor — Type definitions
 
+// Platforms we actively POLL. Every Record<SocialPlatform, …> in this
+// codebase (intervals, enabled flags, per-platform counters) is keyed off
+// this, so it must stay limited to things that are actually scraped on a
+// schedule.
 export type SocialPlatform = "facebook" | "reddit" | "twitter" | "youtube" | "instagram" | "tiktok" | "moj";
+
+// Telegram host-group leads arrive by PUSH via the bot webhook — there's
+// nothing to poll and no interval to configure — so telegram is deliberately
+// not a SocialPlatform. This wider type is for anything that reads stored
+// leads (admin UI, reporting) where telegram rows do show up.
+export type LeadSourcePlatform = SocialPlatform | "telegram";
 
 export type PostCategory = "hot" | "warm" | "cold";
 
@@ -9,7 +19,10 @@ export type PostStatus =
   | "ai_reviewed"
   | "commented"
   | "skipped"
-  | "expired";
+  | "expired"
+  /** Moj creator with no contact published in their bio — worked by hand
+   *  inside the Moj app from the Telegram comment queue. */
+  | "queued_manual";
 
 export interface SocialPost {
   platform: SocialPlatform;
@@ -90,7 +103,15 @@ export const DEFAULT_MONITOR_CONFIG: MonitorConfig = {
   tiktokQueries: [],
   mojQueries: [],
   maxResultsPerPlatform: 20,
-  minEngagement: 2,
+  // A post with 0-2 likes/comments isn't necessarily low-quality — someone
+  // sincerely posting "need money, looking for work" or "unemployed, any
+  // job" almost never goes viral. Those are often the *best* leads (genuine
+  // need, no competing agencies already in their comments), so filtering
+  // them out by engagement was quietly discarding the highest-intent posts.
+  // The AI categorizer (hot/warm/cold) is a better quality gate than raw
+  // engagement. Override via scraper_min_engagement in /admin/scraper if
+  // spam volume becomes a problem.
+  minEngagement: 0,
   platformIntervals: {
     youtube: 0.5,
     twitter: 0.5,

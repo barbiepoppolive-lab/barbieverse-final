@@ -47,7 +47,7 @@ function aiGenerate(prompt: string, systemPrompt: string, provider: ProviderChoi
 
 // ── Types ──────────────────────────────────────────────
 
-export type ContentPlatform = "instagram" | "twitter" | "linkedin" | "facebook" | "youtube";
+export type ContentPlatform = "instagram" | "twitter" | "linkedin" | "facebook" | "youtube" | "moj";
 
 export type ContentType =
   | "carousel"
@@ -147,6 +147,44 @@ CONTENT RULES:
 
 const BRAND_AESTHETIC = `BarbieVerse brand aesthetic: luxurious pink and black color palette, rose gold accents, cinematic lighting with soft bokeh, glamorous and feminine, professional studio quality, 8K ultra-detailed, dramatic lighting, elegant typography space, shallow depth of field, editorial fashion photography style, high-end beauty magazine quality, sparkle and shimmer effects, royal crown motifs, dark moody backgrounds with pink neon glow, premium luxury feel, photorealistic, hyperdetailed skin texture, studio ring light reflection in eyes, magazine cover quality`;
 
+// ── Moj Recruitment Voice (Hinglish, music-synced, drives to Poppo/Vone) ──
+
+// Path was "../creator-config", which resolves to src/lib/ai/creator-config —
+// a file that doesn't exist. The real module is src/lib/creator-config.ts,
+// two levels up from src/lib/ai/modules/. This broke the whole build, so
+// nothing would have deployed regardless of what else was committed.
+import { POPPO_REFERRAL_URL, VONE_REFERRAL_URL } from "@/lib/creator-config";
+
+const MOJ_RECRUITMENT_VOICE = `You are the AI Brand Manager for BarbieVerse — a creator economy platform that helps young Indian creators earn real money through live streaming on Poppo Live and Vone Live.
+
+BRAND PERSONALITY:
+- Empowering, not preachy — you lift people up
+- Fun, not childish — playful energy with substance
+- Authentic, not polished — real talk beats corporate speak
+- Helpful, not salesy — value first, promote second
+- Direct, not aggressive
+
+TARGET AUDIENCE (Moj users):
+- Young Indian creators (18-30) who already create short videos on Moj
+- Hindi/regional + English mix (Hinglish) preferred — write like they actually talk
+- Want real income, skeptical of scams
+- Respond to music-synced hooks, local references, relatable faces
+
+CONTENT RULES (Moj):
+1. HOOK FIRST in Hinglish — first line must stop the scroll (curiosity, shock, or a bold number)
+2. 80% value, 20% promotion
+3. Use specific numbers (e.g. "₹0 se ₹12,000/month")
+4. Short, punchy lines — Moj is vertical, fast, mobile
+5. Music-sync note: hooks should feel like they belong over a trending track
+6. NEVER use corporate words: leverage, synergy, unlock, gamify, disruptive
+7. End EVERY post with a clear CTA linking to Poppo Live or Vone Live
+8. Always sound like a real Indian creator, not a brand
+
+REFERRAL CTA (use in caption + last slide):
+- Poppo Live: ${POPPO_REFERRAL_URL}
+- Vone Live: ${VONE_REFERRAL_URL}
+- Example CTA: "Link bio mein hai 👇 Poppo/Vone join karo aaj hi!"`;
+
 // ── SEO Enrichment Helper ──────────────────────────────
 
 async function enrichWithSEO(
@@ -177,26 +215,35 @@ export async function generateCarousel(input: {
   topic: string;
   slides?: number;
   style?: "educational" | "storytelling" | "listicle" | "tips";
+  platform?: ContentPlatform;
   provider?: ProviderChoice;
   withAudio?: boolean;
 }): Promise<CarouselWithAudio> {
   const numSlides = input.slides || 7;
   const style = input.style || "educational";
   const provider = input.provider || "free";
+  const platform = input.platform || "instagram";
+  const isMoj = platform === "moj";
+
+  const systemPrompt = isMoj ? MOJ_RECRUITMENT_VOICE : BRAND_VOICE;
+
+  const mojExtra = isMoj
+    ? `\n\nPLATFORM: Moj (vertical 9:16 short-video app, Indian audience).\nLANGUAGE: Hinglish (Hindi + English mix) — write headlines and body in Hinglish.\nFORMAT: 9:16 vertical images. Final slide CTA must include Poppo Live / Vone Live referral link.\nMUSIC-SYNC: hook should feel like it belongs over a trending track.`
+    : "";
 
   const result = await aiGenerate(
-    `Create an Instagram carousel post about: ${input.topic}
-
+    `Create a${isMoj ? " Moj" : "n Instagram"} carousel post about: ${input.topic}
+${mojExtra}
 STYLE: ${style}
 NUMBER OF SLIDES: ${numSlides}
 
 REQUIREMENTS:
 - Slide 1: Bold hook headline + short subtitle (this is the cover) — this MUST have a caption/text overlay described in image_prompt
 - Slides 2-${numSlides - 1}: One key point per slide with headline + 1-2 sentences
-- Last slide: Strong CTA slide with brand handle @barbieverse
+- Last slide: Strong CTA slide with BarbieVerse handle + Poppo/Vone referral link
 - Each slide needs a VISUAL image description for AI image generation
-- Keep text minimal — Instagram carousels work best with 30-50 words per slide
-- Write in a conversational, empowering tone
+- Keep text minimal — ${isMoj ? "Moj" : "Instagram"} carousels work best with 20-40 words per slide
+- Write in a conversational, empowering${isMoj ? " Hinglish" : ""} tone
 - EVERY image_prompt MUST describe a pink/black/gold color palette, cinematic lighting, and professional quality
 - The first slide image_prompt must describe a bold, eye-catching cover with text space
 
@@ -210,10 +257,10 @@ Return EXACTLY this JSON:
       "image_prompt": "detailed scene description — pink and black color palette, rose gold accents, cinematic studio lighting, glamorous, 8K quality, editorial photography, professional, text overlay space for headline"
     }
   ],
-  "caption": "Instagram caption for this carousel",
+  "caption": "${isMoj ? "Moj" : "Instagram"} caption for this carousel",
   "hashtags": ["relevant", "hashtags"]
 }`,
-    BRAND_VOICE,
+    systemPrompt,
     provider
   );
 
@@ -228,26 +275,17 @@ Return EXACTLY this JSON:
     hashtags: parsed.hashtags || [],
   };
 
-  // Generate images for each slide
+  // Generate images for each slide (ComfyUI for Moj, free local)
   if (carousel.slides.length > 0) {
     try {
       for (let i = 0; i < carousel.slides.length; i++) {
         const slide = carousel.slides[i];
         if (slide.image_prompt) {
-          slide.image_url = await generateContentImage(slide.image_prompt, "instagram", "carousel");
+          slide.image_url = await generateContentImage(slide.image_prompt, platform, "carousel");
         }
       }
     } catch (err) {
       console.error("[BrandManager] Slide image generation failed:", err);
-    }
-  }
-
-  // Generate audio narration if requested
-  if (input.withAudio && carousel.slides.length > 0) {
-    try {
-      // Audio generated server-side via API route
-    } catch (err) {
-      console.error("[BrandManager] Audio generation failed:", err);
     }
   }
 
@@ -256,14 +294,14 @@ Return EXACTLY this JSON:
     carousel.music = await recommendMusic({
       contentType: "carousel",
       topic: input.topic,
-      platform: "instagram",
+      platform: isMoj ? "moj" : "instagram",
     });
   } catch (err) {
     console.error("[BrandManager] Music recommendation failed:", err);
   }
 
   // Enrich with SEO data
-  return enrichWithSEO(carousel, carousel.title, input.topic, "instagram", "carousel");
+  return enrichWithSEO(carousel, carousel.title, input.topic, isMoj ? "moj" : "instagram", "carousel");
 }
 
 // ── Reel Script Generator ──────────────────────────────
@@ -638,7 +676,7 @@ export async function generateContentImage(
 
   if (type === "story") size = "story";
   else if (type === "thumbnail") size = "thumbnail";
-  else if (type === "carousel") size = "carousel";
+  else if (type === "carousel") size = platform === "moj" ? "story" : "carousel";
   else if (platform === "twitter") size = "landscape";
   else if (platform === "linkedin") size = "landscape";
   else if (platform === "youtube") size = "thumbnail";

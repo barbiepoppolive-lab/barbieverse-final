@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/routes/api/public/cron-scrape.ts"
+  ]
+}

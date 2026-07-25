@@ -19,6 +19,9 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/join", changefreq: "weekly", priority: "0.9" },
           { path: "/coins", changefreq: "weekly", priority: "0.9" },
           { path: "/earnings", changefreq: "monthly", priority: "0.8" },
+          // High priority: nobody in India ranks for verified Poppo host
+          // results, and this is the page that answers "is this a scam".
+          { path: "/proof", changefreq: "monthly", priority: "0.9" },
           { path: "/blog", changefreq: "weekly", priority: "0.8" },
           { path: "/blog/how-to-earn-money-on-poppo-live-india", changefreq: "monthly", priority: "0.8", lastmod: "2026-06-15" },
           { path: "/academy", changefreq: "monthly", priority: "0.9" },
@@ -38,7 +41,26 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/recharge-policy", changefreq: "yearly", priority: "0.4" },
         ];
 
-        const entries = [...staticEntries];
+        // Dynamic blog posts (DB-backed, via /blog/$slug) — best-effort, never fails the sitemap
+        let postEntries: SitemapEntry[] = [];
+        try {
+          const { q } = await import("@/lib/db.server");
+          const posts = await q<{ slug: string; created_at: string }>(
+            `SELECT slug, created_at FROM posts WHERE published = true ORDER BY created_at DESC LIMIT 500`,
+          );
+          postEntries = posts
+            .filter((p) => p.slug !== "how-to-earn-money-on-poppo-live-india") // already listed as a static route above
+            .map((p) => ({
+              path: `/blog/${p.slug}`,
+              changefreq: "monthly" as const,
+              priority: "0.7",
+              lastmod: new Date(p.created_at).toISOString().slice(0, 10),
+            }));
+        } catch (err) {
+          console.error("[sitemap] Failed to load posts for sitemap:", err);
+        }
+
+        const entries = [...staticEntries, ...postEntries];
         const urls = entries.map((e) =>
           [
             `  <url>`,

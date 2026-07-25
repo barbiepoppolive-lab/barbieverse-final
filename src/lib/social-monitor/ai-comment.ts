@@ -132,12 +132,55 @@ Return ONLY this JSON, nothing else:
   "tier": "new|growing|established"
 }`;
 
+// ── Style variety ───────────────────────────────────────
+// Same system prompt + same task, called dozens of times a day, tends to
+// converge on near-identical phrasing from the model ("yeah i've been
+// streaming for X months, decent income" over and over). That's the exact
+// pattern that makes a real person start noticing "wait, everyone commenting
+// this stuff sounds the same." Nudge each call toward a different register
+// so the output distribution is actually varied, not just the words.
+const STYLE_HINTS = [
+  "Lead with a genuine question back to them, not a statement about yourself.",
+  "Keep it almost dismissive/lowkey — like you don't care much either way.",
+  "Mention one specific number (amount, days, hours) instead of speaking generally.",
+  "Sound a little unsure/humble about it, not confident.",
+  "React to something specific in their post before saying anything about streaming.",
+  "Keep it extremely short — under 8 words if the post doesn't call for more.",
+];
+
+function pickStyleHint(): string {
+  return STYLE_HINTS[Math.floor(Math.random() * STYLE_HINTS.length)];
+}
+
+// ── Robust JSON extraction ──────────────────────────────
+// A single regex match on the first `{` to the last `}` breaks the moment a
+// model wraps its answer in a code fence or adds a sentence before/after the
+// JSON (common on weaker fallback models). Try a few progressively looser
+// strategies before giving up.
+function extractJson(text: string): any | null {
+  const attempts = [
+    text.trim(),
+    text.replace(/```json\s*|```\s*/g, "").trim(),
+    text.match(/\{[\s\S]*\}/)?.[0],
+  ].filter(Boolean) as string[];
+
+  for (const candidate of attempts) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
 export async function generateComment(
   postText: string,
   platform: string,
   authorName: string,
   subreddit?: string,
-  groupName?: string
+  groupName?: string,
+  recentComments?: string[]
 ): Promise<GeneratedComment> {
   const context = [
     `Platform: ${platform}`,
@@ -149,16 +192,21 @@ export async function generateComment(
     .filter(Boolean)
     .join("\n");
 
+  const recentBlock = recentComments && recentComments.length > 0
+    ? `\n\nRecently used comments (do NOT reuse this phrasing or structure — write something that reads differently from all of these):\n${recentComments.slice(0, 8).map((c) => `- "${c}"`).join("\n")}`
+    : "";
+
   const prompt = `Write a short comment (1-3 sentences) for this post. Sound like a real person, not a bot.
 
-${context}`;
+STYLE FOR THIS ONE: ${pickStyleHint()}
+
+${context}${recentBlock}`;
 
   try {
     const result = await aiChat(prompt, { systemPrompt: SYSTEM_PROMPT });
 
-    const jsonMatch = result.text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = extractJson(result.text);
+    if (parsed) {
       return {
         comment: parsed.comment || "",
         confidence: Math.min(1, Math.max(0, parsed.confidence || 0.5)),

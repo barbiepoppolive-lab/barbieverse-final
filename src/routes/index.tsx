@@ -2,13 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { FaqAccordion } from "@/components/ui/FaqAccordion";
-import { TestimonialsCarousel } from "@/components/TestimonialsCarousel";
 import { PremiumButton } from "@/components/ui/PremiumButton";
 import { ArrowRight, Crown, ChevronDown, Gem } from "lucide-react";
 import { getPublicSettings, localizedSetting } from "@/lib/api/settings.functions";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import founderPortrait from "@/assets/founder-portrait.jpg.asset.json";
 import { AutoCarousel } from "@/components/carousel/AutoCarousel";
+import { TestimonialsCarousel } from "@/components/TestimonialsCarousel";
+import { ProofSection } from "@/components/ProofSection";
 import { LiveCreatorCounter } from "@/components/LiveCreatorCounter";
 import { ParticleCanvas } from "@/components/ParticleCanvas";
 import { FireFlames } from "@/components/FireFlames";
@@ -248,6 +249,12 @@ function HomePage() {
       )}
 
       <HeroSection settings={settings} />
+
+      {/* Sits immediately after the hero on purpose: the hero's credentials
+          card asserts "Wealth Level 154 — HIGHEST WORLDWIDE", and an
+          unbacked claim is where a cold visitor's scepticism starts. Proof
+          lands before they've had time to doubt it. */}
+      <ProofSection />
 
       <section className="container mx-auto px-4 py-14 sm:py-20">
         <Reveal variant="fade-up" className="mx-auto mb-10 max-w-2xl text-center">

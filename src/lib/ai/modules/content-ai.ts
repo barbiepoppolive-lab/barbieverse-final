@@ -107,7 +107,7 @@ Return EXACTLY this JSON:
 // ── Social Post Generation ─────────────────────────────
 
 export async function generateSocialPost(input: {
-  platform: "instagram" | "twitter" | "linkedin" | "facebook";
+  platform: "instagram" | "twitter" | "linkedin" | "facebook" | "moj" | "youtube";
   topic: string;
   goal?: "engagement" | "traffic" | "sales" | "awareness";
   withAudio?: boolean;
@@ -120,6 +120,8 @@ Platform rules:
 - Twitter: punchy, under 280 chars, threads for complex topics, hashtags optional
 - LinkedIn: professional, storytelling, 1300 char sweet spot, no hashtags in body
 - Facebook: conversational, longer form OK, questions drive engagement
+- Moj: short-video caption for India, Hinglish is natural and expected, hook in first line, casual not corporate, 5-8 hashtags
+- YouTube: first line doubles as the video title (keep it under 100 chars, front-load the hook/keyword), rest of the caption reads as the description, 3-6 hashtags at the end
 
 Brand voice: Empowering, authentic, helpful. Young Indian creators audience.`;
 
