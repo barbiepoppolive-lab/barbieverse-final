@@ -37,8 +37,19 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   });
 }
 
+let schedulerStarted = false;
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    if (!schedulerStarted) {
+      schedulerStarted = true;
+      import("./lib/automation/scheduler").then(({ startScheduler }) => {
+        startScheduler();
+      }).catch((err: unknown) => {
+        console.error("[server] Failed to start scheduler:", err);
+      });
+    }
+
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);

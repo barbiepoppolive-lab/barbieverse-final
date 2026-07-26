@@ -8,7 +8,7 @@ import {
   type GenerateImageInput,
   type GenerateImageResult,
 } from "./comfyui";
-import { generateImageUrl, downloadImage, SIZES } from "./providers/pollinations";
+import { generateImageUrl, SIZES } from "./providers/pollinations";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -108,12 +108,8 @@ async function generateViaPollinations(
     enhance: true,
   });
 
-  // Download the image
-  const buffer = await downloadImage(result.url);
-
   return {
     url: result.url,
-    buffer,
     width: result.width,
     height: result.height,
     provider: "pollinations",

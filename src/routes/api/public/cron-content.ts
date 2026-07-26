@@ -166,8 +166,8 @@ async function sendAlert(text: string) {
 export const Route = createFileRoute("/api/public/cron-content")({
   server: {
     handlers: {
-      GET: async ({ request }) => handleCron(request),
-      POST: async ({ request }) => handleCron(request),
+      GET: async ({ request }) => handleCronRequest(request),
+      POST: async ({ request }) => handleCronRequest(request),
     },
   },
 });
@@ -186,13 +186,16 @@ function calendarStatusFor(status: string): "published" | "scheduled" | "failed"
   return "failed"; // needs_review, skipped, or an actual failure — all mean "didn't go out clean today"
 }
 
-async function handleCron(request: Request): Promise<Response> {
+async function handleCronRequest(request: Request): Promise<Response> {
   const secret = request.headers.get("x-cron-secret");
   const expectedSecret = process.env.CRON_SECRET;
   if (!expectedSecret || secret !== expectedSecret) {
     return new Response("Unauthorized", { status: 401 });
   }
+  return runContentCron(secret!);
+}
 
+export async function runContentCron(secret: string): Promise<Response> {
   try {
     const calendarRows = await getTodaysCalendarRows();
 

@@ -48,25 +48,28 @@ export const Route = createFileRoute("/api/public/cron-scrape")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        return handleCron(request);
+        return handleCronRequest(request);
       },
       POST: async ({ request }) => {
-        return handleCron(request);
+        return handleCronRequest(request);
       },
     },
   },
 });
 
-async function handleCron(request: Request): Promise<Response> {
-  const startTime = Date.now();
-
-  // Verify cron secret
+async function handleCronRequest(request: Request): Promise<Response> {
   const secret = request.headers.get("x-cron-secret");
   const expectedSecret = process.env.CRON_SECRET;
 
   if (!expectedSecret || secret !== expectedSecret) {
     return new Response("Unauthorized", { status: 401 });
   }
+
+  return runScrapeCron();
+}
+
+export async function runScrapeCron(): Promise<Response> {
+  const startTime = Date.now();
 
   // Reject if a run is already in progress (unless the previous lock is stale)
   if (cronRunInProgress && Date.now() - cronRunStartedAt < LOCK_STALE_MS) {
