@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { pool } from "@/lib/db.server";
-import type { SocialLead, SocialPlatform, PostCategory, PostStatus } from "@/lib/social-monitor/types";
+import type { SocialLead } from "@/lib/social-monitor/types";
 
 async function requireAdmin() {
   const { requireAdmin: requireAdminSession } = await import("@/lib/admin-session.server");
@@ -13,14 +13,18 @@ async function q(text: string, params: any[] = []) {
   return res.rows;
 }
 
-export const listSocialLeads = createServerFn({ validator: z.object({
+const listLeadsSchema = z.object({
   platform: z.enum(["facebook", "reddit", "twitter", "youtube", "instagram", "tiktok", "moj", "telegram"]).optional(),
   category: z.enum(["hot", "warm", "cold"]).optional(),
   status: z.enum(["discovered", "ai_reviewed", "commented", "replied", "dismissed"]).optional(),
   sort: z.enum(["date", "score", "category"]).optional(),
   page: z.number().optional(),
   limit: z.number().optional(),
-})}).handler(async ({ data }) => {
+});
+
+export const listSocialLeads = createServerFn({ method: "GET" })
+  .validator(listLeadsSchema)
+  .handler(async ({ data }) => {
   await requireAdmin();
 
   const page = data.page || 1;
@@ -64,30 +68,30 @@ export const listSocialLeads = createServerFn({ validator: z.object({
   };
 });
 
-export const updateSocialLeadStatus = createServerFn({ validator: z.object({
-  leadId: z.string(),
-  status: z.enum(["discovered", "ai_reviewed", "commented", "replied", "dismissed"]),
-})}).handler(async ({ data }) => {
-  await requireAdmin();
+export const updateSocialLeadStatus = createServerFn({ method: "POST" })
+  .validator(z.object({
+    leadId: z.string(),
+    status: z.enum(["discovered", "ai_reviewed", "commented", "replied", "dismissed"]).default("ai_reviewed"),
+  }))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    await q(
+      `UPDATE social_leads SET status = $1, commented_at = CASE WHEN $1 = 'commented' THEN now() ELSE commented_at END WHERE id = $2`,
+      [data.status, data.leadId]
+    );
+    return { ok: true };
+  });
 
-  await q(
-    `UPDATE social_leads SET status = $1, commented_at = CASE WHEN $1 = 'commented' THEN now() ELSE commented_at END WHERE id = $2`,
-    [data.status, data.leadId]
-  );
-
-  return { ok: true };
-});
-
-export const runSocialMonitor = createServerFn().handler(async () => {
+export const runSocialMonitor = createServerFn({ method: "POST" }).handler(async () => {
   await requireAdmin();
   const { monitorAllPlatforms } = await import("@/lib/social-monitor/index");
   return monitorAllPlatforms();
 });
 
-export const getSocialLeadStats = createServerFn().handler(async () => {
+export const getSocialLeadStats = createServerFn({ method: "GET" }).handler(async () => {
   await requireAdmin();
 
-  const [total, byCategory, byStatus, byPlatform] = await Promise.all([
+  const [totalResult, byCategory, byStatus, byPlatform] = await Promise.all([
     q(`SELECT count(*) as count FROM social_leads`, []),
     q(`SELECT ai_category, count(*) as count FROM social_leads GROUP BY ai_category`, []),
     q(`SELECT status, count(*) as count FROM social_leads GROUP BY status`, []),
@@ -99,7 +103,7 @@ export const getSocialLeadStats = createServerFn().handler(async () => {
   const platMap = Object.fromEntries(byPlatform.map((r: any) => [r.platform, Number(r.count)]));
 
   return {
-    total: Number(total[0]?.count || 0),
+    total: Number(totalResult[0]?.count || 0),
     hot: catMap.hot || 0,
     warm: catMap.warm || 0,
     cold: catMap.cold || 0,

@@ -18,7 +18,7 @@ export type VideoModel =
   | "wan-2.7"
   | "wan-2.6";
 
-export type AspectRatio = "16:9" | "9:16" | "1:1" | "4:3" | "3:4";
+export type AspectRatio = "16:9" | "9:16" | "1:1" | "4:3" | "3:4" | "21:9";
 
 export type VideoStatus = "pending" | "processing" | "completed" | "failed";
 

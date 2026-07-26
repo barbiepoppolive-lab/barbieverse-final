@@ -1,33 +1,21 @@
-// LinkedIn Organization Page Publishing — official LinkedIn Posts API,
-// posts to YOUR OWN company page. Same "post your own content to your own
-// account" category as Facebook/Instagram/YouTube — legitimate, ToS-
-// compliant automation, no scraping or engaging with other people's content
-// involved (that's a different, riskier category — see src/lib/social-monitor).
+// LinkedIn Organization Page Publishing via Postiz Cloud
+// Routes through Postiz Public API instead of calling LinkedIn's REST API
+// directly. Postiz uses __type "linkedin-page" for company page posts
+// (not plain "linkedin", which targets personal profiles).
 //
-// Realistic access note — read this before assuming this "just works" like
-// Facebook/Instagram do: posting to an ORGANIZATION page needs the
-// "Community Management API" product approved on a LinkedIn Developer app.
-// Signing in with LinkedIn (basic OAuth) is NOT enough on its own — you
-// specifically need w_organization_social granted, which means:
-// 1. Create an app at https://www.linkedin.com/developers/apps
-// 2. Add yourself as an admin of the Barbieverse Company Page, and verify
-//    the app is associated with that page (Settings tab on the app).
-// 3. Request the "Community Management API" product. LinkedIn reviews this
-//    manually — approval for a small/new agency is NOT guaranteed the way
-//    Meta's basic testing access is. Budget for a real chance of rejection
-//    or a multi-week wait, not a same-day green light.
-// 4. Once approved, generate an access token with w_organization_social
-//    scope via the standard OAuth 2.0 3-legged flow, and find your
-//    organization's numeric ID (Company Page → Admin tools → shows in URL,
-//    or GET /rest/organizationAcls).
-// 5. Set LINKEDIN_ORGANIZATION_ID and LINKEDIN_ACCESS_TOKEN.
+// The user connects their LinkedIn Company Page through Postiz's own OAuth
+// flow, then hands us the integration ID from GET /integrations.
 //
-// Until that's approved, isLinkedInConfigured() returns false and the
-// orchestrator (index.ts) routes LinkedIn content to Telegram for manual
-// posting instead — same honest fallback pattern as Moj.
+// Falls back to Telegram manual-delivery when Postiz isn't configured,
+// matching the existing fallback pattern from the original implementation
+// (Community Management API access was never granted).
+//
+// Env vars:
+//   POSTIZ_API_KEY — from Postiz dashboard, Settings > Developers > Public API
+//   LINKEDIN_INTEGRATION_ID — from GET /integrations after connecting the Company Page
 
-const API_BASE = "https://api.linkedin.com/rest";
-const LINKEDIN_API_VERSION = "202506"; // LinkedIn requires a versioned header; bump periodically per their release notes
+const POSTIZ_BASE =
+  process.env.POSTIZ_BASE_URL?.replace(/\/+$/, "") || "https://api.postiz.com/public/v1";
 
 export interface LinkedInPublishResult {
   ok: boolean;
@@ -35,137 +23,106 @@ export interface LinkedInPublishResult {
   error?: string;
 }
 
-function getConfig(): { orgId: string; token: string } | null {
-  const orgId = process.env.LINKEDIN_ORGANIZATION_ID;
-  const token = process.env.LINKEDIN_ACCESS_TOKEN;
-  if (!orgId || !token) return null;
-  return { orgId, token };
+function getConfig(): { apiKey: string; integrationId: string } | null {
+  const apiKey = process.env.POSTIZ_API_KEY;
+  const integrationId = process.env.LINKEDIN_INTEGRATION_ID;
+  if (!apiKey || !integrationId) return null;
+  return { apiKey, integrationId };
 }
 
 export function isLinkedInConfigured(): boolean {
   return getConfig() !== null;
 }
 
-function authorUrn(orgId: string): string {
-  return `urn:li:organization:${orgId}`;
-}
-
-const commonHeaders = (token: string) => ({
-  Authorization: `Bearer ${token}`,
-  "Content-Type": "application/json",
-  "LinkedIn-Version": LINKEDIN_API_VERSION,
-  "X-Restli-Protocol-Version": "2.0.0",
-});
-
-/**
- * Upload an image to LinkedIn's media store and return its URN, so it can
- * be attached to a post. Two-step like Instagram's container flow: register
- * the upload (get a pre-signed URL), then PUT the bytes to it.
- */
-async function uploadImage(opts: { imageUrl: string; orgId: string; token: string }): Promise<{ urn?: string; error?: string }> {
+async function uploadImage(apiKey: string, imageUrl: string): Promise<{ id: string; path: string } | { error: string }> {
   try {
-    const initRes = await fetch(`${API_BASE}/images?action=initializeUpload`, {
+    const imageRes = await fetch(imageUrl);
+    if (!imageRes.ok) return { error: `Failed to fetch source image (HTTP ${imageRes.status})` };
+    const blob = await imageRes.blob();
+    const formData = new FormData();
+    formData.append("file", blob, "post-image.jpg");
+    const uploadRes = await fetch(`${POSTIZ_BASE}/upload`, {
       method: "POST",
-      headers: commonHeaders(opts.token),
-      body: JSON.stringify({
-        initializeUploadRequest: { owner: authorUrn(opts.orgId) },
-      }),
+      headers: { Authorization: apiKey },
+      body: formData,
     });
-    const initData = await initRes.json();
-    const uploadUrl = initData?.value?.uploadUrl;
-    const imageUrn = initData?.value?.image;
-    if (!initRes.ok || !uploadUrl || !imageUrn) {
-      return { error: initData?.message || "Failed to initialize LinkedIn image upload" };
-    }
-
-    const imageRes = await fetch(opts.imageUrl);
-    if (!imageRes.ok) {
-      return { error: `Failed to fetch source image (HTTP ${imageRes.status})` };
-    }
-    const imageBuffer = await imageRes.arrayBuffer();
-
-    const putRes = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${opts.token}` },
-      body: imageBuffer,
-    });
-    if (!putRes.ok) {
-      return { error: `Image upload PUT failed (HTTP ${putRes.status})` };
-    }
-
-    return { urn: imageUrn };
+    const uploadData = await uploadRes.json();
+    if (!uploadRes.ok) return { error: uploadData?.error || `Upload failed (HTTP ${uploadRes.status})` };
+    return { id: uploadData.id, path: uploadData.path };
   } catch (e: any) {
-    return { error: e?.message || "unknown error uploading image to LinkedIn" };
+    return { error: e?.message || "unknown error uploading image" };
   }
 }
 
 /**
- * Publish a text post, optionally with a single image, to the configured
- * organization page.
+ * Publish a text post, optionally with a single image, via Postiz to
+ * the LinkedIn Company Page.
  */
 export async function publishToLinkedIn(opts: {
   text: string;
   imageUrl?: string;
+  imageUrls?: string[];
+  carouselName?: string;
 }): Promise<LinkedInPublishResult> {
   const config = getConfig();
   if (!config) {
-    return { ok: false, error: "LINKEDIN_ORGANIZATION_ID / LINKEDIN_ACCESS_TOKEN not configured" };
+    return { ok: false, error: "POSTIZ_API_KEY / LINKEDIN_INTEGRATION_ID not configured" };
+  }
+
+  const urls = opts.imageUrls && opts.imageUrls.length > 0 ? opts.imageUrls : opts.imageUrl ? [opts.imageUrl] : [];
+  const images: { id: string; path: string }[] = [];
+  for (const url of urls) {
+    const result = await uploadImage(config.apiKey, url);
+    if ("error" in result) {
+      console.warn("[linkedin] image upload failed via Postiz, continuing with fewer images:", result.error);
+    } else {
+      images.push(result);
+    }
   }
 
   try {
-    let media: { id: string } | undefined;
-    if (opts.imageUrl) {
-      const { urn, error } = await uploadImage({ imageUrl: opts.imageUrl, orgId: config.orgId, token: config.token });
-      if (error || !urn) {
-        // Image upload failing shouldn't block a text post from going out —
-        // degrade to text-only rather than failing the whole publish.
-        console.warn("[linkedin] image upload failed, posting text-only:", error);
-      } else {
-        media = { id: urn };
-      }
-    }
-
+    // 2+ images with post_as_images_carousel:true renders as a swipeable
+    // carousel (per docs.postiz.com/public-api/providers/linkedin) instead
+    // of the default collage layout — this is how brand-manager.ts's
+    // generated carousel slides become an actual LinkedIn carousel post.
+    const isCarousel = images.length > 1;
     const body: Record<string, unknown> = {
-      author: authorUrn(config.orgId),
-      commentary: opts.text,
-      visibility: "PUBLIC",
-      distribution: {
-        feedDistribution: "MAIN_FEED",
-        targetEntities: [],
-        thirdPartyDistributionChannels: [],
-      },
-      lifecycleState: "PUBLISHED",
-      isReshareDisabledByAuthor: false,
+      type: "now",
+      posts: [{
+        integration: { id: config.integrationId },
+        value: [{
+          content: opts.text,
+          image: images.map((img) => ({ id: img.id, path: img.path })),
+        }],
+        settings: {
+          __type: "linkedin-page",
+          ...(isCarousel ? { post_as_images_carousel: true, carousel_name: opts.carouselName || "Barbieverse" } : {}),
+        },
+      }],
     };
-    if (media) {
-      body.content = { media };
-    }
 
-    const res = await fetch(`${API_BASE}/posts`, {
+    const res = await fetch(`${POSTIZ_BASE}/posts`, {
       method: "POST",
-      headers: commonHeaders(config.token),
+      headers: {
+        Authorization: config.apiKey,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(body),
     });
-
     if (!res.ok) {
-      let errMsg = `HTTP ${res.status}`;
-      try {
-        const errData = await res.json();
-        errMsg = errData?.message || errMsg;
-      } catch {}
-      return { ok: false, error: errMsg };
+      const errData = await res.json().catch(() => null);
+      if (res.status === 401) return { ok: false, error: "Postiz API key invalid or missing" };
+      if (res.status === 403) return { ok: false, error: "Postiz API key valid but request rejected — check integration permissions" };
+      return { ok: false, error: errData?.error || `HTTP ${res.status}` };
     }
-
-    // LinkedIn returns the created post's URN in the x-restli-id response
-    // header on success (201), not in the JSON body.
-    const postId = res.headers.get("x-restli-id") || res.headers.get("x-linkedin-id") || undefined;
-    return { ok: true, postId };
+    const data = await res.json();
+    return { ok: true, postId: data?.id || data?._id };
   } catch (e: any) {
     return { ok: false, error: e?.message || "unknown error" };
   }
 }
 
-// ── Manual fallback (used until Community Management API is approved) ──
+// ── Manual fallback (used when Postiz not configured) ──
 
 function getBotConfig(): { token: string; chatId: string } | null {
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -185,8 +142,7 @@ function escapeHtml(str: string): string {
 
 /**
  * Sends the finished post text to Telegram for manual posting — used
- * whenever LINKEDIN_ORGANIZATION_ID/LINKEDIN_ACCESS_TOKEN aren't set (i.e.
- * Community Management API access hasn't been approved yet).
+ * whenever POSTIZ_API_KEY / LINKEDIN_INTEGRATION_ID aren't set.
  */
 export async function deliverLinkedInContentForManualUpload(opts: {
   caption: string;
@@ -203,8 +159,8 @@ export async function deliverLinkedInContentForManualUpload(opts: {
     : "";
 
   const text =
-    `💼 <b>LinkedIn — ready to post (API not yet authorized)</b>\n\n` +
-    `LinkedIn's org-page posting needs Community Management API approval — until that's granted, copy this and post it manually as Barbieverse's page.\n\n` +
+    `💼 <b>LinkedIn — ready to post (Postiz not configured)</b>\n\n` +
+    `Postiz Cloud is not connected to a LinkedIn Company Page integration. Copy this and post it manually as Barbieverse's page.\n\n` +
     `<b>Post text:</b>\n<code>${escapeHtml(opts.caption)}${escapeHtml(hashtagLine)}</code>` +
     (opts.visualBrief ? `\n\n<b>Suggested visual:</b>\n${escapeHtml(opts.visualBrief)}` : "");
 

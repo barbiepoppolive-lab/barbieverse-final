@@ -195,7 +195,7 @@ async function getTodayEmailCount(): Promise<number> {
     `SELECT COUNT(*)::text AS cnt FROM email_send_log
      WHERE date_trunc('day', created_at) = CURRENT_DATE AND status = 'sent'`
   );
-  return parseInt(row?.cnt || "0", 10);
+  return parseInt(row[0]?.cnt || "0", 10);
 }
 
 async function logEmailSend(
@@ -331,7 +331,7 @@ export async function getEmailWarmupStats() {
   return {
     dailyLimit: limit,
     sentToday: todayCount,
-    queuedToday: parseInt(queued?.cnt || "0", 10),
+    queuedToday: parseInt(queued[0]?.cnt || "0", 10),
     warmupStart: parseInt(settings.email_warmup_start || "10", 10),
     dailyIncrease: parseInt(settings.email_warmup_daily_increase || "5", 10),
     warmupMax: parseInt(settings.email_warmup_max || "100", 10),

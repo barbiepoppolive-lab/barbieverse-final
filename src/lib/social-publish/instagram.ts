@@ -1,29 +1,18 @@
-// Instagram Content Publishing — official Graph API (Instagram rides on the
-// same graph.facebook.com API as Facebook Pages since Meta merged them).
+// Instagram Content Publishing via Postiz Cloud
+// Routes through Postiz Public API instead of calling Meta Graph API directly.
+// The user connects their Instagram account through Postiz's own OAuth flow,
+// then hands us the integration ID from GET /integrations.
 //
-// Setup (this one has real upfront overhead — budget time for it):
-// 1. Your Instagram account must be a Business or Creator account (Settings
-//    → Account type — a personal account cannot be posted to via API at all).
-// 2. Link it to a Facebook Page (Instagram settings → Linked Accounts).
-// 3. Create/reuse a Meta Developer app, add the Instagram Graph API product.
-// 4. Request instagram_basic + instagram_content_publish permissions. Basic
-//    testing works immediately with your own account as a "test user" —
-//    production access for anyone else requires Meta App Review + Business
-//    Verification (expect this to take days, not minutes).
-// 5. Set INSTAGRAM_BUSINESS_ACCOUNT_ID (the numeric IG user id, not your
-//    @handle — found via GET /{page-id}?fields=instagram_business_account)
-//    and INSTAGRAM_ACCESS_TOKEN (falls back to FACEBOOK_PAGE_ACCESS_TOKEN if
-//    unset — the same long-lived token usually carries both scopes when
-//    generated from the same app).
+// Postiz supports __type "instagram" (FB-linked business account) and
+// "instagram-standalone" (direct IG connection). Either works — use whichever
+// Postiz shows. The integration ID already encodes which type it is.
 //
-// Publishing is a two-step process: create a media "container" pointing at
-// a public image/video URL, then publish that container. Video containers
-// need processing time on Meta's side before they're publishable, hence the
-// polling loop below.
+// Env vars:
+//   POSTIZ_API_KEY — from Postiz dashboard, Settings > Developers > Public API
+//   INSTAGRAM_INTEGRATION_ID — from GET /integrations after connecting the account
 
-const GRAPH_API_BASE = "https://graph.facebook.com/v21.0";
-const CONTAINER_POLL_INTERVAL_MS = 3000;
-const CONTAINER_POLL_MAX_ATTEMPTS = 20; // ~60s — images are near-instant, video can take longer
+const POSTIZ_BASE =
+  process.env.POSTIZ_BASE_URL?.replace(/\/+$/, "") || "https://api.postiz.com/public/v1";
 
 export interface InstagramPublishResult {
   ok: boolean;
@@ -31,90 +20,122 @@ export interface InstagramPublishResult {
   error?: string;
 }
 
-function getConfig(): { igUserId: string; token: string } | null {
-  const igUserId = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
-  const token = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
-  if (!igUserId || !token) return null;
-  return { igUserId, token };
+function getConfig(): { apiKey: string; integrationId: string } | null {
+  const apiKey = process.env.POSTIZ_API_KEY;
+  const integrationId = process.env.INSTAGRAM_INTEGRATION_ID;
+  if (!apiKey || !integrationId) return null;
+  return { apiKey, integrationId };
 }
 
 export function isInstagramConfigured(): boolean {
   return getConfig() !== null;
 }
 
-async function waitForContainerReady(
-  containerId: string,
-  token: string
-): Promise<{ ready: boolean; error?: string }> {
-  for (let attempt = 0; attempt < CONTAINER_POLL_MAX_ATTEMPTS; attempt++) {
-    const res = await fetch(
-      `${GRAPH_API_BASE}/${containerId}?fields=status_code&access_token=${token}`
-    );
-    const data = await res.json();
-    const status = data.status_code;
-
-    if (status === "FINISHED") return { ready: true };
-    if (status === "ERROR") return { ready: false, error: "Container processing failed on Meta's side" };
-
-    await new Promise((r) => setTimeout(r, CONTAINER_POLL_INTERVAL_MS));
+async function uploadImage(apiKey: string, imageUrl: string): Promise<{ id: string; path: string } | { error: string }> {
+  try {
+    const imageRes = await fetch(imageUrl);
+    if (!imageRes.ok) return { error: `Failed to fetch source image (HTTP ${imageRes.status})` };
+    const blob = await imageRes.blob();
+    const formData = new FormData();
+    formData.append("file", blob, "post-image.jpg");
+    const uploadRes = await fetch(`${POSTIZ_BASE}/upload`, {
+      method: "POST",
+      headers: { Authorization: apiKey },
+      body: formData,
+    });
+    const uploadData = await uploadRes.json();
+    if (!uploadRes.ok) return { error: uploadData?.error || `Upload failed (HTTP ${uploadRes.status})` };
+    return { id: uploadData.id, path: uploadData.path };
+  } catch (e: any) {
+    return { error: e?.message || "unknown error uploading image" };
   }
-  return { ready: false, error: "Container never finished processing (timed out)" };
+}
+
+async function uploadVideo(apiKey: string, videoUrl: string): Promise<{ id: string; path: string } | { error: string }> {
+  try {
+    const videoRes = await fetch(videoUrl);
+    if (!videoRes.ok) return { error: `Failed to fetch source video (HTTP ${videoRes.status})` };
+    const blob = await videoRes.blob();
+    const formData = new FormData();
+    formData.append("file", blob, "post-video.mp4");
+    const uploadRes = await fetch(`${POSTIZ_BASE}/upload`, {
+      method: "POST",
+      headers: { Authorization: apiKey },
+      body: formData,
+    });
+    const uploadData = await uploadRes.json();
+    if (!uploadRes.ok) return { error: uploadData?.error || `Upload failed (HTTP ${uploadRes.status})` };
+    return { id: uploadData.id, path: uploadData.path };
+  } catch (e: any) {
+    return { error: e?.message || "unknown error uploading video" };
+  }
 }
 
 /**
- * Publish a single image post with a caption.
+ * Publish an image post — a single photo, a multi-image carousel (pass 2+
+ * URLs), or a Story (postType: "story", 24h visibility, always single image).
+ * Carousel = same "post" post_type, just multiple images in one call; that's
+ * literally how Postiz's Instagram API distinguishes them (see /public-api/
+ * providers/instagram docs — no separate carousel endpoint).
  */
 export async function publishInstagramImage(opts: {
-  imageUrl: string;
+  imageUrl?: string;
+  imageUrls?: string[];
   caption: string;
+  postType?: "post" | "story";
 }): Promise<InstagramPublishResult> {
   const config = getConfig();
   if (!config) {
-    return { ok: false, error: "INSTAGRAM_BUSINESS_ACCOUNT_ID / access token not configured" };
+    return { ok: false, error: "POSTIZ_API_KEY / INSTAGRAM_INTEGRATION_ID not configured" };
+  }
+
+  const urls = opts.imageUrls && opts.imageUrls.length > 0 ? opts.imageUrls : opts.imageUrl ? [opts.imageUrl] : [];
+  if (urls.length === 0) {
+    return { ok: false, error: "No image URL(s) provided" };
+  }
+
+  const uploaded: { id: string; path: string }[] = [];
+  for (const url of urls) {
+    const image = await uploadImage(config.apiKey, url);
+    if ("error" in image) return { ok: false, error: image.error };
+    uploaded.push(image);
   }
 
   try {
-    // Step 1: create the media container
-    const createRes = await fetch(`${GRAPH_API_BASE}/${config.igUserId}/media`, {
+    const body: Record<string, unknown> = {
+      type: "now",
+      posts: [{
+        integration: { id: config.integrationId },
+        value: [{
+          content: opts.caption,
+          image: uploaded.map((img) => ({ id: img.id, path: img.path })),
+        }],
+        settings: { __type: "instagram", post_type: opts.postType || "post" },
+      }],
+    };
+    const res = await fetch(`${POSTIZ_BASE}/posts`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        image_url: opts.imageUrl,
-        caption: opts.caption,
-        access_token: config.token,
-      }),
+      headers: {
+        Authorization: config.apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
     });
-    const createData = await createRes.json();
-    if (!createRes.ok || !createData.id) {
-      return { ok: false, error: createData?.error?.message || "Failed to create media container" };
+    if (!res.ok) {
+      const errData = await res.json().catch(() => null);
+      if (res.status === 401) return { ok: false, error: "Postiz API key invalid or missing" };
+      if (res.status === 403) return { ok: false, error: "Postiz API key valid but request rejected — check integration permissions" };
+      return { ok: false, error: errData?.error || `HTTP ${res.status}` };
     }
-
-    // Step 2: wait for it to be ready, then publish
-    const { ready, error } = await waitForContainerReady(createData.id, config.token);
-    if (!ready) return { ok: false, error };
-
-    const publishRes = await fetch(`${GRAPH_API_BASE}/${config.igUserId}/media_publish`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        creation_id: createData.id,
-        access_token: config.token,
-      }),
-    });
-    const publishData = await publishRes.json();
-    if (!publishRes.ok) {
-      return { ok: false, error: publishData?.error?.message || "Failed to publish container" };
-    }
-
-    return { ok: true, mediaId: publishData.id };
+    const data = await res.json();
+    return { ok: true, mediaId: data?.id || data?._id };
   } catch (e: any) {
     return { ok: false, error: e?.message || "unknown error" };
   }
 }
 
 /**
- * Publish a Reel/video post with a caption. Video containers take longer to
- * process than images, which is why the poll budget above matters more here.
+ * Publish a Reel/video post with a caption.
  */
 export async function publishInstagramVideo(opts: {
   videoUrl: string;
@@ -123,42 +144,40 @@ export async function publishInstagramVideo(opts: {
 }): Promise<InstagramPublishResult> {
   const config = getConfig();
   if (!config) {
-    return { ok: false, error: "INSTAGRAM_BUSINESS_ACCOUNT_ID / access token not configured" };
+    return { ok: false, error: "POSTIZ_API_KEY / INSTAGRAM_INTEGRATION_ID not configured" };
   }
 
+  const video = await uploadVideo(config.apiKey, opts.videoUrl);
+  if ("error" in video) return { ok: false, error: video.error };
+
   try {
-    const createRes = await fetch(`${GRAPH_API_BASE}/${config.igUserId}/media`, {
+    const body: Record<string, unknown> = {
+      type: "now",
+      posts: [{
+        integration: { id: config.integrationId },
+        value: [{
+          content: opts.caption,
+          image: [{ id: video.id, path: video.path }],
+        }],
+        settings: { __type: "instagram" },
+      }],
+    };
+    const res = await fetch(`${POSTIZ_BASE}/posts`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        media_type: opts.isReel === false ? "VIDEO" : "REELS",
-        video_url: opts.videoUrl,
-        caption: opts.caption,
-        access_token: config.token,
-      }),
+      headers: {
+        Authorization: config.apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
     });
-    const createData = await createRes.json();
-    if (!createRes.ok || !createData.id) {
-      return { ok: false, error: createData?.error?.message || "Failed to create media container" };
+    if (!res.ok) {
+      const errData = await res.json().catch(() => null);
+      if (res.status === 401) return { ok: false, error: "Postiz API key invalid or missing" };
+      if (res.status === 403) return { ok: false, error: "Postiz API key valid but request rejected" };
+      return { ok: false, error: errData?.error || `HTTP ${res.status}` };
     }
-
-    const { ready, error } = await waitForContainerReady(createData.id, config.token);
-    if (!ready) return { ok: false, error };
-
-    const publishRes = await fetch(`${GRAPH_API_BASE}/${config.igUserId}/media_publish`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        creation_id: createData.id,
-        access_token: config.token,
-      }),
-    });
-    const publishData = await publishRes.json();
-    if (!publishRes.ok) {
-      return { ok: false, error: publishData?.error?.message || "Failed to publish container" };
-    }
-
-    return { ok: true, mediaId: publishData.id };
+    const data = await res.json();
+    return { ok: true, mediaId: data?.id || data?._id };
   } catch (e: any) {
     return { ok: false, error: e?.message || "unknown error" };
   }

@@ -643,15 +643,22 @@ export async function processDiscoveredLeads(batchSize: number = 20): Promise<Pr
             );
           }
 
-          // Ingest extracted keywords from bio
-          const newKeywords = await ingestDiscoveryKeywords(
-            post.postText,
-            post.platform,
-            lead.keyword_matched || "",
-            aiResult.hashtags,
-            aiResult.mentions,
-            aiResult.niche
-          );
+          // Ingest extracted keywords from bio — only from leads the AI
+          // actually judged relevant. Feeding keyword discovery from every
+          // scraped post regardless of category is exactly how the pool got
+          // flooded with noise from clearly-irrelevant "cold" content (e.g.
+          // recipe videos, tarot readings) — those posts have no business
+          // contributing to what we search for next.
+          const newKeywords = finalCategory !== "cold"
+            ? await ingestDiscoveryKeywords(
+                post.postText,
+                post.platform,
+                lead.keyword_matched || "",
+                aiResult.hashtags,
+                aiResult.mentions,
+                aiResult.niche
+              )
+            : [];
 
           // Send Telegram alerts for hot/warm
           if (finalCategory === "hot" || finalCategory === "warm") {

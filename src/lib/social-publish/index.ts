@@ -1,31 +1,53 @@
 // Content Publish Orchestrator — generates a post, quality-gates it, and
 // routes it to the right destination: real auto-publish for
-// Facebook/Instagram/YouTube/LinkedIn (official APIs, posting your own
-// content to your own accounts — legitimate), or hand-off to Telegram for
-// Moj (no public API exists, see moj.ts) and for LinkedIn when org-page
-// posting access hasn't been approved yet (see linkedin.ts).
+// Facebook/Instagram/YouTube/LinkedIn (official APIs via Postiz, posting
+// your own content to your own accounts — legitimate), or hand-off to
+// Telegram for Moj (no public API exists, see moj.ts), Reddit (deliberate,
+// see below), and YouTube while there's no video file to upload yet.
 //
-// Deliberately excludes Reddit — see the conversation this was built from:
-// Reddit's culture and automated spam detection specifically target
-// "business account posts promotional content across subreddits," and
-// that's exactly what this would be. Posting there should stay a human,
-// participating for real, not an automation target.
+// Reddit is generated here (so it's part of the same campaign/calendar)
+// but is UNCONDITIONALLY routed to Telegram, never auto-posted — see the
+// conversation this was built from: Reddit's spam detection specifically
+// targets "business account posts promotional content across subreddits,"
+// and that's exactly what automated posting there would be. A human reads
+// it, decides whether it's worth posting today under the 10%-self-promo
+// norm, and posts it themselves.
 //
 // Quality gate: this app runs fully auto (no human approval step before
 // publish), so the one safeguard standing in for that is automated — score
 // the draft, and if it's weak, spend one AI rewrite pass on it. Still weak
 // after that goes to Telegram as "needs_review" instead of either
-// publishing something bad or silently skipping it.
+// publishing something bad or silently skipping it. A second, cheaper guard
+// blocks anything that reads like coin-selling/recharge promotion — that
+// pillar is deliberately excluded from this campaign for now.
 
 import { generateSocialPost } from "@/lib/ai/modules/content-ai";
 import { scoreContent, improveContent } from "@/lib/ai/content-quality";
+import { generateContentSEO, type Platform as SEOPlatform } from "@/lib/ai/content-seo";
+import { generateCarousel } from "@/lib/ai/modules/brand-manager";
+import { generateImage } from "@/lib/ai/image-gen";
 import { publishToFacebook, isFacebookConfigured } from "./facebook";
 import { publishInstagramImage, isInstagramConfigured } from "./instagram";
 import { deliverMojContentForManualUpload } from "./moj";
-import { publishYouTubeVideo, isYouTubeConfigured } from "./youtube";
+import { publishYouTubeVideo, isYouTubeConfigured, deliverYouTubeContentForManualUpload } from "./youtube";
 import { publishToLinkedIn, isLinkedInConfigured, deliverLinkedInContentForManualUpload } from "./linkedin";
+import { deliverRedditContentForManualUpload } from "./reddit";
 
-export type PublishPlatform = "facebook" | "instagram" | "moj" | "youtube" | "linkedin";
+export type PublishPlatform = "facebook" | "instagram" | "moj" | "youtube" | "linkedin" | "reddit";
+
+// Cheap keyword guard, on top of the topic rotation itself never including
+// coin-selling topics — catches the AI drifting into recharge/pricing talk
+// on an otherwise-unrelated topic. Not a substitute for controlling what
+// topics get fed in, just a backstop.
+const COIN_SELLING_MARKERS = [
+  "buy coins", "recharge coins", "coin recharge", "cheap coins", "discount on coins",
+  "coins at", "% off coins", "instant coin delivery", "coin seller", "recharge now",
+];
+
+function looksLikeCoinSelling(text: string): boolean {
+  const lower = text.toLowerCase();
+  return COIN_SELLING_MARKERS.some((m) => lower.includes(m));
+}
 
 // Below this score (0-100, see content-quality.ts scoreContent), a draft
 // gets one automated rewrite pass; still below after that, it routes to
@@ -103,21 +125,90 @@ async function logAttempt(opts: {
 
 /**
  * Generate a post for one platform, quality-gate it, and publish/deliver it.
- * `imageUrl` is required for Instagram (the platform has no text-only post
- * type) — if omitted, Instagram is skipped rather than silently failing.
+ * `imageUrl` is required for Instagram/Facebook feed visuals — if omitted,
+ * Instagram is skipped (it has no text-only post type). `contentType`
+ * drives format: "carousel" generates multiple slides via brand-manager.ts
+ * and posts them as a swipeable carousel (Instagram/LinkedIn); "story"
+ * posts a single image as a 24h Instagram Story; anything else is a normal
+ * single-image/text post.
  */
 export async function generateAndPublish(opts: {
   platform: PublishPlatform;
   topic: string;
+  contentType?: string;
   imageUrl?: string;
   videoUrl?: string;
   visualBrief?: string;
 }): Promise<PublishAttemptResult> {
   let content = await generateSocialPost({
-    platform: opts.platform,
+    platform: opts.platform === "reddit" ? "facebook" : opts.platform, // reddit isn't in generateSocialPost's platform rules; facebook's plainer tone is the closest fit for a Telegram-reviewed draft
     topic: opts.topic,
     goal: "awareness",
   });
+
+  // Carousel: generate real multi-slide content (headline + body + image
+  // prompt per slide) instead of reusing the single-post caption verbatim.
+  let carouselImageUrls: string[] | undefined;
+  if (opts.contentType === "carousel" && (opts.platform === "instagram" || opts.platform === "linkedin")) {
+    try {
+      const carousel = await generateCarousel({ topic: opts.topic, slides: 6, style: "educational" });
+      content = { ...content, caption: `${carousel.caption}`, hashtags: carousel.hashtags?.length ? carousel.hashtags : content.hashtags };
+      const images: string[] = [];
+      for (const slide of carousel.slides) {
+        try {
+          const img = await generateImage({ prompt: slide.image_prompt, size: "portrait", seed: 123456789 });
+          images.push(img.url);
+        } catch (e: any) {
+          console.error("[social-publish] carousel slide image failed, skipping slide:", e?.message);
+        }
+      }
+      if (images.length >= 2) carouselImageUrls = images;
+    } catch (e: any) {
+      console.error("[social-publish] carousel generation failed, falling back to single image:", e?.message);
+    }
+  }
+
+  // SEO/hashtag enrichment — dedicated module, platform-aware limits,
+  // rather than whatever count the caption-generation prompt happened to
+  // produce. Best-effort: falls back to the inline hashtags on failure.
+  if (opts.platform !== "reddit") {
+    try {
+      const seoPlatform = (opts.platform === "youtube" ? "youtube" : opts.platform === "moj" ? "moj" : opts.platform) as SEOPlatform;
+      const seoResult = await generateContentSEO({
+        title: opts.topic.slice(0, 80),
+        content: content.caption,
+        topic: opts.topic,
+        platform: seoPlatform,
+        content_type: opts.contentType || "social_post",
+      });
+      const merged = [
+        ...seoResult.hashtags.branded, ...seoResult.hashtags.niche,
+        ...seoResult.hashtags.trending, ...seoResult.hashtags.popular,
+      ];
+      if (merged.length > 0) {
+        content = { ...content, hashtags: Array.from(new Set(merged)).slice(0, seoResult.hashtags.platform_limit) };
+      }
+    } catch (e: any) {
+      console.error("[social-publish] SEO/hashtag enrichment failed, using inline hashtags:", e?.message);
+    }
+  }
+
+  // ── Coin-selling guard ────────────────────────────────
+  // This campaign deliberately excludes the coin-selling pillar. If the AI
+  // drifts into it anyway (wrong topic fed in, or an unprompted tangent),
+  // don't publish it — flag for review instead.
+  if (looksLikeCoinSelling(content.caption)) {
+    await sendReviewAlert({
+      platform: opts.platform, topic: opts.topic, caption: content.caption,
+      score: 0, suggestions: ["Drifted into coin-selling/recharge content, which this campaign excludes for now — rewrite or drop this topic."],
+    });
+    await logAttempt({
+      platform: opts.platform, topic: opts.topic, caption: content.caption, hashtags: content.hashtags,
+      imageUrl: opts.imageUrl, videoUrl: opts.videoUrl, status: "needs_review",
+      error: "Coin-selling content blocked by guard",
+    });
+    return { platform: opts.platform, status: "needs_review", error: "Coin-selling content blocked by guard" };
+  }
 
   // ── Quality gate ─────────────────────────────────────
   // No human reviews this before it goes out, so the draft has to earn
@@ -125,7 +216,7 @@ export async function generateAndPublish(opts: {
   // weak after that goes to Telegram, not live.
   let quality = await scoreContent({
     content: content.caption,
-    content_type: "social_post",
+    content_type: opts.contentType || "social_post",
     platform: opts.platform,
     topic: opts.topic,
   }).catch(() => null);
@@ -134,13 +225,13 @@ export async function generateAndPublish(opts: {
     try {
       const improved = await improveContent({
         content: content.caption,
-        content_type: "social_post",
+        content_type: opts.contentType || "social_post",
         instruction: `Rewrite this for ${opts.platform}, fixing these specific issues: ${quality.suggestions.join("; ")}`,
       });
       content = { ...content, caption: improved.improved };
       quality = await scoreContent({
         content: content.caption,
-        content_type: "social_post",
+        content_type: opts.contentType || "social_post",
         platform: opts.platform,
         topic: opts.topic,
       }).catch(() => quality);
@@ -164,11 +255,11 @@ export async function generateAndPublish(opts: {
 
   if (opts.platform === "facebook") {
     if (!isFacebookConfigured()) {
-      return { platform: "facebook", status: "skipped", error: "FACEBOOK_PAGE_ID/TOKEN not configured" };
+      return { platform: "facebook", status: "skipped", error: "FACEBOOK_INTEGRATION_ID not configured" };
     }
     const fullMessage = [content.caption, content.hashtags?.length ? content.hashtags.join(" ") : ""]
       .filter(Boolean).join("\n\n");
-    const result = await publishToFacebook({ message: fullMessage, imageUrl: opts.imageUrl });
+    const result = await publishToFacebook({ message: fullMessage, imageUrl: carouselImageUrls?.[0] || opts.imageUrl });
     await logAttempt({
       platform: "facebook", topic: opts.topic, caption: content.caption, hashtags: content.hashtags,
       imageUrl: opts.imageUrl, status: result.ok ? "published" : "failed",
@@ -179,14 +270,19 @@ export async function generateAndPublish(opts: {
 
   if (opts.platform === "instagram") {
     if (!isInstagramConfigured()) {
-      return { platform: "instagram", status: "skipped", error: "INSTAGRAM_BUSINESS_ACCOUNT_ID/token not configured" };
+      return { platform: "instagram", status: "skipped", error: "INSTAGRAM_INTEGRATION_ID not configured" };
     }
-    if (!opts.imageUrl) {
+    if (!carouselImageUrls && !opts.imageUrl) {
       return { platform: "instagram", status: "skipped", error: "No image URL provided — Instagram has no text-only post type" };
     }
     const fullCaption = [content.caption, content.hashtags?.length ? content.hashtags.join(" ") : ""]
       .filter(Boolean).join("\n\n");
-    const result = await publishInstagramImage({ imageUrl: opts.imageUrl, caption: fullCaption });
+    const result = await publishInstagramImage({
+      imageUrl: opts.imageUrl,
+      imageUrls: carouselImageUrls,
+      caption: fullCaption,
+      postType: opts.contentType === "story" ? "story" : "post",
+    });
     await logAttempt({
       platform: "instagram", topic: opts.topic, caption: content.caption, hashtags: content.hashtags,
       imageUrl: opts.imageUrl, status: result.ok ? "published" : "failed",
@@ -196,11 +292,17 @@ export async function generateAndPublish(opts: {
   }
 
   if (opts.platform === "youtube") {
-    if (!isYouTubeConfigured()) {
-      return { platform: "youtube", status: "skipped", error: "YOUTUBE_CLIENT_ID/SECRET/REFRESH_TOKEN not configured" };
-    }
-    if (!opts.videoUrl) {
-      return { platform: "youtube", status: "skipped", error: "No video URL provided — YouTube has no text/image-only post type (Community posts have no public API)" };
+    if (!isYouTubeConfigured() || !opts.videoUrl) {
+      // No video pipeline wired in yet — hand off a ready script instead of
+      // silently reporting "skipped" every single day of the campaign.
+      const result = await deliverYouTubeContentForManualUpload({
+        caption: content.caption, hashtags: content.hashtags, visualBrief: opts.visualBrief,
+      });
+      await logAttempt({
+        platform: "youtube", topic: opts.topic, caption: content.caption, hashtags: content.hashtags,
+        status: result.ok ? "sent_for_manual" : "failed", error: result.error,
+      });
+      return { platform: "youtube", status: result.ok ? "sent_for_manual" : "failed", error: result.error };
     }
     const result = await publishYouTubeVideo({
       videoUrl: opts.videoUrl, caption: content.caption, hashtags: content.hashtags,
@@ -226,13 +328,30 @@ export async function generateAndPublish(opts: {
     }
     const fullText = [content.caption, content.hashtags?.length ? content.hashtags.join(" ") : ""]
       .filter(Boolean).join("\n\n");
-    const result = await publishToLinkedIn({ text: fullText, imageUrl: opts.imageUrl });
+    const result = await publishToLinkedIn({
+      text: fullText,
+      imageUrl: opts.imageUrl,
+      imageUrls: carouselImageUrls,
+      carouselName: carouselImageUrls ? opts.topic.slice(0, 60) : undefined,
+    });
     await logAttempt({
       platform: "linkedin", topic: opts.topic, caption: content.caption, hashtags: content.hashtags,
       imageUrl: opts.imageUrl, status: result.ok ? "published" : "failed",
       externalPostId: result.postId, error: result.error,
     });
     return { platform: "linkedin", status: result.ok ? "published" : "failed", postId: result.postId, error: result.error };
+  }
+
+  if (opts.platform === "reddit") {
+    // Always manual, no exceptions — see file header and reddit.ts.
+    const result = await deliverRedditContentForManualUpload({
+      caption: content.caption, hashtags: content.hashtags, visualBrief: opts.visualBrief,
+    });
+    await logAttempt({
+      platform: "reddit", topic: opts.topic, caption: content.caption, hashtags: content.hashtags,
+      status: result.ok ? "sent_for_manual" : "failed", error: result.error,
+    });
+    return { platform: "reddit", status: result.ok ? "sent_for_manual" : "failed", error: result.error };
   }
 
   // Moj — no public API, deliver for manual upload instead
@@ -254,12 +373,13 @@ export async function generateAndPublish(opts: {
  */
 export async function runContentCycle(opts: {
   topic: string;
+  contentType?: string;
   imageUrl?: string;
   videoUrl?: string;
   visualBrief?: string;
   platforms?: PublishPlatform[];
 }): Promise<PublishAttemptResult[]> {
-  const platforms = opts.platforms || (["facebook", "instagram", "moj", "youtube", "linkedin"] as PublishPlatform[]);
+  const platforms = opts.platforms || (["facebook", "instagram", "moj", "youtube", "linkedin", "reddit"] as PublishPlatform[]);
   const results: PublishAttemptResult[] = [];
 
   for (const platform of platforms) {
@@ -267,6 +387,7 @@ export async function runContentCycle(opts: {
       const result = await generateAndPublish({
         platform,
         topic: opts.topic,
+        contentType: opts.contentType,
         imageUrl: opts.imageUrl,
         videoUrl: opts.videoUrl,
         visualBrief: opts.visualBrief,

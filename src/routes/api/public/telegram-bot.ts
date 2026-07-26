@@ -137,7 +137,7 @@ async function handleScoutCommand(
         botToken,
       );
     } else {
-      const { hot, warm, cold } = result.categories;
+      const { hot = 0, warm = 0, cold = 0 } = result.categories ?? {};
       await sendTelegramMessage(
         chatId,
         `🎯 <b>Scoring Complete!</b>\n\n` +

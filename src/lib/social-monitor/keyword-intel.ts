@@ -206,6 +206,8 @@ export async function ingestDiscoveryKeywords(
 
     // Insert each new term as experimental keyword
     for (const [term, source] of terms) {
+      if (isStopword(term)) continue;
+
       // Skip if already exists
       const existing = await q<{ id: string }>(
         `SELECT id FROM keyword_scores WHERE keyword = $1 AND platform = $2`,
@@ -214,9 +216,16 @@ export async function ingestDiscoveryKeywords(
 
       if (existing.length > 0) continue;
 
+      // Unproven terms start well below the "proven" seed score (70) and
+      // below where a newly-discovered-but-real term would land after even
+      // one hot/warm hit — they have to earn their way up via
+      // scoreKeywordAfterDiscovery, not tie with real keywords out of the
+      // gate. This was the main reason generic bio noise ("need", "most",
+      // "everything") could out-compete real search terms: they started at
+      // the SAME score (50) as manually-seeded proven keywords.
       await q(
         `INSERT INTO keyword_scores (keyword, platform, pool, source, score)
-         VALUES ($1, $2, 'experimental', $3, 50)
+         VALUES ($1, $2, 'experimental', $3, 20)
          ON CONFLICT (keyword, platform) DO NOTHING`,
         [term, platform, source]
       );
@@ -228,6 +237,35 @@ export async function ingestDiscoveryKeywords(
   }
 
   return newKeywords;
+}
+
+// ── Stopword denylist ───────────────────────────────────
+// The old capitalized-word heuristic below treated ANY capitalized word
+// ≥4 letters as a candidate keyword — which in English just means "the
+// first word of almost every sentence," since sentence starts are
+// capitalized regardless of topic. That's how "Need", "Most", "Know",
+// "Everything", "Diabetes", "Urinate" ended up as top search terms for a
+// live-streaming recruitment agency. This denylist is a safety net on top
+// of removing that heuristic entirely (see below) — it also guards the
+// hashtag/mention paths, which are lower-risk but not risk-free.
+const STOPWORDS = new Set([
+  "need", "needs", "most", "know", "knows", "everything", "asked", "about",
+  "what", "when", "where", "which", "while", "would", "could", "should",
+  "there", "their", "these", "those", "other", "another", "every", "some",
+  "such", "than", "then", "them", "they", "this", "that", "with", "from",
+  "have", "has", "had", "will", "shall", "can", "cannot", "into", "your",
+  "you", "our", "ours", "yours", "just", "like", "love", "life", "time",
+  "make", "made", "take", "took", "come", "came", "want", "wants", "wanted",
+  "here", "over", "under", "again", "still", "even", "also", "very", "much",
+  "many", "more", "less", "first", "last", "next", "video", "watch",
+  "shorts", "viral", "trending", "subscribe", "channel", "please", "thanks",
+  "frequently", "questions", "important", "explained", "introduction",
+  "changing", "during", "patients", "appointments", "diabetes", "urinate",
+  "download", "contact", "mobile", "music",
+]);
+
+function isStopword(term: string): boolean {
+  return STOPWORDS.has(term.toLowerCase());
 }
 
 // ── Extract bio-like terms from text ───────────────────
@@ -255,16 +293,17 @@ function extractBioTerms(text: string): string[] {
     }
   }
 
-  // Extract capitalized words (likely proper nouns/niches)
-  const words = text.split(/\s+/);
-  for (const word of words) {
-    const clean = word.replace(/[^a-zA-Z0-9]/g, "");
-    if (clean.length >= 4 && /^[A-Z]/.test(clean) && !/^(I|A|The|And|But|Or|For|Nor|Yet|So|Is|Am|Are|Was|Were|Be|Been|Being|Have|Has|Had|Do|Does|Did|Will|Would|Could|Should|May|Might|Shall|Can|This|That|These|Those|My|Your|His|Her|Its|Our|Their|Me|Him|Her|Us|Them|You|It|He|She|We|They)$/i.test(clean)) {
-      terms.push(clean.toLowerCase());
-    }
-  }
+  // NOTE: this used to also harvest "any capitalized word ≥4 letters" as a
+  // candidate niche keyword. Removed — capitalization in English mostly just
+  // marks sentence starts, so that heuristic was indiscriminately promoting
+  // whatever word a random video title happened to open with ("Need...",
+  // "Xu Yang...", "Ranking...") into the search-term pool. The explicit
+  // pattern list above already captures the actual streaming/earning
+  // vocabulary this business cares about; hashtags and @mentions (handled by
+  // the caller) cover proper nouns and niches more reliably than a
+  // capitalization guess ever did.
 
-  return [...new Set(terms)];
+  return [...new Set(terms)].filter((t) => !isStopword(t));
 }
 
 // ── Evolve keywords: promote, demote, retire ───────────

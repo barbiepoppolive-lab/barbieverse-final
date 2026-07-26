@@ -562,7 +562,7 @@ function BrandManagerPage() {
                     <span className="text-xs font-medium text-amber-600">Step Warnings</span>
                     {Object.entries(mediaAgentResult.step_errors).map(([step, msg]) => (
                       <p key={step} className="text-[10px] text-amber-700">
-                        <span className="font-medium">{step}:</span> {msg}
+                        <span className="font-medium">{step}:</span> {msg as string}
                       </p>
                     ))}
                   </div>

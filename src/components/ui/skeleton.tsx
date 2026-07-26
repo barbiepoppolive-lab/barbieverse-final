@@ -1,18 +1,19 @@
 import type { ReactNode } from "react";
 
-interface SkeletonProps {
+interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-export function Skeleton({ className = "" }: SkeletonProps) {
+export function Skeleton({ className = "", ...props }: SkeletonProps) {
   return (
-    <div
-      className={`animate-pulse rounded-lg bg-gradient-to-r from-card/60 via-card/40 to-card/60 ${className}`}
-      style={{
-        backgroundSize: "200% 100%",
-        animation: "shimmer 1.5s ease-in-out infinite",
-      }}
-    />
+      <div
+        className={`animate-pulse rounded-lg bg-gradient-to-r from-card/60 via-card/40 to-card/60 ${className}`}
+        style={{
+          backgroundSize: "200% 100%",
+          animation: "shimmer 1.5s ease-in-out infinite",
+        }}
+        {...props}
+      />
   );
 }
 

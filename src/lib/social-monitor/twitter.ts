@@ -31,6 +31,14 @@ interface Tweet {
 
 interface TweetSearchResponse {
   data?: Tweet[];
+  includes?: {
+    users?: Array<{
+      id: string;
+      username: string;
+      name?: string;
+      profile_image_url?: string;
+    }>;
+  };
   meta?: {
     result_count: number;
     next_token?: string;

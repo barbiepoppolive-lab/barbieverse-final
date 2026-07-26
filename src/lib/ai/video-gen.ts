@@ -302,7 +302,7 @@ export async function generateFullVideo(input: {
   // Generate clips in parallel for speed
   const clipPromises = script.scenes.map(async (scene, i) => {
     const sceneDuration = parseInt(scene.duration) || 5;
-    const cappedDuration = Math.max(4, Math.min(sceneDuration, 10)) as "4" | "5" | "6" | "7" | "8" | "9" | "10";
+    const cappedDuration = String(Math.max(4, Math.min(sceneDuration, 10))) as "4" | "5" | "6" | "7" | "8" | "9" | "10";
 
     try {
       console.log(`[VideoGen] Generating clip ${i + 1}/${script.scenes.length} (${cappedDuration}s)...`);
