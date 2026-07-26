@@ -12,6 +12,8 @@
 // subreddit, and whether to soften it into a discussion/question instead of
 // a straight pitch.
 
+import { sendTelegramImages } from "./telegram-media";
+
 function getBotConfig(): { token: string; chatId: string } | null {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -37,16 +39,29 @@ export async function deliverRedditContentForManualUpload(opts: {
   caption: string;
   hashtags?: string[];
   visualBrief?: string;
+  imageUrl?: string;
 }): Promise<RedditDeliveryResult> {
   const config = getBotConfig();
   if (!config) {
     return { ok: false, error: "TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not configured" };
   }
 
+  // Optional — most subreddit posts here are text/self-posts by design
+  // (image posts read as more obviously promotional), but if an image was
+  // generated for this topic, still hand it over as an option rather than
+  // discarding it.
+  if (opts.imageUrl) {
+    await sendTelegramImages({ imageUrl: opts.imageUrl, label: "🤖 Reddit — optional image (most self-posts read better as text-only)" });
+  }
+
+  const hashtagLine = opts.hashtags && opts.hashtags.length > 0
+    ? `\n\n(reference tags, not for the post body: ${opts.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")})`
+    : "";
+
   const text =
     `🤖 <b>Reddit — draft ready (always manual, by design)</b>\n\n` +
     `Reminder: keep this to roughly 1-in-10 posts self-promotional in whatever subreddit you use, and consider leading with a genuine question rather than a pitch.\n\n` +
-    `<b>Draft:</b>\n<code>${escapeHtml(opts.caption)}</code>` +
+    `<b>Draft:</b>\n<code>${escapeHtml(opts.caption)}${escapeHtml(hashtagLine)}</code>` +
     (opts.visualBrief ? `\n\n<b>Context/visual (optional):</b>\n${escapeHtml(opts.visualBrief)}` : "");
 
   try {

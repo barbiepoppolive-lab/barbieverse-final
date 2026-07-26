@@ -49,13 +49,23 @@ async function uploadImage(apiKey: string, imageUrl: string): Promise<{ id: stri
 
 async function createPost(apiKey: string, integrationId: string, opts: { content: string; image?: { id: string; path: string } }): Promise<FacebookPublishResult> {
   try {
-    const body: Record<string, unknown> = {
+    const now = new Date().toISOString();
+    const body = {
+      // "now" publishes immediately; "schedule" requires a future date and
+      // was silently causing every single post here to fail with a 400
+      // (Postiz was interpreting "schedule for right now" as an invalid
+      // past/immediate date for a scheduled post). See docs.postiz.com.
       type: "now",
+      creationMethod: "API",
+      date: now,
+      shortLink: true,
+      tags: [] as string[],
       posts: [{
         integration: { id: integrationId },
         value: [{
           content: opts.content,
-          ...(opts.image ? { image: [{ id: opts.image.id, path: opts.image.path }] } : {}),
+          image: opts.image ? [{ id: opts.image.id, path: opts.image.path }] : [],
+          delay: 0,
         }],
         settings: { __type: "facebook" },
       }],
@@ -132,13 +142,19 @@ export async function publishFacebookVideo(opts: {
     const uploadData = await uploadRes.json();
     if (!uploadRes.ok) return { ok: false, error: uploadData?.error || `Video upload failed (HTTP ${uploadRes.status})` };
 
-    const body: Record<string, unknown> = {
+    const now = new Date().toISOString();
+    const body = {
       type: "now",
+      creationMethod: "API",
+      date: now,
+      shortLink: true,
+      tags: [] as string[],
       posts: [{
         integration: { id: config.integrationId },
         value: [{
           content: opts.description || "",
           image: [{ id: uploadData.id, path: uploadData.path }],
+          delay: 0,
         }],
         settings: { __type: "facebook" },
       }],

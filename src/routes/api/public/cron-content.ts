@@ -21,7 +21,7 @@ const FALLBACK_TOPIC_ROTATION = [
   "Barbie's founder credentials — highest Wealth Level Poppo/Vone creator worldwide, why that matters for new creators",
   "How to join Barbieverse and start streaming — the 3-step process, no audience needed",
   "The first week guarantee — ₹1,150 (female) / ₹575 (male) for streaming 2 hours a day for 7 days",
-  "Realistic earnings breakdown for Poppo/Vone hosts — week one, month one, and consistent streamers",
+  "Realistic earnings breakdown for Poppo/Vone hosts — week one, month one, and consistent creators",
   "Myth-busting: you do NOT need existing followers to start earning on live streaming",
   "BarbieVerse Academy — free lessons on coins, points, PK battles, and withdrawals for new creators",
   "Trust and safety — why Barbieverse never asks for your password, only your Poppo/Vone User ID",
@@ -76,22 +76,59 @@ async function getFallbackTopicIndex(): Promise<number> {
   return current;
 }
 
-// Fixed character/style descriptor so every auto-generated post uses a
-// consistent look — matches the "always seed 123456789, same prompt
-// structure" consistency rule from CONTENT-STRATEGY.md.
-const BARBIE_IMAGE_STYLE =
-  "professional portrait of a confident young Indian woman content creator, " +
-  "warm friendly smile, modern streaming setup with pink and purple neon " +
-  "accent lighting in the background, elegant casual outfit, soft studio " +
-  "lighting, high detail, photorealistic, Instagram aesthetic";
-const BARBIE_IMAGE_SEED = 123456789;
+// Consistent VISUAL STYLE (lighting, setup, aesthetic) across every
+// auto-generated post — but NOT a fixed seed and NOT a fixed gender. Both of
+// those were bugs, not features:
+//   - A fixed seed (123456789) on every single call, for every topic, across
+//     the whole 30-day campaign, made most generated images near-duplicates
+//     of each other regardless of what the post was actually about — a big
+//     part of why the content read as "generic."
+//   - The persona was hardcoded to "young Indian woman" unconditionally, so
+//     even topics explicitly about male creators (e.g. "a male host's
+//     perspective") still generated a photo of a woman.
+// Fix: derive the seed from the topic text (reproducible per-topic, but
+// distinct across topics), and pick the persona from the topic's own
+// language when it specifies a gender, falling back to an even split for
+// gender-neutral topics so the campaign's imagery actually reflects a mixed
+// creator base instead of defaulting to one gender every time.
+
+function seedFromString(s: string): number {
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) {
+    hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+  }
+  return hash || 1;
+}
+
+function personaForTopic(topic: string): string {
+  const lower = topic.toLowerCase();
+  if (/\bmale\b|\bmale host\b|\bmale creator\b|\bmale perspective\b|\(male\)/.test(lower)) {
+    return "confident young Indian man";
+  }
+  if (/\bfemale\b|\bshe\b|\bher\b|\(female\)/.test(lower)) {
+    return "confident young Indian woman";
+  }
+  // Gender-neutral topic — split deterministically by topic hash instead of
+  // defaulting to one gender every time.
+  return seedFromString(topic) % 2 === 0 ? "confident young Indian woman" : "confident young Indian man";
+}
+
+function imageStyleFor(persona: string): string {
+  return (
+    `professional portrait of a ${persona} content creator, ` +
+    "warm friendly smile, modern streaming setup with pink and purple neon " +
+    "accent lighting in the background, elegant casual outfit, soft studio " +
+    "lighting, high detail, photorealistic, Instagram aesthetic"
+  );
+}
 
 async function buildTopicImage(topic: string): Promise<string | undefined> {
   try {
+    const style = imageStyleFor(personaForTopic(topic));
     const result = await generateImage({
-      prompt: `${BARBIE_IMAGE_STYLE}. Scene relates to: ${topic}`,
+      prompt: `${style}. Scene relates to: ${topic}`,
       size: "portrait",
-      seed: BARBIE_IMAGE_SEED,
+      seed: seedFromString(topic),
       provider: "auto",
     });
     // ComfyUI returns a path relative to /public (e.g. "/generated-videos/x.png"),

@@ -71,13 +71,6 @@ async function uploadVideo(apiKey: string, videoUrl: string): Promise<{ id: stri
   }
 }
 
-/**
- * Publish an image post — a single photo, a multi-image carousel (pass 2+
- * URLs), or a Story (postType: "story", 24h visibility, always single image).
- * Carousel = same "post" post_type, just multiple images in one call; that's
- * literally how Postiz's Instagram API distinguishes them (see /public-api/
- * providers/instagram docs — no separate carousel endpoint).
- */
 export async function publishInstagramImage(opts: {
   imageUrl?: string;
   imageUrls?: string[];
@@ -102,15 +95,23 @@ export async function publishInstagramImage(opts: {
   }
 
   try {
-    const body: Record<string, unknown> = {
+    const now = new Date().toISOString();
+    const body = {
+      // "now" = publish immediately. "schedule" requires a future date and
+      // was causing every post here to fail with a 400 Bad Request.
       type: "now",
+      creationMethod: "API",
+      date: now,
+      shortLink: true,
+      tags: [] as string[],
       posts: [{
         integration: { id: config.integrationId },
         value: [{
           content: opts.caption,
           image: uploaded.map((img) => ({ id: img.id, path: img.path })),
+          delay: 0,
         }],
-        settings: { __type: "instagram", post_type: opts.postType || "post" },
+        settings: { __type: "instagram-standalone", post_type: opts.postType || "post" },
       }],
     };
     const res = await fetch(`${POSTIZ_BASE}/posts`, {
@@ -134,9 +135,6 @@ export async function publishInstagramImage(opts: {
   }
 }
 
-/**
- * Publish a Reel/video post with a caption.
- */
 export async function publishInstagramVideo(opts: {
   videoUrl: string;
   caption: string;
@@ -151,15 +149,23 @@ export async function publishInstagramVideo(opts: {
   if ("error" in video) return { ok: false, error: video.error };
 
   try {
-    const body: Record<string, unknown> = {
+    const now = new Date().toISOString();
+    const body = {
+      // "now" = publish immediately. "schedule" requires a future date and
+      // was causing every post here to fail with a 400 Bad Request.
       type: "now",
+      creationMethod: "API",
+      date: now,
+      shortLink: true,
+      tags: [] as string[],
       posts: [{
         integration: { id: config.integrationId },
         value: [{
           content: opts.caption,
           image: [{ id: video.id, path: video.path }],
+          delay: 0,
         }],
-        settings: { __type: "instagram" },
+        settings: { __type: "instagram-standalone" },
       }],
     };
     const res = await fetch(`${POSTIZ_BASE}/posts`, {

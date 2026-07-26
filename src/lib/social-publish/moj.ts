@@ -9,6 +9,8 @@
 // step left, instead of "write the caption" *and* "upload it" both being
 // manual. Matches the same Telegram flow used everywhere else in this app.
 
+import { sendTelegramImages } from "./telegram-media";
+
 function getBotConfig(): { token: string; chatId: string } | null {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -29,11 +31,17 @@ export async function deliverMojContentForManualUpload(opts: {
   caption: string;
   hashtags?: string[];
   visualBrief?: string;
+  imageUrl?: string;
 }): Promise<MojDeliveryResult> {
   const config = getBotConfig();
   if (!config) {
     return { ok: false, error: "TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not configured" };
   }
+
+  // Send the reference photo first (thumbnail/vibe reference for the video
+  // you'll actually film) — previously this was generated and thrown away,
+  // so every Moj delivery arrived as text only.
+  await sendTelegramImages({ imageUrl: opts.imageUrl, label: "🎬 Moj — reference image" });
 
   const hashtagLine = opts.hashtags && opts.hashtags.length > 0
     ? `\n\n${opts.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}`

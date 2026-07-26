@@ -49,6 +49,17 @@ function looksLikeCoinSelling(text: string): boolean {
   return COIN_SELLING_MARKERS.some((m) => lower.includes(m));
 }
 
+// Deterministic per-string seed (same helper as cron-content.ts) — used so
+// each carousel slide gets a distinct, reproducible image instead of every
+// slide reusing one hardcoded seed.
+function seedFromString(s: string): number {
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) {
+    hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+  }
+  return hash || 1;
+}
+
 // Below this score (0-100, see content-quality.ts scoreContent), a draft
 // gets one automated rewrite pass; still below after that, it routes to
 // Telegram instead of publishing. Override via CONTENT_QUALITY_THRESHOLD.
@@ -154,13 +165,21 @@ export async function generateAndPublish(opts: {
       const carousel = await generateCarousel({ topic: opts.topic, slides: 6, style: "educational" });
       content = { ...content, caption: `${carousel.caption}`, hashtags: carousel.hashtags?.length ? carousel.hashtags : content.hashtags };
       const images: string[] = [];
+      let slideIndex = 0;
       for (const slide of carousel.slides) {
         try {
-          const img = await generateImage({ prompt: slide.image_prompt, size: "portrait", seed: 123456789 });
+          // Was a hardcoded seed (123456789) for every slide of every
+          // carousel — meant every slide of every post came out looking
+          // like near-duplicates of each other instead of 6 distinct
+          // images. Derive a per-slide seed from the topic + slide position
+          // instead, so each slide is actually distinct.
+          const seed = seedFromString(`${opts.topic}-slide-${slideIndex}`);
+          const img = await generateImage({ prompt: slide.image_prompt, size: "portrait", seed });
           images.push(img.url);
         } catch (e: any) {
           console.error("[social-publish] carousel slide image failed, skipping slide:", e?.message);
         }
+        slideIndex++;
       }
       if (images.length >= 2) carouselImageUrls = images;
     } catch (e: any) {
@@ -297,6 +316,7 @@ export async function generateAndPublish(opts: {
       // silently reporting "skipped" every single day of the campaign.
       const result = await deliverYouTubeContentForManualUpload({
         caption: content.caption, hashtags: content.hashtags, visualBrief: opts.visualBrief,
+        imageUrl: carouselImageUrls?.[0] || opts.imageUrl,
       });
       await logAttempt({
         platform: "youtube", topic: opts.topic, caption: content.caption, hashtags: content.hashtags,
@@ -319,6 +339,7 @@ export async function generateAndPublish(opts: {
     if (!isLinkedInConfigured()) {
       const result = await deliverLinkedInContentForManualUpload({
         caption: content.caption, hashtags: content.hashtags, visualBrief: opts.visualBrief,
+        imageUrl: opts.imageUrl, imageUrls: carouselImageUrls,
       });
       await logAttempt({
         platform: "linkedin", topic: opts.topic, caption: content.caption, hashtags: content.hashtags,
@@ -346,6 +367,7 @@ export async function generateAndPublish(opts: {
     // Always manual, no exceptions — see file header and reddit.ts.
     const result = await deliverRedditContentForManualUpload({
       caption: content.caption, hashtags: content.hashtags, visualBrief: opts.visualBrief,
+      imageUrl: opts.imageUrl,
     });
     await logAttempt({
       platform: "reddit", topic: opts.topic, caption: content.caption, hashtags: content.hashtags,
@@ -359,6 +381,7 @@ export async function generateAndPublish(opts: {
     caption: content.caption,
     hashtags: content.hashtags,
     visualBrief: opts.visualBrief,
+    imageUrl: carouselImageUrls?.[0] || opts.imageUrl,
   });
   await logAttempt({
     platform: "moj", topic: opts.topic, caption: content.caption, hashtags: content.hashtags,

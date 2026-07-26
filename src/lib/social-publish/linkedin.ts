@@ -14,6 +14,8 @@
 //   POSTIZ_API_KEY — from Postiz dashboard, Settings > Developers > Public API
 //   LINKEDIN_INTEGRATION_ID — from GET /integrations after connecting the Company Page
 
+import { sendTelegramImages } from "./telegram-media";
+
 const POSTIZ_BASE =
   process.env.POSTIZ_BASE_URL?.replace(/\/+$/, "") || "https://api.postiz.com/public/v1";
 
@@ -86,13 +88,21 @@ export async function publishToLinkedIn(opts: {
     // of the default collage layout — this is how brand-manager.ts's
     // generated carousel slides become an actual LinkedIn carousel post.
     const isCarousel = images.length > 1;
-    const body: Record<string, unknown> = {
+    const now = new Date().toISOString();
+    const body = {
+      // "now" = publish immediately. "schedule" requires a future date and
+      // was causing every post here to fail with a 400 Bad Request.
       type: "now",
+      creationMethod: "API",
+      date: now,
+      shortLink: true,
+      tags: [] as string[],
       posts: [{
         integration: { id: config.integrationId },
         value: [{
           content: opts.text,
           image: images.map((img) => ({ id: img.id, path: img.path })),
+          delay: 0,
         }],
         settings: {
           __type: "linkedin-page",
@@ -148,11 +158,17 @@ export async function deliverLinkedInContentForManualUpload(opts: {
   caption: string;
   hashtags?: string[];
   visualBrief?: string;
+  imageUrl?: string;
+  imageUrls?: string[];
 }): Promise<LinkedInDeliveryResult> {
   const config = getBotConfig();
   if (!config) {
     return { ok: false, error: "TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not configured" };
   }
+
+  // Was generated and thrown away before — send the actual image(s) so this
+  // isn't a text-only ask.
+  await sendTelegramImages({ imageUrl: opts.imageUrl, imageUrls: opts.imageUrls, label: "💼 LinkedIn — image" });
 
   const hashtagLine = opts.hashtags && opts.hashtags.length > 0
     ? `\n\n${opts.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}`

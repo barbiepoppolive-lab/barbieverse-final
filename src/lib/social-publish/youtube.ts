@@ -11,6 +11,8 @@
 //   POSTIZ_API_KEY — from Postiz dashboard, Settings > Developers > Public API
 //   YOUTUBE_INTEGRATION_ID — from GET /integrations after connecting the channel
 
+import { sendTelegramImages } from "./telegram-media";
+
 const POSTIZ_BASE =
   process.env.POSTIZ_BASE_URL?.replace(/\/+$/, "") || "https://api.postiz.com/public/v1";
 
@@ -65,12 +67,19 @@ export async function publishYouTubeVideo(opts: {
     if (!uploadRes.ok) return { ok: false, error: uploadData?.error || `Video upload failed (HTTP ${uploadRes.status})` };
 
     const tags = opts.hashtags?.map((h) => h.replace(/^#/, "")) || [];
+    const now = new Date().toISOString();
 
-    const body: Record<string, unknown> = {
+    const body = {
+      // "now" = publish immediately. "schedule" requires a future date and
+      // was causing every post here to fail with a 400 Bad Request.
       type: "now",
+      creationMethod: "API",
+      date: now,
+      shortLink: true,
+      tags: [] as string[],
       posts: [{
         integration: { id: config.integrationId },
-        value: [{ content: opts.caption }],
+        value: [{ content: opts.caption, image: [], delay: 0 }],
         settings: {
           __type: "youtube",
           title: deriveTitle(opts.caption),
@@ -129,11 +138,15 @@ export async function deliverYouTubeContentForManualUpload(opts: {
   caption: string;
   hashtags?: string[];
   visualBrief?: string;
+  imageUrl?: string;
 }): Promise<YouTubeDeliveryResult> {
   const config = getBotConfig();
   if (!config) {
     return { ok: false, error: "TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not configured" };
   }
+
+  // Thumbnail/vibe reference — was being generated and discarded before.
+  await sendTelegramImages({ imageUrl: opts.imageUrl, label: "🎬 YouTube — thumbnail reference" });
 
   const hashtagLine = opts.hashtags && opts.hashtags.length > 0
     ? `\n\n${opts.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}`
