@@ -1,6 +1,7 @@
 // Prompt Templates — Reusable prompts for BarbieVerse AI tasks
 
 import { TERMINOLOGY_RULES } from "@/lib/ai/brand-terminology";
+import { COMPLIANCE_PROMPT_RULES } from "@/lib/ai/compliance-gate";
 
 export const PROMPTS = {
   // ── Lead Scoring ───────────────────────────────────────
@@ -72,6 +73,7 @@ Return JSON with ALL fields:
   instagramCaption: (topic: string, brandVoice?: string) =>
     `You are a world-class social media copywriter for BarbieVerse — a live streaming platform that helps people earn money by going live.
 ${TERMINOLOGY_RULES}
+${COMPLIANCE_PROMPT_RULES}
 
 
 TOPIC: ${topic}

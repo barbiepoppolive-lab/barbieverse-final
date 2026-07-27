@@ -20,12 +20,12 @@ import { seedFromString, personaForTopic, imageStyleFor } from "@/lib/ai/image-p
 import { toPublicImageUrl } from "@/lib/social-publish/postiz-upload";
 
 const FALLBACK_TOPIC_ROTATION = [
-  "Barbie's founder credentials — highest Wealth Level Poppo/Vone creator worldwide, why that matters for new creators",
+  "Barbie's founder credentials — highest Wealth Level Poppo/Vone streamer worldwide, why that matters for new streamers",
   "How to join Barbieverse and start streaming — the 3-step process, no audience needed",
   "How new host onboarding actually works — agency ID, direct platform payouts, no joining fee, no password ever shared",
-  "Realistic earnings breakdown for Poppo/Vone hosts — week one, month one, and consistent creators",
+  "How payouts work for Poppo/Vone hosts — hours streamed plus viewer gifting, no joining fee",
   "Myth-busting: you do NOT need existing followers to start earning on live streaming",
-  "BarbieVerse Academy — free lessons on coins, points, PK battles, and withdrawals for new creators",
+  "BarbieVerse Academy — free lessons on coins, points, PK battles, and withdrawals for new streamers",
   "Trust and safety — why Barbieverse never asks for your password, only your Poppo/Vone User ID",
   "What makes Barbieverse different — hosted with heart, paid on time, treated like talent",
 ];

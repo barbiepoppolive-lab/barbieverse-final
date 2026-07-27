@@ -1,6 +1,7 @@
 import { aiPremium, aiContent } from "../router";
 import { generateContentSEO, type ContentSEO } from "../content-seo";
 import { TERMINOLOGY_RULES } from "@/lib/ai/brand-terminology";
+import { COMPLIANCE_PROMPT_RULES } from "@/lib/ai/compliance-gate";
 
 // Inline type (audio-gen.server removed from client bundle)
 type AudioGenResult = { audioPath: string; audioUrl: string; voice: string; sizeKb: number; subtitlePath?: string; subtitleUrl?: string };
@@ -45,9 +46,9 @@ export async function generateBlogPost(input: {
 
 FORMAT: ${format}
 TARGET LENGTH: ~${wordCount} words
-BRAND VOICE: Empowering, authentic, helpful. Written for young Indian creators (18-30) who want to earn money through live streaming.
+BRAND VOICE: Empowering, authentic, helpful. Written for young Indian streamers (18-30) who want to earn money through live streaming.
 ${TERMINOLOGY_RULES}
-
+${COMPLIANCE_PROMPT_RULES}
 
 Requirements:
 - SEO-friendly title (under 60 chars)
@@ -132,6 +133,10 @@ Brand voice: Empowering, authentic, helpful. Young Indian streamers audience.`;
     `Create a ${input.platform} post about: ${input.topic}
 
 GOAL: ${goal}
+
+${TERMINOLOGY_RULES}
+
+${COMPLIANCE_PROMPT_RULES}
 
 Requirements:
 - Platform-optimized format and length
