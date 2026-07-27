@@ -13,6 +13,8 @@
 
 import { sendTelegramImages } from "./telegram-media";
 
+import { postizTiming } from "./schedule";
+
 const POSTIZ_BASE =
   process.env.POSTIZ_BASE_URL?.replace(/\/+$/, "") || "https://api.postiz.com/public/v1";
 
@@ -46,6 +48,8 @@ export async function publishYouTubeVideo(opts: {
   caption: string;
   hashtags?: string[];
   privacyStatus?: "public" | "unlisted" | "private";
+  /** ISO timestamp. Omit to publish immediately. */
+  scheduledAt?: string;
 }): Promise<YouTubePublishResult> {
   const config = getConfig();
   if (!config) {
@@ -67,14 +71,14 @@ export async function publishYouTubeVideo(opts: {
     if (!uploadRes.ok) return { ok: false, error: uploadData?.error || `Video upload failed (HTTP ${uploadRes.status})` };
 
     const tags = opts.hashtags?.map((h) => h.replace(/^#/, "")) || [];
-    const now = new Date().toISOString();
+    const timing = postizTiming(opts.scheduledAt);
 
     const body = {
       // "now" = publish immediately. "schedule" requires a future date and
       // was causing every post here to fail with a 400 Bad Request.
-      type: "now",
+      type: timing.type,
       creationMethod: "API",
-      date: now,
+      date: timing.date,
       shortLink: true,
       tags: [] as string[],
       posts: [{

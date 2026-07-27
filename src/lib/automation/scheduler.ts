@@ -6,14 +6,37 @@ const CRON_SCRAPE_INTERVAL = 30 * 60 * 1000; // every 30 min
 
 let started = false;
 
+/**
+ * Whether the in-process content cron may run.
+ *
+ * Set CONTENT_CRON_ENABLED=false when generating content locally via
+ * scripts/local-batch.ts. Both read the same `content_calendar` rows, so
+ * leaving this on means the server races the local batch and you get
+ * duplicate posts.
+ *
+ * Defaults to enabled, so existing deployments are unaffected.
+ */
+function contentCronEnabled(): boolean {
+  return (process.env.CONTENT_CRON_ENABLED ?? "true").toLowerCase() !== "false";
+}
+
+/** Same switch for the scrape cron, kept independent — you may want lead
+ *  discovery running on the server even while content is generated locally. */
+function scrapeCronEnabled(): boolean {
+  return (process.env.SCRAPE_CRON_ENABLED ?? "true").toLowerCase() !== "false";
+}
+
 export function startScheduler(): void {
   if (started) return;
   started = true;
 
-  console.log("[scheduler] Starting internal cron scheduler");
+  console.log(
+    `[scheduler] Starting internal cron scheduler ` +
+      `(content=${contentCronEnabled() ? "on" : "OFF"}, scrape=${scrapeCronEnabled() ? "on" : "OFF"})`,
+  );
 
   // Content cron — every hour
-  setInterval(async () => {
+  if (contentCronEnabled()) setInterval(async () => {
     console.log("[scheduler] Running content cron");
     try {
       const res = await runContentCron("internal");
@@ -25,7 +48,7 @@ export function startScheduler(): void {
   }, CRON_CONTENT_INTERVAL);
 
   // Scrape cron — every 30 min
-  setInterval(async () => {
+  if (scrapeCronEnabled()) setInterval(async () => {
     console.log("[scheduler] Running scrape cron");
     try {
       const res = await runScrapeCron();
@@ -37,7 +60,7 @@ export function startScheduler(): void {
   }, CRON_SCRAPE_INTERVAL);
 
   // Run once immediately on startup (staggered)
-  setTimeout(async () => {
+  if (contentCronEnabled()) setTimeout(async () => {
     console.log("[scheduler] First content cron run");
     try {
       const res = await runContentCron("internal");
@@ -48,7 +71,7 @@ export function startScheduler(): void {
     }
   }, 10_000);
 
-  setTimeout(async () => {
+  if (scrapeCronEnabled()) setTimeout(async () => {
     console.log("[scheduler] First scrape cron run");
     try {
       const res = await runScrapeCron();

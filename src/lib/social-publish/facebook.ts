@@ -7,6 +7,8 @@
 //   POSTIZ_API_KEY — from Postiz dashboard, Settings > Developers > Public API
 //   FACEBOOK_INTEGRATION_ID — from GET /integrations after connecting the Page
 
+import { postizTiming } from "./schedule";
+
 const POSTIZ_BASE =
   process.env.POSTIZ_BASE_URL?.replace(/\/+$/, "") || "https://api.postiz.com/public/v1";
 
@@ -47,17 +49,17 @@ async function uploadImage(apiKey: string, imageUrl: string): Promise<{ id: stri
   }
 }
 
-async function createPost(apiKey: string, integrationId: string, opts: { content: string; image?: { id: string; path: string } }): Promise<FacebookPublishResult> {
+async function createPost(apiKey: string, integrationId: string, opts: { content: string; image?: { id: string; path: string }; scheduledAt?: string }): Promise<FacebookPublishResult> {
   try {
-    const now = new Date().toISOString();
+    const timing = postizTiming(opts.scheduledAt);
     const body = {
       // "now" publishes immediately; "schedule" requires a future date and
       // was silently causing every single post here to fail with a 400
       // (Postiz was interpreting "schedule for right now" as an invalid
       // past/immediate date for a scheduled post). See docs.postiz.com.
-      type: "now",
+      type: timing.type,
       creationMethod: "API",
-      date: now,
+      date: timing.date,
       shortLink: true,
       tags: [] as string[],
       posts: [{
@@ -95,6 +97,8 @@ export async function publishToFacebook(opts: {
   message: string;
   imageUrl?: string;
   linkUrl?: string;
+  /** ISO timestamp. Omit to publish immediately. */
+  scheduledAt?: string;
 }): Promise<FacebookPublishResult> {
   const config = getConfig();
   if (!config) {
@@ -116,12 +120,14 @@ export async function publishToFacebook(opts: {
     content = `${opts.message}\n\n${opts.linkUrl}`;
   }
 
-  return createPost(config.apiKey, config.integrationId, { content, image });
+  return createPost(config.apiKey, config.integrationId, { content, image, scheduledAt: opts.scheduledAt });
 }
 
 export async function publishFacebookVideo(opts: {
   videoUrl: string;
   description?: string;
+  /** ISO timestamp. Omit to publish immediately. */
+  scheduledAt?: string;
 }): Promise<FacebookPublishResult> {
   const config = getConfig();
   if (!config) {
@@ -142,11 +148,11 @@ export async function publishFacebookVideo(opts: {
     const uploadData = await uploadRes.json();
     if (!uploadRes.ok) return { ok: false, error: uploadData?.error || `Video upload failed (HTTP ${uploadRes.status})` };
 
-    const now = new Date().toISOString();
+    const timing = postizTiming(opts.scheduledAt);
     const body = {
-      type: "now",
+      type: timing.type,
       creationMethod: "API",
-      date: now,
+      date: timing.date,
       shortLink: true,
       tags: [] as string[],
       posts: [{

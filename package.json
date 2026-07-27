@@ -13,7 +13,9 @@
     "typecheck": "tsc --noEmit",
     "check:terminology": "node scripts/check-terminology.mjs",
     "check": "npm run typecheck && npm run check:terminology",
-    "check:postiz": "node scripts/check-postiz.mjs"
+    "check:postiz": "node scripts/check-postiz.mjs",
+    "batch": "tsx scripts/local-batch.ts",
+    "batch:commit": "tsx scripts/local-batch.ts --commit"
   },
   "dependencies": {
     "@fal-ai/client": "^1.10.1",

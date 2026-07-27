@@ -16,6 +16,8 @@
 
 import { sendTelegramImages } from "./telegram-media";
 
+import { postizTiming } from "./schedule";
+
 const POSTIZ_BASE =
   process.env.POSTIZ_BASE_URL?.replace(/\/+$/, "") || "https://api.postiz.com/public/v1";
 
@@ -65,6 +67,8 @@ export async function publishToLinkedIn(opts: {
   imageUrl?: string;
   imageUrls?: string[];
   carouselName?: string;
+  /** ISO timestamp. Omit to publish immediately. */
+  scheduledAt?: string;
 }): Promise<LinkedInPublishResult> {
   const config = getConfig();
   if (!config) {
@@ -88,13 +92,13 @@ export async function publishToLinkedIn(opts: {
     // of the default collage layout — this is how brand-manager.ts's
     // generated carousel slides become an actual LinkedIn carousel post.
     const isCarousel = images.length > 1;
-    const now = new Date().toISOString();
+    const timing = postizTiming(opts.scheduledAt);
     const body = {
       // "now" = publish immediately. "schedule" requires a future date and
       // was causing every post here to fail with a 400 Bad Request.
-      type: "now",
+      type: timing.type,
       creationMethod: "API",
-      date: now,
+      date: timing.date,
       shortLink: true,
       tags: [] as string[],
       posts: [{

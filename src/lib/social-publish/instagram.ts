@@ -11,6 +11,8 @@
 //   POSTIZ_API_KEY — from Postiz dashboard, Settings > Developers > Public API
 //   INSTAGRAM_INTEGRATION_ID — from GET /integrations after connecting the account
 
+import { postizTiming } from "./schedule";
+
 const POSTIZ_BASE =
   process.env.POSTIZ_BASE_URL?.replace(/\/+$/, "") || "https://api.postiz.com/public/v1";
 
@@ -76,6 +78,8 @@ export async function publishInstagramImage(opts: {
   imageUrls?: string[];
   caption: string;
   postType?: "post" | "story";
+  /** ISO timestamp. Omit to publish immediately. */
+  scheduledAt?: string;
 }): Promise<InstagramPublishResult> {
   const config = getConfig();
   if (!config) {
@@ -95,13 +99,13 @@ export async function publishInstagramImage(opts: {
   }
 
   try {
-    const now = new Date().toISOString();
+    const timing = postizTiming(opts.scheduledAt);
     const body = {
       // "now" = publish immediately. "schedule" requires a future date and
       // was causing every post here to fail with a 400 Bad Request.
-      type: "now",
+      type: timing.type,
       creationMethod: "API",
-      date: now,
+      date: timing.date,
       shortLink: true,
       tags: [] as string[],
       posts: [{
@@ -139,6 +143,8 @@ export async function publishInstagramVideo(opts: {
   videoUrl: string;
   caption: string;
   isReel?: boolean;
+  /** ISO timestamp. Omit to publish immediately. */
+  scheduledAt?: string;
 }): Promise<InstagramPublishResult> {
   const config = getConfig();
   if (!config) {
@@ -149,13 +155,13 @@ export async function publishInstagramVideo(opts: {
   if ("error" in video) return { ok: false, error: video.error };
 
   try {
-    const now = new Date().toISOString();
+    const timing = postizTiming(opts.scheduledAt);
     const body = {
       // "now" = publish immediately. "schedule" requires a future date and
       // was causing every post here to fail with a 400 Bad Request.
-      type: "now",
+      type: timing.type,
       creationMethod: "API",
-      date: now,
+      date: timing.date,
       shortLink: true,
       tags: [] as string[],
       posts: [{

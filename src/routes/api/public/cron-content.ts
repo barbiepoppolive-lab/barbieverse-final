@@ -17,6 +17,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { generateAndPublish, type PublishPlatform } from "@/lib/social-publish";
 import { generateImage } from "@/lib/ai/image-gen";
 import { seedFromString, personaForTopic, imageStyleFor } from "@/lib/ai/image-persona";
+import { toPublicImageUrl } from "@/lib/social-publish/postiz-upload";
 
 const FALLBACK_TOPIC_ROTATION = [
   "Barbie's founder credentials — highest Wealth Level Poppo/Vone creator worldwide, why that matters for new creators",
@@ -91,17 +92,15 @@ async function buildTopicImage(topic: string): Promise<string | undefined> {
       seed: seedFromString(topic),
       provider: "auto",
     });
-    // ComfyUI returns a path relative to /public (e.g. "/generated-videos/x.png"),
-    // which only resolves once this app's own domain serves it back — turn it
-    // into an absolute URL so Graph API / LinkedIn can actually fetch it.
-    // Pollinations already returns a full https:// URL, so this is a no-op then.
-    if (result.url.startsWith("http")) return result.url;
-    const base = process.env.PUBLIC_APP_URL;
-    if (!base) {
-      console.warn("[cron-content] Image generated at a relative path but PUBLIC_APP_URL is unset — platforms won't be able to fetch it");
-      return undefined;
-    }
-    return `${base.replace(/\/$/, "")}${result.url}`;
+    // Upload the raw bytes to Postiz and use the URL it hosts.
+    //
+    // This replaced prefixing PUBLIC_APP_URL onto ComfyUI's relative path.
+    // That approach assumed this app serves back files written to
+    // public/generated-videos/ at runtime — but public/ is baked at build
+    // time and Railway's filesystem is ephemeral, so the platform fetch would
+    // 404. Uploading the buffer sidesteps hosting entirely and works
+    // identically whether generation happened on Railway or on a local GPU.
+    return await toPublicImageUrl(result);
   } catch (e: any) {
     console.error("[cron-content] Image generation failed, continuing without an image:", e?.message);
     return undefined;

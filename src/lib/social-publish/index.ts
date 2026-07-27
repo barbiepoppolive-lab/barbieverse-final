@@ -174,6 +174,13 @@ export async function generateAndPublish(opts: {
   imageUrl?: string;
   videoUrl?: string;
   visualBrief?: string;
+  /**
+   * ISO timestamp to schedule the post for. Omit to publish immediately.
+   * Used by scripts/local-batch.ts, which generates on a local GPU ahead of
+   * time and hands Postiz a future publish time — so the machine doesn't
+   * need to be awake when the post actually goes out.
+   */
+  scheduledAt?: string;
 }): Promise<PublishAttemptResult> {
   let content = await generateSocialPost({
     platform: opts.platform === "reddit" ? "facebook" : opts.platform, // reddit isn't in generateSocialPost's platform rules; facebook's plainer tone is the closest fit for a Telegram-reviewed draft
@@ -365,7 +372,7 @@ export async function generateAndPublish(opts: {
     }
     const fullMessage = [content.caption, content.hashtags?.length ? content.hashtags.join(" ") : ""]
       .filter(Boolean).join("\n\n");
-    const result = await publishToFacebook({ message: fullMessage, imageUrl: carouselImageUrls?.[0] || opts.imageUrl });
+    const result = await publishToFacebook({ message: fullMessage, imageUrl: carouselImageUrls?.[0] || opts.imageUrl, scheduledAt: opts.scheduledAt });
     await logAttempt({
       platform: "facebook", topic: opts.topic, caption: content.caption, hashtags: content.hashtags,
       imageUrl: opts.imageUrl, status: result.ok ? "published" : "failed",
@@ -384,6 +391,7 @@ export async function generateAndPublish(opts: {
     const fullCaption = [content.caption, content.hashtags?.length ? content.hashtags.join(" ") : ""]
       .filter(Boolean).join("\n\n");
     const result = await publishInstagramImage({
+      scheduledAt: opts.scheduledAt,
       imageUrl: opts.imageUrl,
       imageUrls: carouselImageUrls,
       caption: fullCaption,
@@ -412,6 +420,7 @@ export async function generateAndPublish(opts: {
       return { platform: "youtube", status: result.ok ? "sent_for_manual" : "failed", error: result.error };
     }
     const result = await publishYouTubeVideo({
+      scheduledAt: opts.scheduledAt,
       videoUrl: opts.videoUrl, caption: content.caption, hashtags: content.hashtags,
     });
     await logAttempt({
@@ -437,6 +446,7 @@ export async function generateAndPublish(opts: {
     const fullText = [content.caption, content.hashtags?.length ? content.hashtags.join(" ") : ""]
       .filter(Boolean).join("\n\n");
     const result = await publishToLinkedIn({
+      scheduledAt: opts.scheduledAt,
       text: fullText,
       imageUrl: opts.imageUrl,
       imageUrls: carouselImageUrls,
