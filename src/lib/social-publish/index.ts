@@ -23,9 +23,11 @@
 
 import { generateSocialPost } from "@/lib/ai/modules/content-ai";
 import { scoreContent, improveContent } from "@/lib/ai/content-quality";
+import { checkCompliance, formatIssuesForRevision } from "@/lib/ai/compliance-gate";
 import { generateContentSEO, type Platform as SEOPlatform } from "@/lib/ai/content-seo";
 import { generateCarousel } from "@/lib/ai/modules/brand-manager";
 import { generateImage } from "@/lib/ai/image-gen";
+import { seedFromString } from "@/lib/ai/image-persona";
 import { publishToFacebook, isFacebookConfigured } from "./facebook";
 import { publishInstagramImage, isInstagramConfigured } from "./instagram";
 import { deliverMojContentForManualUpload } from "./moj";
@@ -49,21 +51,14 @@ function looksLikeCoinSelling(text: string): boolean {
   return COIN_SELLING_MARKERS.some((m) => lower.includes(m));
 }
 
-// Deterministic per-string seed (same helper as cron-content.ts) — used so
-// each carousel slide gets a distinct, reproducible image instead of every
-// slide reusing one hardcoded seed.
-function seedFromString(s: string): number {
-  let hash = 0;
-  for (let i = 0; i < s.length; i++) {
-    hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
-  }
-  return hash || 1;
-}
-
 // Below this score (0-100, see content-quality.ts scoreContent), a draft
 // gets one automated rewrite pass; still below after that, it routes to
 // Telegram instead of publishing. Override via CONTENT_QUALITY_THRESHOLD.
 const QUALITY_THRESHOLD = Number(process.env.CONTENT_QUALITY_THRESHOLD) || 60;
+
+// How many recent published captions per platform to compare against when
+// checking for near-duplicates.
+const DEDUP_LOOKBACK = Number(process.env.CONTENT_DEDUP_LOOKBACK) || 25;
 
 export interface PublishAttemptResult {
   platform: PublishPlatform;
@@ -103,6 +98,35 @@ async function sendReviewAlert(opts: {
     });
   } catch (e: any) {
     console.error("[social-publish] review alert failed:", e?.message);
+  }
+}
+
+/**
+ * Recent captions already published to a platform, newest first.
+ *
+ * Feeds near-duplicate detection in the compliance gate. Only 'published'
+ * rows count — a draft that was blocked never reached the platform, so it
+ * can't contribute to a repetition pattern.
+ */
+async function getRecentCaptions(
+  platform: PublishPlatform,
+  limit: number,
+): Promise<string[]> {
+  try {
+    const { q } = await import("@/lib/db.server");
+    const rows = await q<{ caption: string }>(
+      `SELECT caption FROM published_content_log
+       WHERE platform = $1 AND status = 'published' AND caption IS NOT NULL
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [platform, limit],
+    );
+    return rows.map((r) => r.caption).filter(Boolean);
+  } catch (e: any) {
+    // Dedup is a safety net, not a hard dependency. If the lookup fails we
+    // continue without it rather than blocking an otherwise-valid post.
+    console.error("[social-publish] getRecentCaptions failed:", e?.message);
+    return [];
   }
 }
 
@@ -270,6 +294,69 @@ export async function generateAndPublish(opts: {
       error: `Quality score ${quality.overall}/100 below threshold ${QUALITY_THRESHOLD}`,
     });
     return { platform: opts.platform, status: "needs_review", error: `Quality score ${quality.overall}/100` };
+  }
+
+  // ── Compliance gate ──────────────────────────────────
+  // Distinct from the quality gate above: quality asks "is this good?",
+  // compliance asks "will this get the account restricted?". A well-written
+  // post that guarantees earnings scores highly and is still unpublishable.
+  //
+  // Runs last so it sees the final caption, including anything improveContent
+  // rewrote. One targeted revision pass, then a hard stop — we never publish
+  // content that fails compliance.
+  {
+    const recentPosts = await getRecentCaptions(opts.platform, DEDUP_LOOKBACK);
+    let compliance = checkCompliance({
+      content: content.caption,
+      hashtags: content.hashtags,
+      recentPosts,
+      platform: opts.platform,
+    });
+
+    if (!compliance.passed) {
+      console.warn(
+        `[social-publish] Compliance failed (risk ${compliance.riskScore}):`,
+        compliance.issues.map((i) => i.rule).join(", "),
+      );
+      try {
+        const fixed = await improveContent({
+          content: content.caption,
+          content_type: opts.contentType || "social_post",
+          instruction: formatIssuesForRevision(compliance),
+        });
+        content = { ...content, caption: fixed.improved };
+        compliance = checkCompliance({
+          content: content.caption,
+          hashtags: content.hashtags,
+          recentPosts,
+          platform: opts.platform,
+        });
+      } catch (e: any) {
+        console.error("[social-publish] compliance revision failed:", e?.message);
+      }
+    }
+
+    if (!compliance.passed) {
+      const summary = compliance.issues
+        .filter((i) => i.severity === "block")
+        .map((i) => i.rule)
+        .join(", ");
+      await sendReviewAlert({
+        platform: opts.platform, topic: opts.topic, caption: content.caption,
+        score: 100 - compliance.riskScore,
+        suggestions: compliance.issues.map((i) => `${i.rule}: ${i.detail}`),
+      });
+      await logAttempt({
+        platform: opts.platform, topic: opts.topic, caption: content.caption, hashtags: content.hashtags,
+        imageUrl: opts.imageUrl, videoUrl: opts.videoUrl, status: "needs_review",
+        error: `Compliance blocked: ${summary}`,
+      });
+      return {
+        platform: opts.platform,
+        status: "needs_review",
+        error: `Compliance blocked: ${summary}`,
+      };
+    }
   }
 
   if (opts.platform === "facebook") {

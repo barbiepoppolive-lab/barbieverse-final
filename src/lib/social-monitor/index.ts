@@ -44,6 +44,12 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 
 const PLATFORM_TIMEOUT = 60_000;
 
+// ── Telegram alert throttling ──────────────────────────
+// Only hot leads clearing ALERT_MIN_ENGAGEMENT get an individual ping, and at
+// most ALERT_MAX_PER_RUN of them per run. Everything else rolls into the digest.
+const ALERT_MIN_ENGAGEMENT = Number(process.env.ALERT_MIN_ENGAGEMENT) || 10;
+const ALERT_MAX_PER_RUN = Number(process.env.ALERT_MAX_PER_RUN) || 5;
+
 // ── Resolve search keywords for a platform ─────────────
 // The adaptive keyword_scores pool (selectKeywordsForPlatform) was designed
 // to self-improve over time, but it started empty for every platform and
@@ -542,6 +548,15 @@ export async function processDiscoveredLeads(batchSize: number = 20): Promise<Pr
     errors: 0,
   };
 
+  // Alert throttling — tune via env without a code change.
+  let individualAlertsSent = 0;
+  const digestCandidates: Array<{
+    platform: string;
+    postUrl: string;
+    category: string;
+    engagementScore: number;
+  }> = [];
+
   try {
     const { q } = await import("@/lib/db.server");
 
@@ -660,8 +675,27 @@ export async function processDiscoveredLeads(batchSize: number = 20): Promise<Pr
               )
             : [];
 
-          // Send Telegram alerts for hot/warm
-          if (finalCategory === "hot" || finalCategory === "warm") {
+          // Telegram alerting.
+          //
+          // Previously every hot AND warm lead fired its own message, which
+          // buried the genuinely good leads. Now only hot leads clearing an
+          // engagement floor get an individual ping, capped per run; warm
+          // leads roll up into the digest instead.
+          const alertWorthy =
+            finalCategory === "hot" &&
+            (lead.engagement_score ?? 0) >= ALERT_MIN_ENGAGEMENT;
+
+          if (alertWorthy || finalCategory === "warm") {
+            digestCandidates.push({
+              platform: post.platform,
+              postUrl: post.postUrl,
+              category: finalCategory,
+              engagementScore: lead.engagement_score ?? 0,
+            });
+          }
+
+          if (alertWorthy && individualAlertsSent < ALERT_MAX_PER_RUN) {
+            individualAlertsSent++;
             const mojScoreText = mojScore
               ? `\n[Moj Score: ${mojScore.total}/100 P:${mojScore.profile} E:${mojScore.engagement} C:${mojScore.content}]`
               : "";
@@ -707,9 +741,25 @@ export async function processDiscoveredLeads(batchSize: number = 20): Promise<Pr
       }
     }
 
-    // Send digest if we have results
-    if (result.processed > 0) {
-      await sendSocialDigest(result.hotAlerts, result.warmAlerts, result.processed, []);
+    // Send digest only when there was something worth reporting. A digest
+    // reading "0 hot, 0 warm" every single run is pure noise.
+    //
+    // Also actually pass the top leads through — this used to be called with
+    // an empty array, so the digest's "Top leads" section never rendered.
+    if (result.hotAlerts > 0 || result.warmAlerts > 0) {
+      const topPosts = digestCandidates
+        .sort((a, b) => {
+          if (a.category !== b.category) return a.category === "hot" ? -1 : 1;
+          return b.engagementScore - a.engagementScore;
+        })
+        .slice(0, 5)
+        .map(({ platform, postUrl, category }) => ({ platform, postUrl, category }));
+
+      await sendSocialDigest(result.hotAlerts, result.warmAlerts, result.processed, topPosts);
+    } else if (result.processed > 0) {
+      console.log(
+        `[social-monitor] Processed ${result.processed} leads, none hot/warm — digest suppressed`,
+      );
     }
   } catch (e: any) {
     console.error("[social-monitor] processDiscoveredLeads failed:", e?.message);

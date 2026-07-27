@@ -34,6 +34,10 @@ export type TaskType =
   | "vision"
   | "fallback";
 
+// How many free models OpenRouter may burn through on a single request
+// before we give up and fall through to the next provider.
+const OPENROUTER_MAX_ATTEMPTS = Number(process.env.OPENROUTER_MAX_ATTEMPTS) || 4;
+
 interface RouteConfig {
   primary: Provider;
   fallback: Provider;
@@ -247,7 +251,10 @@ export async function aiRoute(params: {
 
   // Try each provider in order
   for (const provider of providers) {
-    const start = Date.now();
+    // OpenRouter can retry in-place: on failure we hop to a different free
+    // model and try again. Other providers get a single attempt, since there
+    // is no alternate model to hop to.
+    const maxAttempts = provider === "openrouter" ? OPENROUTER_MAX_ATTEMPTS : 1;
 
     // OpenRouter: use optimizer to pick best free model
     let effectiveModel = config.model;
@@ -259,71 +266,100 @@ export async function aiRoute(params: {
       }
     }
 
-    try {
-      let text: string;
-      const optsWithModel = { ...opts, model: effectiveModel };
+    const triedModels: string[] = [];
 
-      if (imageBase64 && (taskType === "vision" || PROVIDER_REGISTRY[provider].supportsVision)) {
-        text = await chatWithImage(provider, prompt, imageBase64, mimeType || "image/jpeg", optsWithModel);
-      } else {
-        text = await chat(provider, prompt, optsWithModel);
-      }
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const start = Date.now();
+      triedModels.push(effectiveModel);
 
-      const latencyMs = Date.now() - start;
-      const tokens = estimateTokens(text);
-      const cost = calculateCost(effectiveModel, estimateTokens(prompt), tokens);
+      try {
+        let text: string;
+        const optsWithModel = { ...opts, model: effectiveModel };
 
-      trackUsage(provider, tokens);
-      logUsage({
-        provider,
-        task_type: taskType,
-        model: effectiveModel,
-        input_tokens: estimateTokens(prompt),
-        output_tokens: tokens,
-        latency_ms: latencyMs,
-        success: true,
-      });
+        if (imageBase64 && (taskType === "vision" || PROVIDER_REGISTRY[provider].supportsVision)) {
+          text = await chatWithImage(provider, prompt, imageBase64, mimeType || "image/jpeg", optsWithModel);
+        } else {
+          text = await chat(provider, prompt, optsWithModel);
+        }
 
-      // Log cost for OpenRouter optimizer tracking
-      if (provider === "openrouter") {
-        logCost({
-          model: effectiveModel,
+        const latencyMs = Date.now() - start;
+        const tokens = estimateTokens(text);
+        const cost = calculateCost(effectiveModel, estimateTokens(prompt), tokens);
+
+        trackUsage(provider, tokens);
+        logUsage({
+          provider,
           task_type: taskType,
+          model: effectiveModel,
           input_tokens: estimateTokens(prompt),
           output_tokens: tokens,
-          cost_usd: cost,
           latency_ms: latencyMs,
           success: true,
-          provider,
         });
-      }
 
-      return { text, provider, model: effectiveModel, tokens, latencyMs };
-    } catch (err: any) {
-      console.error(`[AIRouter] ${provider} failed:`, err.message);
-      logUsage({
-        provider,
-        task_type: taskType,
-        model: effectiveModel,
-        input_tokens: estimateTokens(prompt),
-        output_tokens: 0,
-        latency_ms: Date.now() - start,
-        success: false,
-        error: err.message,
-      });
+        // Log cost for OpenRouter optimizer tracking
+        if (provider === "openrouter") {
+          logCost({
+            model: effectiveModel,
+            task_type: taskType,
+            input_tokens: estimateTokens(prompt),
+            output_tokens: tokens,
+            cost_usd: cost,
+            latency_ms: latencyMs,
+            success: true,
+            provider,
+          });
+        }
 
-      // OpenRouter: auto-hop to next model on failure
-      if (provider === "openrouter") {
-        try {
-          const nextModel = await hopOnFailure(effectiveModel, taskType, err.message);
-          console.log(`[AIRouter] OpenRouter auto-hopped to: ${nextModel}`);
-          // Don't log cost for failed attempt
-        } catch {
-          // Hop failed, continue to next provider
+        if (attempt > 1) {
+          console.log(
+            `[AIRouter] ${provider} succeeded on attempt ${attempt}/${maxAttempts} with ${effectiveModel}`,
+          );
+        }
+
+        return { text, provider, model: effectiveModel, tokens, latencyMs };
+      } catch (err: any) {
+        console.error(
+          `[AIRouter] ${provider} failed (attempt ${attempt}/${maxAttempts}, model ${effectiveModel}):`,
+          err.message,
+        );
+        logUsage({
+          provider,
+          task_type: taskType,
+          model: effectiveModel,
+          input_tokens: estimateTokens(prompt),
+          output_tokens: 0,
+          latency_ms: Date.now() - start,
+          success: false,
+          error: err.message,
+        });
+
+        // Out of attempts for this provider — fall through to the next one.
+        if (attempt === maxAttempts) break;
+
+        // OpenRouter: hop to a different free model and retry in-place.
+        if (provider === "openrouter") {
+          try {
+            const nextModel = await hopOnFailure(effectiveModel, taskType, err.message);
+
+            // hopOnFailure can hand back a model we've already burned this
+            // request (health cache is only a hint). Retrying it would waste
+            // the attempt, so give up on OpenRouter and let the next provider try.
+            if (triedModels.includes(nextModel)) {
+              console.warn(
+                `[AIRouter] OpenRouter hop returned already-tried model ${nextModel}; exhausted free models for this request`,
+              );
+              break;
+            }
+
+            console.log(`[AIRouter] OpenRouter auto-hopped to: ${nextModel} (retrying)`);
+            effectiveModel = nextModel;
+          } catch {
+            // Hop itself failed — nothing left to try on this provider.
+            break;
+          }
         }
       }
-
-      // Continue to next provider
     }
   }
 

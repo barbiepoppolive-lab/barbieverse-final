@@ -1,8 +1,10 @@
 // Prompt Templates — Reusable prompts for BarbieVerse AI tasks
 
+import { TERMINOLOGY_RULES } from "@/lib/ai/brand-terminology";
+
 export const PROMPTS = {
   // ── Lead Scoring ───────────────────────────────────────
-  leadScore: (leadData: string) => `You are an expert lead analyst for a creator economy platform. Score this lead with precision.
+  leadScore: (leadData: string) => `You are an expert lead analyst for a live streaming platform. Score this lead with precision.
 
 LEAD DATA:
 ${leadData}
@@ -24,12 +26,12 @@ ENGAGEMENT POTENTIAL (0-25):
 - Look at: likes relative to followers, comment quality, post frequency
 
 NICHE MATCH (0-25):
-- Live streaming creator = 25 (perfect fit)
+- Live streaming streamer = 25 (perfect fit)
 - Entertainment/lifestyle = 20 (good fit)
 - Tech/gaming = 15 (related)
 - Business/finance = 10 (tangential)
 - Other = 5
-- Check: Does their content align with live streaming, creator economy, or online earning?
+- Check: Does their content align with live streaming or online earning?
 
 ACTIVITY LEVEL (0-25):
 - Posted today = 25
@@ -68,7 +70,9 @@ Return JSON with ALL fields:
 
   // ── Instagram Caption ──────────────────────────────────
   instagramCaption: (topic: string, brandVoice?: string) =>
-    `You are a world-class social media copywriter for BarbieVerse — a creator economy platform that helps people earn money through live streaming.
+    `You are a world-class social media copywriter for BarbieVerse — a live streaming platform that helps people earn money by going live.
+${TERMINOLOGY_RULES}
+
 
 TOPIC: ${topic}
 
@@ -79,7 +83,7 @@ CAPTION FRAMEWORK:
 LINE 1 — THE HOOK (Most important! Must stop the scroll):
 - Use a bold statement, question, or surprising fact
 - Create curiosity gap
-- Examples: "Nobody talks about this side of live streaming..." / "I made ₹8,000 last month doing THIS" / "The streaming myth that's keeping you broke"
+- Examples: "Nobody talks about this side of live streaming..." / "The one habit that changed my streams" / "The streaming myth that's keeping you broke"
 
 LINE 2-3 — THE STORY/VALUE:
 - Share a specific, relatable moment or insight
@@ -92,7 +96,7 @@ LINE 4-5 — THE CTA:
 - Question CTA: "Would you try this? Tell us below"
 
 HASHTAGS (3-5 relevant ones):
-- Mix popular (#livestreaming #sidehustle) with niche (#poppolive #creatorseconomy)
+- Mix popular (#livestreaming #sidehustle) with niche (#poppolive #livestreamerindia)
 - Put hashtags in first comment, not caption body
 
 FORMAT:
@@ -112,7 +116,7 @@ Write the caption now. Make it feel like a real person wrote it, not a brand.`,
 
   // ── Lead Analysis ──────────────────────────────────────
   analyzeLead: (profileData: string) =>
-    `You are an expert social media analyst for a creator economy platform. Analyze this profile for partnership potential.
+    `You are an expert social media analyst for a live streaming platform. Analyze this profile for partnership potential.
 
 PROFILE DATA:
 ${profileData}

@@ -55,7 +55,7 @@ export const HOOK_FRAMEWORKS: Record<
     description: "Open a knowledge gap the viewer MUST close by watching",
     examples: [
       "Nobody tells you this about live streaming...",
-      "I made ₹50,000 last month doing this one thing...",
+      "I changed one thing about my streams and everything shifted...",
       "The reason you're broke is simpler than you think...",
       "This one filter changed my entire content game...",
     ],
@@ -91,7 +91,7 @@ export const HOOK_FRAMEWORKS: Record<
     description: "Lead with credentials, results, or social proof",
     examples: [
       "As someone who's grown 100K followers in 90 days...",
-      "I've spent ₹2 lakhs on ads. Here's what actually works...",
+      "I've run ads for two years. Here's what actually works...",
       "After 500+ livestreams, here's the truth...",
       "Top 1% creator here. Listen carefully...",
     ],

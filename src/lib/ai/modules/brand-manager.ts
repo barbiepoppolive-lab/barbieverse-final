@@ -16,6 +16,13 @@ import {
   type MusicGenre,
 } from "../music";
 import { generateContentSEO, type ContentSEO, type Platform } from "../content-seo";
+// Must stay at the top: BRAND_VOICE below interpolates TERMINOLOGY_RULES at
+// module-evaluation time. Under TypeScript's CJS emit, an import lower in the
+// file becomes a require() in that position, and the constant would evaluate
+// to undefined inside the prompt string.
+import { TERMINOLOGY_RULES } from "@/lib/ai/brand-terminology";
+import { AUDIENCE_RULES, CLAIMS_RULES } from "@/lib/ai/recruitment-targeting";
+import { COMPLIANCE_PROMPT_RULES } from "@/lib/ai/compliance-gate";
 
 function safeParseJson(text: string): any {
   let clean = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
@@ -118,7 +125,7 @@ export interface ContentCalendarEntry {
 
 // ── Brand Voice Constants ──────────────────────────────
 
-const BRAND_VOICE = `You are the AI Brand Manager for BarbieVerse — a creator economy platform helping young Indian creators earn money through live streaming on Poppo Live and Vone Live.
+const BRAND_VOICE = `You are the AI Brand Manager for BarbieVerse — a live streaming platform helping young Indian streamers earn money on Poppo Live and Vone Live.
 
 BRAND PERSONALITY:
 - Empowering, not preachy — you lift people up, never talk down
@@ -128,7 +135,7 @@ BRAND PERSONALITY:
 - Direct, not aggressive — clear and confident
 
 TARGET AUDIENCE:
-- Young Indian creators (18-30)
+- Young Indian streamers (18-30)
 - Tech-savvy but skeptical of scams
 - Value authenticity over polish
 - Want real income, not "exposure"
@@ -137,11 +144,20 @@ TARGET AUDIENCE:
 CONTENT RULES:
 1. HOOK FIRST — first line must stop the scroll
 2. 80% value, 20% promotion
-3. Use specific numbers and real examples
+3. Be concrete — name real mechanics and situations, but NEVER an earnings figure
 4. Short paragraphs (2-3 sentences)
 5. End with clear CTA
 6. Never use: leverage, synergy, unlock, gamify, disruptive
-7. Always sound like a real person, not a brand`;
+7. Always sound like a real person, not a brand
+
+${TERMINOLOGY_RULES}
+
+${AUDIENCE_RULES}
+
+${CLAIMS_RULES}
+
+${COMPLIANCE_PROMPT_RULES}
+`;
 
 // ── Brand Visual Identity (append to ALL image prompts) ──
 
@@ -155,7 +171,7 @@ const BRAND_AESTHETIC = `BarbieVerse brand aesthetic: luxurious pink and black c
 // nothing would have deployed regardless of what else was committed.
 import { POPPO_REFERRAL_URL, VONE_REFERRAL_URL } from "@/lib/creator-config";
 
-const MOJ_RECRUITMENT_VOICE = `You are the AI Brand Manager for BarbieVerse — a creator economy platform that helps young Indian creators earn real money through live streaming on Poppo Live and Vone Live.
+const MOJ_RECRUITMENT_VOICE = `You are the AI Brand Manager for BarbieVerse — a live streaming platform that helps young Indian streamers earn real money on Poppo Live and Vone Live.
 
 BRAND PERSONALITY:
 - Empowering, not preachy — you lift people up
@@ -165,7 +181,7 @@ BRAND PERSONALITY:
 - Direct, not aggressive
 
 TARGET AUDIENCE (Moj users):
-- Young Indian creators (18-30) who already create short videos on Moj
+- Young Indian streamers (18-30) who already make short videos on Moj
 - Hindi/regional + English mix (Hinglish) preferred — write like they actually talk
 - Want real income, skeptical of scams
 - Respond to music-synced hooks, local references, relatable faces
@@ -173,12 +189,22 @@ TARGET AUDIENCE (Moj users):
 CONTENT RULES (Moj):
 1. HOOK FIRST in Hinglish — first line must stop the scroll (curiosity, shock, or a bold number)
 2. 80% value, 20% promotion
-3. Use specific numbers (e.g. "₹0 se ₹12,000/month")
+3. Be concrete about the process (agency ID, direct payout, no joining fee).
+   NEVER quote a rupee amount or earnings figure — not even as an example.
 4. Short, punchy lines — Moj is vertical, fast, mobile
 5. Music-sync note: hooks should feel like they belong over a trending track
 6. NEVER use corporate words: leverage, synergy, unlock, gamify, disruptive
 7. End EVERY post with a clear CTA linking to Poppo Live or Vone Live
-8. Always sound like a real Indian creator, not a brand
+8. Always sound like a real Indian streamer, not a brand
+
+${TERMINOLOGY_RULES}
+
+${AUDIENCE_RULES}
+
+${CLAIMS_RULES}
+
+${COMPLIANCE_PROMPT_RULES}
+
 
 REFERRAL CTA (use in caption + last slide):
 - Poppo Live: ${POPPO_REFERRAL_URL}
@@ -329,7 +355,7 @@ REQUIREMENTS:
 - Include text overlay suggestions for each scene
 - Suggest trending audio/music style
 - End with CTA (follow, comment, save, share)
-- Write like a real creator, not a brand
+- Write like a real streamer, not a brand
 
 Return EXACTLY this JSON:
 {
@@ -345,7 +371,7 @@ Return EXACTLY this JSON:
   "caption": "post caption",
   "hashtags": ["relevant", "hashtags"],
   "music_suggestion": "trending audio style",
-  "cover_prompt": "reel cover thumbnail — BarbieVerse pink/black aesthetic, glamorous creator portrait, cinematic lighting, rose gold accents, 8K, magazine cover quality"
+  "cover_prompt": "reel cover thumbnail — BarbieVerse pink/black aesthetic, glamorous streamer portrait, cinematic lighting, rose gold accents, 8K, magazine cover quality"
 }`,
     BRAND_VOICE,
     provider
@@ -618,7 +644,7 @@ export async function generateWeeklyPlan(input?: {
 }): Promise<ContentCalendarEntry[]> {
   const platforms = input?.platforms || ["instagram", "twitter"];
   const contentTypes = input?.content_types || ["carousel", "social_post", "reel_script", "thread"];
-  const theme = input?.theme || "creator economy and live streaming tips";
+  const theme = input?.theme || "live streaming and earning tips";
 
   const result = await aiContent(
     `Create a 7-day content calendar for BarbieVerse.

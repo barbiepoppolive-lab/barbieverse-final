@@ -228,7 +228,7 @@ export const CONTENT_TEMPLATES: ContentTemplate[] = [
       "Best times to go live on Poppo",
       "How to engage your audience during streams",
       "Poppo Live vs Vone Live: Which is better?",
-      "How to earn your first ₹1000 on Poppo",
+      "How to get your first paying viewers on Poppo",
       "Content ideas for live streamers",
     ],
     style: "educational",
@@ -257,7 +257,7 @@ export const CONTENT_TEMPLATES: ContentTemplate[] = [
     content_types: ["carousel", "reel", "social_post"],
     platforms: ["instagram", "linkedin"],
     topics: [
-      "How I earned ₹50,000 in my first month on Poppo",
+      "What my first month streaming on Poppo actually looked like",
       "From zero to full-time creator in 90 days",
       "Real creator success stories",
       "Poppo Live earnings breakdown",

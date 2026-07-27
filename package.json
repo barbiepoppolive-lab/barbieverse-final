@@ -10,7 +10,10 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:terminology": "node scripts/check-terminology.mjs",
+    "check": "npm run typecheck && npm run check:terminology",
+    "check:postiz": "node scripts/check-postiz.mjs"
   },
   "dependencies": {
     "@fal-ai/client": "^1.10.1",

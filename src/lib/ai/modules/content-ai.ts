@@ -1,5 +1,6 @@
 import { aiPremium, aiContent } from "../router";
 import { generateContentSEO, type ContentSEO } from "../content-seo";
+import { TERMINOLOGY_RULES } from "@/lib/ai/brand-terminology";
 
 // Inline type (audio-gen.server removed from client bundle)
 type AudioGenResult = { audioPath: string; audioUrl: string; voice: string; sizeKb: number; subtitlePath?: string; subtitleUrl?: string };
@@ -45,6 +46,8 @@ export async function generateBlogPost(input: {
 FORMAT: ${format}
 TARGET LENGTH: ~${wordCount} words
 BRAND VOICE: Empowering, authentic, helpful. Written for young Indian creators (18-30) who want to earn money through live streaming.
+${TERMINOLOGY_RULES}
+
 
 Requirements:
 - SEO-friendly title (under 60 chars)
@@ -60,7 +63,7 @@ Return EXACTLY this JSON:
   "slug": "url-friendly-slug",
   "excerpt": "meta description under 160 chars",
   "content": "full HTML blog post content with h2/h3/p/ul/li/strong tags",
-  "category": "Poppo Tips|Creator Advice|Tutorial|News|Earnings",
+  "category": "Poppo Tips|Streamer Advice|Tutorial|News|Earnings",
   "tags": ["tag1", "tag2", "tag3"]
 }`,
     { maxTokens: 4096 }
@@ -123,7 +126,7 @@ Platform rules:
 - Moj: short-video caption for India, Hinglish is natural and expected, hook in first line, casual not corporate, 5-8 hashtags
 - YouTube: first line doubles as the video title (keep it under 100 chars, front-load the hook/keyword), rest of the caption reads as the description, 3-6 hashtags at the end
 
-Brand voice: Empowering, authentic, helpful. Young Indian creators audience.`;
+Brand voice: Empowering, authentic, helpful. Young Indian streamers audience.`;
 
   const result = await aiContent(
     `Create a ${input.platform} post about: ${input.topic}

@@ -50,8 +50,8 @@ Bad: "Saw your content, you're talented!"
 Good: "that transition on the bhojpuri edit was clean"
 Good: "you post in tamil mostly? asking bc most of our hosts do"
 
-NEVER PUT NUMBERS IN THE FIRST MESSAGE:
-Do NOT mention ₹1,150, ₹575, 2 hours a day, 7 days, salary, guarantees, or earnings amounts. Those are for the SECOND message, after they reply. Dumping the offer up front is what makes it read like spam.
+NEVER PUT NUMBERS IN ANY MESSAGE:
+Do NOT mention any rupee figure, salary, guarantee, or earnings amount — not in the first message, not in follow-ups. No first-week amounts, no monthly ranges. If she asks what she'll earn, say it depends on hours and gifting and that the team will walk her through the current terms directly. Never improvise a number.
 
 LANGUAGE:
 Match the language of their bio/caption. Hindi post → Hinglish reply. Tamil → Tamil. English → English. Hinglish is natural and preferred for most Indian creators. Never reply in formal English to a Hindi speaker.
@@ -242,9 +242,9 @@ Remember: max 2 sentences, no numbers or money amounts, hook onto something spec
 export function offerFollowUp(): string {
   return (
     `So how it works: you stream on Poppo or Vone under our agency ID. ` +
-    `New hosts get a guaranteed first week — ₹1,150 for female hosts, ₹575 for male hosts — ` +
-    `for streaming 2 hours a day across 7 days. That's paid whether or not you receive any gifts. ` +
-    `After that it's gift-based, and most consistent hosts land somewhere between ₹4,000–15,000 in month one. ` +
-    `We never ask for your password, only your User ID. Want me to send the signup link?`
+    `There's a new-host starter period with its own terms, and earnings after that are gift-based. ` +
+    `I won't quote you numbers over DM — the current terms come from the team directly so you get them accurate. ` +
+    `No joining fee, ever, and we never ask for your password — only your User ID. ` +
+    `Want me to send the signup link and have someone walk you through the terms?`
   );
 }
