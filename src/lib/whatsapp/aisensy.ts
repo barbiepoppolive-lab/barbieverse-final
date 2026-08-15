@@ -92,16 +92,16 @@ async function projectPost(path: string, payload: any) {
   }
   const res = await fetch(`${PROJECT_BASE}${path}`, {
     method: "POST",
-    // AiSensy's own docs name this header inconsistently across pages
-    // (…-Pwd in the API reference, …-Pat elsewhere). Sending every variant
-    // costs nothing and removes a silent-401 failure mode; once a real call
-    // succeeds, check the request log and keep only the one that worked.
+    // CONFIRMED against the live API on 15 Aug 2026: this exact header, with
+    // the project key, returns 200 and a wamid.
+    //
+    // Send ONLY this one. An earlier version sent four header variants at once
+    // "to be safe" and got a flat ERR401 — AiSensy rejects the request when
+    // more than one auth header is present. Adding a fallback header here does
+    // not make the call more robust, it breaks it.
     headers: {
       "Content-Type": "application/json",
       "X-AiSensy-Project-API-Pwd": PROJECT_KEY,
-      "X-AiSensy-Project-API-Pat": PROJECT_KEY,
-      "X-AiSensy-Project-API-Key": PROJECT_KEY,
-      Authorization: `Bearer ${PROJECT_KEY}`,
     },
     body: JSON.stringify(payload),
   });
