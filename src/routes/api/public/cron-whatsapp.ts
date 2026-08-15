@@ -81,6 +81,26 @@ export const Route = createFileRoute("/api/public/cron-whatsapp")({
           return new Response("Unauthorized", { status: 401 });
         }
 
+        // Single-shot self test: ?test=<phone> sends ONE message to that number
+        // and returns AiSensy's raw response (or raw error). Touches no lead,
+        // writes no rows. Exists because the project-key header name is still
+        // unverified — their own docs disagree — and a real call is the only
+        // arbiter. Remove this branch once the handshake is confirmed.
+        const testPhone = new URL(request.url).searchParams.get("test");
+        if (testPhone) {
+          const to = testPhone.replace(/[^0-9]/g, "");
+          const body = "Test from BarbieVerse — agar ye mila to setup sahi hai 😊";
+          try {
+            const res = await sendSession(to, body);
+            return Response.json({ ok: true, mode: "self-test", to, sent: body, provider: res });
+          } catch (e: any) {
+            return Response.json(
+              { ok: false, mode: "self-test", to, error: String(e?.message ?? e) },
+              { status: 502 },
+            );
+          }
+        }
+
         try {
           const { q, q1 } = await import("@/lib/db.server");
           const results = await runFollowUps(q, q1);
