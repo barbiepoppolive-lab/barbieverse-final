@@ -172,6 +172,50 @@ export async function sendTemplate(
   try { return JSON.parse(text); } catch { return { raw: text }; }
 }
 
+/**
+ * Credential probe. Tries each plausible (key, header) pairing against the
+ * real endpoint and reports the status of each, stopping at the first success.
+ *
+ * This exists because a 401 tells you *that* auth failed, never *why*, and
+ * AiSensy documents at least three names for this header while issuing two
+ * different-looking credentials (a 21-char key and a JWT). Guessing costs a
+ * deploy per attempt; probing costs one.
+ */
+export async function probeAuth(to: string, body: string) {
+  const attempts: Array<{ label: string; headers: Record<string, string> }> = [
+    { label: "project-key / X-AiSensy-Project-API-Pwd", headers: { "X-AiSensy-Project-API-Pwd": PROJECT_KEY } },
+    { label: "project-key / X-AiSensy-Project-API-Pat", headers: { "X-AiSensy-Project-API-Pat": PROJECT_KEY } },
+    { label: "project-key / Authorization Bearer",      headers: { Authorization: `Bearer ${PROJECT_KEY}` } },
+    { label: "project-key / x-api-key",                 headers: { "x-api-key": PROJECT_KEY } },
+    { label: "JWT / Authorization Bearer",              headers: { Authorization: `Bearer ${CAMPAIGN_KEY}` } },
+    { label: "JWT / X-AiSensy-Project-API-Pwd",         headers: { "X-AiSensy-Project-API-Pwd": CAMPAIGN_KEY } },
+    { label: "JWT / x-api-key",                         headers: { "x-api-key": CAMPAIGN_KEY } },
+  ];
+
+  const payload = { to: normalisePhone(to), type: "text", recipient_type: "individual", text: { body } };
+  const results: Array<{ attempt: string; status: number; body: string }> = [];
+
+  for (const a of attempts) {
+    if (Object.values(a.headers).some((v) => !v)) {
+      results.push({ attempt: a.label, status: 0, body: "credential not configured — skipped" });
+      continue;
+    }
+    try {
+      const res = await fetch(`${PROJECT_BASE}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...a.headers },
+        body: JSON.stringify(payload),
+      });
+      const text = (await res.text()).slice(0, 200);
+      results.push({ attempt: a.label, status: res.status, body: text });
+      if (res.ok) return { winner: a.label, results };
+    } catch (e: any) {
+      results.push({ attempt: a.label, status: -1, body: String(e?.message ?? e).slice(0, 200) });
+    }
+  }
+  return { winner: null, results };
+}
+
 /** True if we can still reply free-form (and free) to this lead. */
 export function windowOpen(lastInboundAt?: Date | string | null): boolean {
   if (!lastInboundAt) return false;

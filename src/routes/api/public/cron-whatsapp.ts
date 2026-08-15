@@ -86,6 +86,18 @@ export const Route = createFileRoute("/api/public/cron-whatsapp")({
         // writes no rows. Exists because the project-key header name is still
         // unverified — their own docs disagree — and a real call is the only
         // arbiter. Remove this branch once the handshake is confirmed.
+        // ?probe=<phone> — try every credential/header pairing and report which
+        // one AiSensy actually accepts. Stops at the first success.
+        const probePhone = new URL(request.url).searchParams.get("probe");
+        if (probePhone) {
+          const { probeAuth } = await import("@/lib/whatsapp/aisensy");
+          const out = await probeAuth(
+            probePhone,
+            "Test from BarbieVerse — agar ye mila to setup sahi hai 😊",
+          );
+          return Response.json({ ok: !!out.winner, mode: "auth-probe", ...out });
+        }
+
         const testPhone = new URL(request.url).searchParams.get("test");
         if (testPhone) {
           const to = testPhone.replace(/[^0-9]/g, "");
