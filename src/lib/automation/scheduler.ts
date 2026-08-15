@@ -98,6 +98,17 @@ export function startScheduler(): void {
     }
   }, 10_000);
 
+  // First WhatsApp run shortly after boot, so a restart resumes the queue
+  // instead of idling for a full interval. Staggered after the others.
+  if (whatsappCronEnabled()) setTimeout(async () => {
+    try {
+      const out = await runWhatsappFollowUps();
+      console.log("[scheduler] First WhatsApp follow-up run:", JSON.stringify(out));
+    } catch (err: any) {
+      console.error("[scheduler] First WhatsApp run failed:", err?.message);
+    }
+  }, 30_000);
+
   if (scrapeCronEnabled()) setTimeout(async () => {
     console.log("[scheduler] First scrape cron run");
     try {
