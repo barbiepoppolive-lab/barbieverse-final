@@ -1,8 +1,10 @@
 import { runContentCron } from "@/routes/api/public/cron-content";
 import { runScrapeCron } from "@/routes/api/public/cron-scrape";
+import { runWhatsappFollowUps } from "@/routes/api/public/cron-whatsapp";
 
 const CRON_CONTENT_INTERVAL = 60 * 60 * 1000; // hourly
 const CRON_SCRAPE_INTERVAL = 30 * 60 * 1000; // every 30 min
+const CRON_WHATSAPP_INTERVAL = 15 * 60 * 1000; // every 15 min
 
 let started = false;
 
@@ -26,13 +28,27 @@ function scrapeCronEnabled(): boolean {
   return (process.env.SCRAPE_CRON_ENABLED ?? "true").toLowerCase() !== "false";
 }
 
+/**
+ * WhatsApp follow-ups. Defaults to OFF — this one sends real messages to real
+ * people, so it must be switched on deliberately (WA_FOLLOWUP_ENABLED=true)
+ * and never by inheriting a default.
+ *
+ * Note this is outbound only: it needs the AiSensy Project API key and nothing
+ * else. It does not depend on the inbound webhook, which is why it can run
+ * while the webhook question is still open.
+ */
+function whatsappCronEnabled(): boolean {
+  return (process.env.WA_FOLLOWUP_ENABLED ?? "false").toLowerCase() === "true";
+}
+
 export function startScheduler(): void {
   if (started) return;
   started = true;
 
   console.log(
     `[scheduler] Starting internal cron scheduler ` +
-      `(content=${contentCronEnabled() ? "on" : "OFF"}, scrape=${scrapeCronEnabled() ? "on" : "OFF"})`,
+      `(content=${contentCronEnabled() ? "on" : "OFF"}, scrape=${scrapeCronEnabled() ? "on" : "OFF"}` +
+      `, whatsapp=${whatsappCronEnabled() ? "on" : "OFF"})`,
   );
 
   // Content cron — every hour
@@ -58,6 +74,17 @@ export function startScheduler(): void {
       console.error("[scheduler] Scrape cron failed:", err?.message);
     }
   }, CRON_SCRAPE_INTERVAL);
+
+  // WhatsApp follow-ups — every 15 min. The engine itself caps each run at 4
+  // sends with a randomised gap, and refuses to send outside 9AM-11PM IST.
+  if (whatsappCronEnabled()) setInterval(async () => {
+    try {
+      const out = await runWhatsappFollowUps();
+      console.log("[scheduler] WhatsApp follow-ups:", JSON.stringify(out));
+    } catch (err: any) {
+      console.error("[scheduler] WhatsApp follow-ups failed:", err?.message);
+    }
+  }, CRON_WHATSAPP_INTERVAL);
 
   // Run once immediately on startup (staggered)
   if (contentCronEnabled()) setTimeout(async () => {

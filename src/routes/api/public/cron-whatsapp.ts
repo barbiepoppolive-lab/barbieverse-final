@@ -117,6 +117,25 @@ export const Route = createFileRoute("/api/public/cron-whatsapp")({
 const MAX_PER_RUN = Number(process.env.WA_FOLLOWUP_MAX_PER_RUN || 4);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// How many follow-ups a single lead may ever receive.
+//
+// While there is no inbound webhook we are sending BLIND: a lead can reply
+// "stop messaging me" and we will never see it. Chasing someone four times
+// under those conditions is how a number gets reported. So the default here
+// is 1 — one polite nudge, then silence — and it only rises to the full
+// 4-step ladder once inbound is wired and replies actually cancel the chase.
+const MAX_FOLLOW_UPS = Number(process.env.WA_FOLLOWUP_MAX_COUNT || 1);
+
+/**
+ * Entry point for the in-process scheduler (no external cron service, no
+ * webhook). Outbound follow-ups need only the Project API key — they are
+ * completely independent of inbound delivery.
+ */
+export async function runWhatsappFollowUps() {
+  const { q, q1 } = await import("@/lib/db.server");
+  return runFollowUps(q, q1);
+}
+
 async function runFollowUps(q: any, q1: any) {
   const now = new Date();
 
@@ -135,10 +154,10 @@ async function runFollowUps(q: any, q1: any) {
         and not escalated
         and not human_takeover
         and stage not in ('NOT_INTERESTED','ACTIVE')
-        and follow_up_count < 4
+        and follow_up_count < $2
       order by follow_up_due
       limit $1`,
-    [MAX_PER_RUN],
+    [MAX_PER_RUN, MAX_FOLLOW_UPS],
   );
 
   const totals = { sent: 0, deferred: 0, windowClosed: 0, blocked: 0, stopped: 0 };
@@ -204,8 +223,8 @@ async function runFollowUps(q: any, q1: any) {
       [lead.id, body],
     );
 
-    // next timer: 20h → day 1 → day 3 → stop at 4
-    const next = newCount >= 4 ? null : newCount === 1
+    // next timer: 20h → day 1 → day 3 → stop at the cap
+    const next = newCount >= MAX_FOLLOW_UPS ? null : newCount === 1
       ? new Date(now.getTime() + 20 * 60 * 60 * 1000)
       : newCount === 2
         ? new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
