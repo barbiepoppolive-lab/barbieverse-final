@@ -92,9 +92,15 @@ async function projectPost(path: string, payload: any) {
   }
   const res = await fetch(`${PROJECT_BASE}${path}`, {
     method: "POST",
+    // AiSensy's own docs name this header inconsistently across pages
+    // (…-Pwd in the API reference, …-Pat elsewhere). Sending every variant
+    // costs nothing and removes a silent-401 failure mode; once a real call
+    // succeeds, check the request log and keep only the one that worked.
     headers: {
       "Content-Type": "application/json",
+      "X-AiSensy-Project-API-Pwd": PROJECT_KEY,
       "X-AiSensy-Project-API-Pat": PROJECT_KEY,
+      "X-AiSensy-Project-API-Key": PROJECT_KEY,
       Authorization: `Bearer ${PROJECT_KEY}`,
     },
     body: JSON.stringify(payload),
