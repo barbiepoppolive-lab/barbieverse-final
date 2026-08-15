@@ -28,9 +28,49 @@ export interface Answer {
 
 export const ANSWERS: Answer[] = [
   {
+    // Q0 must stay FIRST — it is the most common message in the entire dataset.
+    // 90 of 115 real conversations opened with the ad's pre-filled text, and
+    // it arrives in whatever language the ad was served in: English, Hindi and
+    // Bengali all appear in the backup. Without this the opener falls through
+    // to the LLM, which is the one message that should never be improvised —
+    // it sets the frame for everything after it.
+    //
+    // Her own opener, used 62 times and measurably her best: "Haan, batati hoon".
+    id: "Q0",
+    label: "ad opener / first contact",
+    match: [
+      /can i get more info/i,
+      /more info on this/i,
+      /want to join barbieverse/i,
+      /और पता चल सकता/,
+      /इस बारे में/,
+      /नमस्ते/,
+      /আরও তথ্য/,
+      /হ্যালো/,
+      /^\s*(hi|hello|hlo|hey|helo)\s*[!.]?\s*$/i,
+    ],
+    reply:
+      "Haan, batati hoon 😊\n\n" +
+      "Ghar baithe apne phone se live aana hota hai — bas baat karni hoti hai, gaana, dance, ya normal gupshup\n\n" +
+      "Koi paisa nahi lagta, na koi fees. Training main khud deti hoon",
+    nextNudge: "Aap roz kitna time de sakti hain?",
+  },
+  {
     id: "Q1",
     label: "kitna milega",
-    match: [/kitn[ae]/i, /kitna milega/i, /\bsalary\b/i, /\bincome\b/i, /monthly.{0,10}(kitna|milega)/i, /earning kitn/i],
+    // "kitn[ae]" alone was too greedy — it swallowed "kitna time dena hoga",
+    // answering an hours question with an earnings pitch. Every pattern here
+    // must tie the quantity to MONEY, not to any quantity at all.
+    match: [
+      /kitn[ae]\s*(paisa|paise|rupee|rupay|milega|milta|kamai|earning|income)/i,
+      /kitna milega/i,
+      /\bsalary\b/i,
+      /\bincome\b/i,
+      /monthly.{0,10}(kitna|milega)/i,
+      /earning kitn/i,
+      /kamai kitn/i,
+      /\bpay(ment)?\s*kitn/i,
+    ],
     reply:
       "Do jagah se aata hai — viewers ke gift, aur app ke daily task aur rank ka paisa\n\n" +
       "Task wala paisa gift na aaye tab bhi milta hai\n\n" +
@@ -140,7 +180,21 @@ export const ANSWERS: Answer[] = [
   {
     id: "Q11",
     label: "join kaise karein",
-    match: [/kaise join/i, /how to join/i, /\bprocess\b/i, /kaise kare/i, /\bsteps?\b/i, /link bhej/i, /\bshuru\b/i],
+    // High-intent: she is asking to start. Missing one of these costs a
+    // conversion, so cover the ways it is actually typed — "join kaise karu",
+    // "kaise karna hai", "mujhe join karna hai", bare "join".
+    match: [
+      /kaise join/i,
+      /join\s*(kaise|karna|karu|karoon|kar\s*lu|kaisay)/i,
+      /how to join/i,
+      /\bprocess\b/i,
+      /kaise kar(e|na|u|oon|ein)/i,
+      /\bsteps?\b/i,
+      /link bhej/i,
+      /\bshuru\b/i,
+      /^\s*join\s*$/i,
+      /mujhe.{0,12}(join|karna hai)/i,
+    ],
     reply:
       "Bas 4 step, 2 minute ka kaam 👇\n\n" +
       "1) Hamare link se app install karo\n" +

@@ -15,7 +15,7 @@
 // Run every 15 minutes. Guards: CRON_SECRET header just like cron-social.
 
 import { createFileRoute } from "@tanstack/react-router";
-import { sendSession, sendTemplate, windowOpen } from "@/lib/whatsapp/aisensy";
+import { sendSession, sendTemplate, windowOpen } from "@/lib/whatsapp/provider";
 import { complianceCheck } from "@/lib/whatsapp/answer-bank";
 
 // ── per-stage nudges, three variants each (variation is a hard rule) ────────

@@ -10,7 +10,10 @@
 // Set AGENT_ENABLED=true in env once the payload shape is confirmed.
 
 import { createFileRoute } from "@tanstack/react-router";
-import { normaliseInbound, sendSession, sendImage, windowOpen } from "@/lib/whatsapp/aisensy";
+import {
+  normaliseInbound, sendSession, sendImage, windowOpen,
+  verifyWebhook, providerName,
+} from "@/lib/whatsapp/provider";
 import { matchAnswer, needsEscalation, complianceCheck } from "@/lib/whatsapp/answer-bank";
 
 // Approve mode controls how much automation vs human-approval per reply.
@@ -68,24 +71,68 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook")({
       // AiSensy may verify the endpoint with a GET before it starts posting.
       GET: async ({ request }) => {
         const url = new URL(request.url);
+
+        // Meta's webhook verification. It sends hub.mode=subscribe with a
+        // hub.verify_token you chose, and expects hub.challenge echoed back
+        // as the raw body. Echoing the challenge WITHOUT checking the token
+        // would let anyone register their endpoint against our URL, so the
+        // token comparison is the security boundary here, not a formality.
+        if (verifyWebhook) {
+          const challenge = verifyWebhook(url.searchParams);
+          if (challenge) return new Response(challenge, { status: 200 });
+          // A verification attempt that fails the token check must not fall
+          // through to the permissive branch below.
+          if (url.searchParams.get("hub.mode") === "subscribe") {
+            console.warn("[wa] webhook verification failed — bad verify_token");
+            return new Response("forbidden", { status: 403 });
+          }
+        }
+
+        // AiSensy (and manual pings) — no verify token in play.
         const challenge = url.searchParams.get("hub.challenge");
         if (challenge) return new Response(challenge, { status: 200 });
-        return new Response("ok", { status: 200 });
+        return Response.json({ ok: true, provider: providerName() });
       },
 
       POST: async ({ request }) => {
         // Always answer fast. Providers retry aggressively on slow endpoints,
         // and a retry storm looks like duplicate replies to the lead.
+        // Read the body as TEXT first: verifying Meta's signature requires the
+        // exact raw bytes. Re-serialising parsed JSON changes whitespace and
+        // key order, and the hash no longer matches.
+        let raw = "";
         let body: any = null;
         try {
-          body = await request.json();
+          raw = await request.text();
+          body = JSON.parse(raw);
         } catch {
           return new Response("bad json", { status: 400 });
         }
 
+        // Meta signs every delivery with X-Hub-Signature-256 = HMAC-SHA256 of
+        // the raw body using the App Secret. This is the Cloud API's answer to
+        // the shared-secret query param AiSensy uses — different mechanism, so
+        // the AiSensy check below must not run against Meta's requests or
+        // every real webhook would 401.
+        if (providerName() === "cloud") {
+          const appSecret = process.env.WA_APP_SECRET;
+          if (appSecret) {
+            const sig = request.headers.get("x-hub-signature-256") || "";
+            const { createHmac, timingSafeEqual } = await import("node:crypto");
+            const expected =
+              "sha256=" + createHmac("sha256", appSecret).update(raw).digest("hex");
+            const a = Buffer.from(sig);
+            const b = Buffer.from(expected);
+            if (a.length !== b.length || !timingSafeEqual(a, b)) {
+              console.warn("[wa] rejected webhook — bad X-Hub-Signature-256");
+              return new Response("forbidden", { status: 403 });
+            }
+          }
+        }
+
         // Optional shared secret. AiSensy's header name is confirmed during
         // Phase 1 by logging request headers on the first real delivery.
-        const secret = process.env.WA_WEBHOOK_SECRET;
+        const secret = providerName() === "cloud" ? null : process.env.WA_WEBHOOK_SECRET;
         if (secret) {
           const provided =
             request.headers.get("x-webhook-secret") ||
@@ -140,8 +187,14 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook")({
           // A screenshot almost always means "I did the step" — that's a human
           // check. Send it to Barbie with the right Verify button(s) attached.
           if (msg.mediaUrl) {
+            // On Cloud API this is a media ID, not a link — exchange it for a
+            // real (short-lived, ~5 min) URL before showing it to Barbie.
+            let mediaLink = msg.mediaUrl;
+            if (providerName() === "cloud" && resolveMediaUrl) {
+              mediaLink = (await resolveMediaUrl(msg.mediaUrl)) ?? msg.mediaUrl;
+            }
             const { sendScreenshotCard } = await import("@/lib/whatsapp/stages");
-            await sendScreenshotCard(lead!.id, msg.phone, msg.mediaUrl, lead!.stage);
+            await sendScreenshotCard(lead!.id, msg.phone, mediaLink, lead!.stage);
 
             // An image with no caption carries no question to answer. Falling
             // through would hand the LLM an empty prompt and drop a generic
