@@ -95,6 +95,31 @@ export const Route = createFileRoute("/api/public/cron-whatsapp")({
         if (!cronSecret || request.headers.get("x-cron-secret") !== cronSecret) {
           return new Response("Unauthorized", { status: 401 });
         }
+        // ── single-shot self test ──────────────────────────────────────────
+        // POST {"test":"<phone>"} sends ONE message to that number and returns
+        // AiSensy's raw response. It touches no lead, writes no rows, and is
+        // the only way to find out which auth header their API actually wants
+        // — their docs disagree with themselves, so we send all variants and
+        // let a real call decide.
+        let payload: any = null;
+        try { payload = await request.json(); } catch { /* body optional */ }
+        if (payload?.test) {
+          const to = String(payload.test).replace(/[^0-9]/g, "");
+          const body = String(payload.text || "Test from BarbieVerse — agar ye mila to setup sahi hai 😊");
+          const gate = complianceCheck(body);
+          if (!gate.ok) {
+            return Response.json({ ok: false, blocked: gate.issues }, { status: 400 });
+          }
+          try {
+            const res = await sendSession(to, body);
+            return Response.json({ ok: true, mode: "self-test", to, sent: body, provider: res });
+          } catch (e: any) {
+            // The error text is the diagnosis — surface it, don't swallow it.
+            return Response.json({ ok: false, mode: "self-test", to, error: String(e?.message ?? e) },
+              { status: 502 });
+          }
+        }
+
         try {
           const { q, q1 } = await import("@/lib/db.server");
           const results = await runFollowUps(q, q1);
