@@ -20,7 +20,31 @@ export const Route = createFileRoute("/api/public/telegram-bot")({
       POST: async ({ request }) => {
         try {
           const body = await request.json();
-          const message = body.message || body.callback_query?.message;
+
+          // ── button taps from the WhatsApp approve cards ──────────────────
+          const cq = body.callback_query;
+          if (cq?.data) {
+            if (cq.data.startsWith("wa:verify:")) {
+              const { dispatchVerify } = await import("@/lib/whatsapp/stages");
+              const status = await dispatchVerify({
+                callbackQueryId: String(cq.id),
+                data: String(cq.data),
+              });
+              console.log(`[telegram] wa verify callback → ${status}`);
+              return new Response("ok");
+            }
+            const { dispatchCallback } = await import("@/lib/whatsapp/approve");
+            if (cq.data.startsWith("wa:")) {
+              const status = await dispatchCallback({
+                callbackQueryId: String(cq.id),
+                data: String(cq.data),
+              });
+              console.log(`[telegram] wa callback → ${status}`);
+              return new Response("ok");
+            }
+          }
+
+          const message = body.message || cq?.message;
 
           if (!message) {
             return new Response("ok");
@@ -57,6 +81,53 @@ export const Route = createFileRoute("/api/public/telegram-bot")({
           // Only process commands from admin
           if (chatId !== adminChatId) {
             return new Response("ok");
+          }
+
+          // ── Edit handshake: admin typed a replacement for a ✍️ Edit draft ──
+          if (text && !text.startsWith("/")) {
+            const { q, q1 } = await import("@/lib/db.server");
+            const pending = await q1<any>(
+              // Only one draft can be edit_pending at a time (enforced in
+              // approve.ts). The age guard stops an unrelated message typed
+              // hours later from being swallowed as an "edit".
+              `select d.id, d.lead_id, l.phone, l.display_name
+                 from wa_drafts d join wa_leads l on l.id = d.lead_id
+                where d.edit_pending
+                  and d.created_at > now() - interval '6 hours'
+                order by d.created_at desc
+                limit 1`,
+            );
+            if (pending) {
+              const { complianceCheck } = await import("@/lib/whatsapp/answer-bank");
+              const gate = complianceCheck(text);
+              if (!gate.ok) {
+                await sendTelegramMessage(
+                  chatId,
+                  `⛔ <b>Blocked by compliance</b> — fixes needed:\n${gate.issues.join("\n")}\n\nYour edit was NOT saved. Reply again with a clean version.`,
+                  botToken,
+                );
+                return new Response("ok");
+              }
+                await q(
+                  `update wa_drafts set draft_text = $2, edit_pending = false, was_edited = true where id = $1`,
+                  [pending.id, text],
+                );
+              const { sendApproveCard } = await import("@/lib/whatsapp/approve");
+              await sendApproveCard({
+                draftId: pending.id,
+                phone: pending.phone,
+                displayName: pending.display_name,
+                triggerText: "(edited by Barbie)",
+                draftText: text,
+                source: "edit",
+              });
+              await sendTelegramMessage(
+                chatId,
+                `✅ Saved for +${pending.phone} — tap Send when ready.`,
+                botToken,
+              );
+              return new Response("ok");
+            }
           }
 
           // Parse command
