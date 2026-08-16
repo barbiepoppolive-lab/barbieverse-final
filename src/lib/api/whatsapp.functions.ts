@@ -205,7 +205,8 @@ export const broadcastToHosts = createServerFn({ method: "POST" })
 
     // Call the Railway bot's broadcast endpoint
     const botUrl =
-      process.env.WA_BOT_URL || "https://wa-bot-production-da76.up.railway.app";
+      process.env.WA_BOT_URL ||
+      "https://wa-auto-reply-production-d682.up.railway.app";
     const botKey = process.env.WA_BOT_KEY || "";
     try {
       const res = await fetch(`${botUrl}/broadcast?k=${botKey}`, {
@@ -221,4 +222,27 @@ export const broadcastToHosts = createServerFn({ method: "POST" })
     } catch (e: any) {
       return { ok: false, error: e?.message || "failed to reach bot" };
     }
+  });
+
+/** Get chat history for a specific lead. */
+export const getLeadChatHistory = createServerFn({ method: "GET" })
+  .validator((data: { phone: string }) => data)
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("../admin-session.server");
+    await requireAdmin();
+    const { q } = await import("../db.server");
+
+    const phone = data.phone.replace(/[^\d]/g, "");
+    if (!phone) return { messages: [] };
+
+    const rows = await q<any>(
+      `SELECT m.direction, m.body, m.created_at
+       FROM wa_messages m
+       JOIN wa_leads l ON l.id = m.lead_id
+       WHERE l.phone = $1 AND m.body IS NOT NULL AND m.body != ''
+       ORDER BY m.created_at ASC`,
+      [phone],
+    );
+
+    return { messages: rows };
   });

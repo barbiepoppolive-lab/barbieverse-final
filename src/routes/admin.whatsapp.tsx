@@ -4,10 +4,11 @@ import {
   useSuspenseQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useState, useCallback } from "react";
+import { useState, useCallback, Fragment } from "react";
 import {
   listWhatsappPipeline,
   listWhatsappLeads,
+  getLeadChatHistory,
 } from "@/lib/api/whatsapp.functions";
 import {
   MessageCircle,
@@ -57,7 +58,7 @@ const STAGE_COLOR: Record<string, string> = {
 // Bot server URL — set via env, falls back to the Railway deployment
 const BOT_URL =
   import.meta.env.VITE_WA_BOT_URL ||
-  "https://wa-bot-production-da76.up.railway.app";
+  "https://wa-auto-reply-production-d682.up.railway.app";
 const BOT_KEY = import.meta.env.VITE_WA_BOT_KEY || "";
 
 const qo = queryOptions({
@@ -93,6 +94,9 @@ function WhatsappPage() {
   const [pausing, setPausing] = useState(false);
   const [campaignRunning, setCampaignRunning] = useState(false);
   const [campaignResult, setCampaignResult] = useState<string | null>(null);
+  const [expandedLead, setExpandedLead] = useState<string | null>(null);
+  const [chatHistory, setChatHistory] = useState<any[]>([]);
+  const [loadingChat, setLoadingChat] = useState(false);
 
   const togglePause = useCallback(async (action: "pause" | "resume") => {
     setPausing(true);
@@ -106,6 +110,27 @@ function WhatsappPage() {
       setPausing(false);
     }
   }, []);
+
+  const toggleChatHistory = useCallback(
+    async (phone: string) => {
+      if (expandedLead === phone) {
+        setExpandedLead(null);
+        setChatHistory([]);
+        return;
+      }
+      setExpandedLead(phone);
+      setLoadingChat(true);
+      try {
+        const result = await getLeadChatHistory({ data: { phone } });
+        setChatHistory(result.messages || []);
+      } catch {
+        setChatHistory([]);
+      } finally {
+        setLoadingChat(false);
+      }
+    },
+    [expandedLead],
+  );
 
   const startCampaign = useCallback(async () => {
     // Get all leads that are in ASKED or LINK_SENT stage (lost leads)
@@ -382,11 +407,18 @@ function WhatsappPage() {
           </thead>
           <tbody>
             {leads.map((l: any) => (
-              <tr key={l.id} className="border-t border-border/40">
-                <td className="px-4 py-3">
-                  <div className="font-medium">{l.display_name || "—"}</div>
-                  <div className="text-xs text-muted-foreground">{l.phone}</div>
-                </td>
+              <Fragment key={l.id}>
+                <tr className="border-t border-border/40">
+                  <td className="px-4 py-3">
+                    <div className="font-medium">{l.display_name || "—"}</div>
+                    <button
+                      onClick={() => toggleChatHistory(String(l.phone))}
+                      className="text-xs text-muted-foreground hover:text-primary cursor-pointer"
+                    >
+                      {l.phone}{" "}
+                      {expandedLead === String(l.phone) ? "▲" : "▼"}
+                    </button>
+                  </td>
                 <td className="px-4 py-3">
                   <StagePill stage={l.stage} />
                 </td>
@@ -474,6 +506,50 @@ function WhatsappPage() {
                   </a>
                 </td>
               </tr>
+              {expandedLead === String(l.phone) && (
+                <tr className="border-t border-border/40 bg-secondary/20">
+                  <td colSpan={8} className="px-4 py-3">
+                    {loadingChat ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Loading chat history...
+                      </div>
+                    ) : chatHistory.length === 0 ? (
+                      <div className="text-sm text-muted-foreground">No messages found</div>
+                    ) : (
+                      <div className="max-h-[400px] overflow-y-auto space-y-1">
+                        {chatHistory.map((m: any, i: number) => (
+                          <div
+                            key={i}
+                            className={
+                              "flex " + (m.direction === "out" ? "justify-end" : "justify-start")
+                            }
+                          >
+                            <div
+                              className={
+                                "max-w-[70%] rounded-lg px-3 py-1.5 text-xs " +
+                                (m.direction === "out"
+                                  ? "bg-primary/20 text-primary"
+                                  : "bg-background/60 text-foreground")
+                              }
+                            >
+                              <div>{m.body}</div>
+                              <div className="mt-0.5 text-[10px] text-muted-foreground">
+                                {new Date(m.created_at).toLocaleString("en-IN", {
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             ))}
             {leads.length === 0 && (
               <tr>

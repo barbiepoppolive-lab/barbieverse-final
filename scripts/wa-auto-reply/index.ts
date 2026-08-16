@@ -211,10 +211,59 @@ async function tgPhoto(pngBuffer: Buffer, caption: string) {
   }
 }
 
+// ── lead context from DB ───────────────────────────────────────────────────
+interface LeadContext {
+  stage: string;
+  topicsCovered: string[];
+  nextStep: string;
+  transcript: string; // last N messages formatted for LLM
+}
+
+async function getLeadContext(phone: string): Promise<LeadContext | null> {
+  const dbUrl = process.env.SUPABASE_DB_URL;
+  if (!dbUrl) return null;
+  try {
+    const { Client } = await import("pg");
+    const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    await pg.connect();
+
+    const leadRes = await pg.query(
+      "SELECT id, stage, topics_asked, next_step FROM wa_leads WHERE phone = $1",
+      [phone],
+    );
+    if (!leadRes.rows[0]) { await pg.end(); return null; }
+    const lead = leadRes.rows[0];
+
+    // Pull last 15 messages for context
+    const msgRes = await pg.query(
+      `SELECT direction, body, created_at FROM wa_messages
+       WHERE lead_id = $1 AND body IS NOT NULL AND body != ''
+       ORDER BY created_at DESC LIMIT 15`,
+      [lead.id],
+    );
+    await pg.end();
+
+    const msgs = msgRes.rows.reverse().map((m: any) => {
+      const dir = m.direction === "out" ? "Barbie" : "Lead";
+      return `${dir}: ${m.body}`;
+    }).join("\n");
+
+    return {
+      stage: lead.stage,
+      topicsCovered: lead.topics_asked || [],
+      nextStep: lead.next_step || "",
+      transcript: msgs,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ── LLM long-tail (optional) ───────────────────────────────────────────────
 async function writeReply(
   text: string,
   topicsAsked: string[] = [],
+  context?: LeadContext | null,
 ): Promise<string | null> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) return null;
@@ -223,17 +272,50 @@ async function writeReply(
     .map((a) => `${a.id}: ${a.reply}`)
     .join("\n\n");
 
-  const systemPrompt = `Barbie ki WhatsApp agent. Roman Hinglish mein jawab do.
-Short messages (2-4 lines max). "sister"/"aap" se address karo.
-Barbie ORAT hai — hamesha "deti hoon", "kar dungi" likho, kabhi "deta hoon" nahi.
-Money facts LOCKED hai — ye kabhi mat badlo:
-${facts || "(sawal already cover ho chuka hai — naya jawab do, facts same rakhna)"}
+  // Build context block for the LLM
+  let contextBlock = "";
+  if (context) {
+    contextBlock = `
+LEAD CONTEXT:
+Stage: ${context.stage}
+Topics already covered: ${context.topicsCovered.join(", ") || "none"}
+Next step: ${context.nextStep || "none specified"}
 
-Rules:
-- "guarantee" mat likho
-- App ka naam mat likho
-- Rupee figure apne se mat banao
-- Hamesha agla step ya chota sawaal ke saath khatam karo`;
+Recent conversation (last ${context.transcript.split("\n").length} messages):
+${context.transcript}
+`;
+  }
+
+  const systemPrompt = `Barbie ki WhatsApp agent. Roman Hinglish mein jawab do.
+
+VOICE RULES (critical — these come from analysing 3,278 real messages):
+- Median message is 23 chars. 31% are 1-15 chars ("Ji", "Okay", "Nhi")
+- Use "kr" not "kar", "skte" not "sakte", "mei" not "mein"
+- Address as "sister" or "aap" — NEVER "tum", NEVER "mam"
+- Barbie is FEMALE: "deti hoon", "kar dungi", NEVER "deta hoon", "karta hoon"
+- 1-3 short messages, never a paragraph
+- Emoji in ~9% of messages, mostly 😊
+- Every message ends with a question or instruction
+- "Haan, batati hoon 😊" is her signature opener
+
+CONTEXT RULES:
+- Read the conversation history. Do NOT repeat info she already knows
+- If she asked about scam before, reference it: "aapne poocha tha na scam ke baare mein"
+- If she already got the link, don't send it again — ask if install finished
+- If she sent a screenshot, CONFIRM it: "dekh liya, sahi hai!"
+- Stage drives the message: LINK_SENT → "install ho gaya?", ASKED → send join steps
+
+Money facts LOCKED (never change):
+${facts || "(topic already covered — give fresh answer, keep facts same)"}
+
+DEATH SENTENCES (never do these):
+- Don't send 3+ messages without a question
+- Don't info-dump paragraphs
+- Don't offer voice calls
+- Don't say "guarantee"
+- Don't write the app name
+- Don't invent rupee figures
+- Don't send media without a question after it`;
 
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -246,6 +328,7 @@ Rules:
         model: "anthropic/claude-3.5-haiku",
         messages: [
           { role: "system", content: systemPrompt },
+          ...(contextBlock ? [{ role: "user", content: contextBlock }] : []),
           { role: "user", content: text },
         ],
         max_tokens: 200,
@@ -574,13 +657,16 @@ client.on("message", async (msg: any) => {
       leadTopics.set(key, topics);
     }
 
+    // Pull full lead context from DB for the LLM (transcript, stage, topics)
+    const leadCtx = await getLeadContext(phone);
+
     let replyText: string | null = null;
     let source = "canned";
     if (answer) {
       replyText = [answer.reply, answer.nextNudge].filter(Boolean).join("\n\n");
       source = `canned:${answer.id}`;
     } else if (APPROVE_MODE === "all-auto") {
-      replyText = await writeReply(text, topics);
+      replyText = await writeReply(text, topics, leadCtx);
       source = "llm";
     }
 
@@ -635,21 +721,41 @@ let campaignActive = false;
 let campaignSent = 0;
 let campaignTotal = 0;
 
-// Re-engagement messages — varied, human, never identical to each other
-const REENGAGE_MESSAGES = [
-  "Hey 😊 pending hai aapka — kab free ho to baat karte hain?",
-  "Sister aapka setup reh gaya tha, main help kar deti hoon agar abhi bhi interested ho?",
-  "Hi! Aapka process incomplete tha — ready ho to continue karein?",
-  "Hey, missed you 😊 abhi bhi soch rahi ho to ek baar baat kar lete hain?",
-  "Sister aapka step reh gaya tha — baaki sab set hai, bas ek chhota sa kaam baaki hai",
-  "Hi! Long time — agar abhi bhi karna chahti ho to main hoon guide karne ke liye 🙂",
-  "Aapka application pending hai — koi dikkat aayi thi kya? Batao to help karoon",
-];
+// Stage-specific re-engagement messages — varied, human, never identical
+const STAGE_MESSAGES: Record<string, string[]> = {
+  ASKED: [
+    "Hey 😊 aapne pehle interest dikhaya tha — join karna hai? Link bhejun?",
+    "Sister, aapka process reh gaya tha — ready ho to continue karein?",
+    "Hi! Baat hui thi apki — kya socha? Join karna hai?",
+    "Hey, missing you 😊 abhi bhi karna chahti ho to main hoon guide karne ke liye",
+  ],
+  LINK_SENT: [
+    "Hey! App install ho gaya kya? Koi issue aaya toh batao, main help karti hoon",
+    "Sister aapka setup reh gaya tha — install complete hua? Screenshot bhej dena",
+    "Hi! Link bheja tha — download ho gaya? Aage kya karna hai wo bata deti hoon",
+    "Hey 😊 pending hai aapka — kab free ho to baat karte hain?",
+  ],
+  INSTALLED: [
+    "Hey! App toh install ho gaya — ab Profile > My Agency > Agent ID 2517496 daalo",
+    "Sister, agency ID enter karna baaki hai — karke dekhein? Main saath mein hoon",
+    "Hi! Aapka step reh gaya tha — agency join karna hai? Link bhejun?",
+  ],
+  AGENCY_LINKED: [
+    "Hey! Agency toh join ho gayi — ab face verification baki hai. Karke dekhein?",
+    "Sister, face verify kar lo — bas ek selfie jaisa hai, 1 minute ka kaam",
+    "Hi! Verification baki hai — ready ho to kar lete hain. Main guide karti hoon",
+  ],
+  FACE_VERIFIED: [
+    "Hey! Verification ho gaya — ab aap ready ho! Pehla live kab logi? Main guide karungi 🎉",
+    "Sister, congrats! Ab live start karo — main online rahungi aapke liye",
+    "Hi! Aap ready ho — pehla live kab? Main help karungi setup mein",
+  ],
+};
 
 /**
- * Outbound re-engagement campaign. Sends messages to lost leads with human
- * timing. Rate-limited to max 4 per run with 30-60s gaps (cold outbound is
- * the #1 ban signal — we go slow).
+ * Outbound re-engagement campaign. Sends stage-specific messages with human
+ * timing. Rate-limited to max 4 per run with 20-45s gaps (cold outbound is
+ * the #1 ban signal — we go slow). 9AM-11PM IST only.
  */
 async function runCampaign(phones: string[], overrideMessage?: string) {
   campaignActive = true;
@@ -657,14 +763,55 @@ async function runCampaign(phones: string[], overrideMessage?: string) {
   campaignTotal = phones.length;
   console.log(`[wa] campaign started — ${phones.length} leads`);
 
+  // Check IST hour (UTC+5:30)
+  const istHour = (new Date().getUTCHours() + 5 + 30 / 60) % 24;
+  if (istHour < 9 || istHour >= 23) {
+    console.log(`[wa] campaign blocked — IST hour ${Math.floor(istHour)} is outside 9AM-11PM`);
+    await tg(`⛔ Campaign blocked — IST hour ${Math.floor(istHour)} is outside 9AM-11PM window`);
+    campaignActive = false;
+    return;
+  }
+
+  // Pull lead stages from DB to send stage-specific messages
+  let stageMap: Record<string, string> = {};
+  const dbUrl = process.env.SUPABASE_DB_URL;
+  if (dbUrl) {
+    try {
+      const { Client } = await import("pg");
+      const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+      await pg.connect();
+      const res = await pg.query("SELECT phone, stage FROM wa_leads WHERE phone = ANY($1)", [phones.map(p => p.replace(/[^\d]/g, ""))]);
+      await pg.end();
+      for (const row of res.rows) {
+        stageMap[row.phone] = row.stage;
+      }
+    } catch {}
+  }
+
   for (let i = 0; i < phones.length; i++) {
     const phone = phones[i].replace(/[^\d]/g, "");
-    const msg =
-      overrideMessage || REENGAGE_MESSAGES[i % REENGAGE_MESSAGES.length];
+
+    // Pick stage-specific message or use override or rotate generic
+    let msg: string;
+    if (overrideMessage) {
+      msg = overrideMessage;
+    } else {
+      const stage = stageMap[phone] || "ASKED";
+      const stageMsgs = STAGE_MESSAGES[stage] || STAGE_MESSAGES.ASKED;
+      msg = stageMsgs[i % stageMsgs.length];
+    }
 
     try {
-      // Human delay between cold messages (30-60s)
-      if (i > 0) await sleep(30_000 + Math.random() * 30_000);
+      // Human delay between cold messages (20-45s)
+      if (i > 0) await sleep(20_000 + Math.random() * 25_000);
+
+      // Re-check IST window before each send
+      const nowIst = (new Date().getUTCHours() + 5 + 30 / 60) % 24;
+      if (nowIst < 9 || nowIst >= 23) {
+        console.log("[wa] campaign paused — entered quiet hours");
+        await tg(`⏸ Campaign paused — entered IST quiet hours at ${campaignSent}/${campaignTotal}`);
+        break;
+      }
 
       // Simulate typing before sending
       await sleep(2000 + Math.random() * 4000);
@@ -682,7 +829,6 @@ async function runCampaign(phones: string[], overrideMessage?: string) {
       await tg(`📤 Campaign -> +${phone} (${campaignSent}/${campaignTotal})`);
     } catch (e: any) {
       console.error(`[wa] campaign failed +${phone}:`, e?.message);
-      // If rate-limited by WhatsApp, stop the campaign
       if (e?.message?.includes("rate") || e?.message?.includes("limit")) {
         console.log("[wa] campaign rate-limited — stopping");
         await tg(
@@ -1023,6 +1169,114 @@ http
         } catch (e) {
           console.error("[export] fatal:", e);
           await tg(`[export] fatal: ${e?.message}`);
+        }
+      })();
+      return;
+    }
+
+    // ── import: load decrypted chat history into DB ──
+    // POST /import-history?k=... — accepts JSON array in body, or reads from volume file
+    if (url.pathname === "/import-history") {
+      if (!keyOk) {
+        res.writeHead(403);
+        return res.end("forbidden");
+      }
+      if (req.method !== "POST") {
+        res.writeHead(405);
+        return res.end("method not allowed");
+      }
+
+      // Read body — could be JSON array of leads or empty (fallback to file)
+      let body = "";
+      for await (const chunk of req) body += chunk;
+
+      let leads: any[] = [];
+      if (body && body.trim().startsWith("[")) {
+        leads = JSON.parse(body);
+        console.log(`[import] received ${leads.length} leads from POST body`);
+      } else {
+        // Fallback: read from volume file
+        const historyPath = path.resolve("/data", "leads-with-history.json");
+        if (fs.existsSync(historyPath)) {
+          leads = JSON.parse(fs.readFileSync(historyPath, "utf8"));
+          console.log(`[import] loaded ${leads.length} leads from volume file`);
+        } else {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          return res.end(
+            JSON.stringify({
+              error: "send JSON array in body, or place leads-with-history.json on /data volume",
+            }),
+          );
+        }
+      }
+
+      // Run import in background, return immediately
+      res.writeHead(202, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ accepted: true, total: leads.length }));
+
+      (async () => {
+        try {
+          const { Client } = await import("pg");
+          const pg = new Client({
+            connectionString: process.env.SUPABASE_DB_URL,
+            ssl: { rejectUnauthorized: false },
+          });
+          await pg.connect();
+
+          let imported = 0;
+          let msgCount = 0;
+
+          for (const lead of leads) {
+            try {
+              const phone = (lead.phone || "").replace(/[^\d]/g, "");
+              if (!phone || !/^\d{8,15}$/.test(phone)) continue;
+
+              const leadRes = await pg.query(
+                `INSERT INTO wa_leads (phone, stage, topics_asked, last_inbound_at, created_at, updated_at)
+                 VALUES ($1, $2, $3, $4, NOW(), NOW())
+                 ON CONFLICT (phone) DO UPDATE SET
+                   stage = EXCLUDED.stage,
+                   topics_asked = EXCLUDED.topics_asked,
+                   last_inbound_at = EXCLUDED.last_inbound_at,
+                   updated_at = NOW()
+                 RETURNING id`,
+                [
+                  phone,
+                  lead.stage,
+                  lead.topics_covered || [],
+                  lead.last_inbound ? new Date(lead.last_inbound) : null,
+                ],
+              );
+              const leadId = leadRes.rows[0].id;
+
+              for (const msg of lead.transcript || []) {
+                const direction = msg.d === "barbie" ? "out" : "in";
+                const text = msg.m || "";
+                if (!text || text === "[media]") continue;
+                const ts = new Date(msg.t);
+                await pg.query(
+                  `INSERT INTO wa_messages (lead_id, direction, body, created_at)
+                   SELECT $1, $2, $3, $4
+                   WHERE NOT EXISTS (
+                     SELECT 1 FROM wa_messages
+                     WHERE lead_id = $1 AND body = $3
+                       AND created_at BETWEEN $4 - interval '5 seconds' AND $4 + interval '5 seconds'
+                   )`,
+                  [leadId, direction, text, ts],
+                );
+                msgCount++;
+              }
+              imported++;
+            } catch {}
+          }
+
+          await pg.end();
+          const msg = `[import] done: ${imported} leads, ${msgCount} messages`;
+          console.log(msg);
+          await tg(msg);
+        } catch (e) {
+          console.error("[import] fatal:", e);
+          await tg(`[import] fatal: ${e?.message}`);
         }
       })();
       return;
