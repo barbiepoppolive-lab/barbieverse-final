@@ -265,7 +265,7 @@ async function writeReply(
   topicsAsked: string[] = [],
   context?: LeadContext | null,
 ): Promise<string | null> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return null;
   const seen = new Set(topicsAsked);
   const facts = ANSWERS.filter((a) => !seen.has(a.id))
@@ -318,14 +318,14 @@ DEATH SENTENCES (never do these):
 - Don't send media without a question after it`;
 
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "anthropic/claude-3.5-haiku",
+        model: "llama-3.3-70b-versatile",
         messages: [
           { role: "system", content: systemPrompt },
           ...(contextBlock ? [{ role: "user", content: contextBlock }] : []),
