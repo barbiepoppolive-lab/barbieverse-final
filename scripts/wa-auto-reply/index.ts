@@ -450,6 +450,38 @@ client.on("message", async (msg: any) => {
 
     if (optOuts.has(key)) return; // permanent, no exceptions
 
+    // Don't auto-reply to already-converted hosts — they talk to Barbie directly now
+    const dbUrl = process.env.SUPABASE_DB_URL;
+    if (dbUrl) {
+      try {
+        const { Client } = await import("pg");
+        const pg = new Client({
+          connectionString: dbUrl,
+          ssl: { rejectUnauthorized: false },
+        });
+        await pg.connect();
+        const res = await pg.query(
+          "select stage from wa_leads where phone = $1",
+          [phone],
+        );
+        await pg.end();
+        const convertedStages = [
+          "AGENCY_LINKED",
+          "FACE_VERIFIED",
+          "FIRST_LIVE",
+          "ACTIVE",
+        ];
+        if (res.rows[0] && convertedStages.includes(res.rows[0].stage)) {
+          console.log(
+            `[wa] +${phone} is ${res.rows[0].stage} — skipping auto-reply`,
+          );
+          return;
+        }
+      } catch {
+        // DB check failed — proceed with auto-reply
+      }
+    }
+
     const text = (msg.body || "").trim();
 
     // Media with no caption: acknowledge, tell Barbie, do not improvise.

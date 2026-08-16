@@ -288,7 +288,7 @@ async function runFollowUps(q: any, q1: any) {
         and follow_up_due < now()
         and not escalated
         and not human_takeover
-        and stage not in ('NOT_INTERESTED','ACTIVE')
+        and stage not in ('NOT_INTERESTED','ACTIVE','AGENCY_LINKED','FACE_VERIFIED','FIRST_LIVE')
         and follow_up_count < $2
       order by follow_up_due
       limit $1`,
