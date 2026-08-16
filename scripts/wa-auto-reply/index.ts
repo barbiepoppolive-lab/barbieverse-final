@@ -193,9 +193,20 @@ const client = new Client({
     // Must come from env. A hardcoded Windows path made this unrunnable
     // anywhere but one laptop, while the README promised Railway deploys.
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium",
+    // NOTE: --single-process and --no-zygote are deliberately ABSENT.
+    // With them, whatsapp-web.js authenticates and then hangs forever before
+    // emitting `ready` — the session links, the logs look healthy, and no
+    // message is ever processed. Do not re-add them to "save memory".
     args: [
-      "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage",
-      "--disable-gpu", "--no-first-run", "--no-zygote", "--single-process",
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--no-first-run",
+      "--disable-extensions",
+      "--disable-background-timer-throttling",
+      "--disable-backgrounding-occluded-windows",
+      "--disable-renderer-backgrounding",
     ],
   },
   authTimeoutMs: 180_000,
@@ -205,6 +216,9 @@ const client = new Client({
 // delivery has proven unreliable and a QR nobody can see is a dead bot.
 let currentQrPng: Buffer | null = null;
 let currentQrAt = 0;
+// Surfaced on /qr.json so "is it actually working?" is answerable without logs.
+let isReady = false;
+let messagesSeen = 0;
 
 client.on("qr", async (qr) => {
   try {
@@ -221,6 +235,7 @@ client.on("qr", async (qr) => {
 });
 
 client.on("ready", async () => {
+  isReady = true;
   const me = client.info?.wid?.user;
   console.log("[wa] connected as", me);
   // Barbie must SEE which number linked. The whole disaster earlier today was
@@ -229,11 +244,18 @@ client.on("ready", async () => {
 });
 
 client.on("authenticated", () => console.log("[wa] authenticated, session saved to", SESSION_DIR));
+
+// Visibility into the gap between `authenticated` and `ready`. That gap is
+// where this silently died: linked, logs clean, no messages ever handled.
+client.on("loading_screen", (percent, message) =>
+  console.log(`[wa] loading ${percent}% ${message || ""}`));
+client.on("change_state", (state) => console.log("[wa] state:", state));
 client.on("auth_failure", async (m) => { console.error("[wa] auth failure", m); await tg(`❌ WhatsApp auth failed: ${m}`); });
 client.on("disconnected", async (r) => { console.log("[wa] disconnected:", r); await tg(`⚠️ WhatsApp bot disconnected: ${r}`); });
 
 client.on("message", async (msg: any) => {
   try {
+    messagesSeen++;
     if (msg.fromMe || msg.isStatus) return;
 
     // Groups, broadcasts and status. Auto-replying in a group is the single
@@ -362,6 +384,8 @@ http.createServer((req, res) => {
       ageMs: currentQrPng ? Date.now() - currentQrAt : null,
       linked: !!client.info?.wid?.user,
       number: client.info?.wid?.user ?? null,
+      ready: isReady,
+      messagesSeen,
     }));
   }
 
