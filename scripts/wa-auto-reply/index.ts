@@ -267,18 +267,30 @@ client.on("message", async (msg: any) => {
     if (msg.id?._serialized && seenIds.has(msg.id._serialized)) return;
     if (msg.id?._serialized) { seenIds.add(msg.id._serialized); persistSeen(); }
 
-    const phone = from.replace(/@c\.us$/, "");
-    if (optOuts.has(phone)) return; // permanent, no exceptions
+    // WhatsApp now addresses individuals by LID (…@lid), not phone number, so
+    // stripping "@c.us" leaves an unusable id like 234002787123445@lid. That is
+    // fine as a map key but useless in an alert — Barbie cannot act on an
+    // escalation she cannot identify. Resolve to the real number where we can,
+    // and keep the raw id as the stable key.
+    const key = from.replace(/@(c\.us|lid)$/, "");
+    let phone = key;
+    try {
+      const contact = await msg.getContact();
+      const resolved = contact?.number || contact?.id?.user;
+      if (resolved && /^\d{8,15}$/.test(String(resolved))) phone = String(resolved);
+    } catch { /* keep the key */ }
+
+    if (optOuts.has(key)) return; // permanent, no exceptions
 
     const text = (msg.body || "").trim();
 
     // Media with no caption: acknowledge, tell Barbie, do not improvise.
     if (msg.hasMedia && !text) {
       await tg(`📷 <b>Screenshot from +${phone}</b>\nCheck it and reply yourself.`);
-      if (hourlyBudgetLeft() && contactBudgetLeft(phone)) {
+      if (hourlyBudgetLeft() && contactBudgetLeft(key)) {
         await sleep(thinkTime(40));
         await msg.reply("Screenshot mil gya sister 👍 main abhi dekh ke batati hoon");
-        noteReply(phone);
+        noteReply(key);
       }
       return;
     }
@@ -288,7 +300,7 @@ client.on("message", async (msg: any) => {
 
     // Opt-out is checked BEFORE anything else can generate a reply.
     if (OPT_OUT.test(text)) {
-      optOuts.add(phone);
+      optOuts.add(key);
       saveJson(OPTOUT_FILE, [...optOuts]);
       await tg(`🚫 <b>+${phone} opted out</b> — added to permanent do-not-reply.\n"${text.slice(0, 150)}"`);
       return;
@@ -306,16 +318,16 @@ client.on("message", async (msg: any) => {
       console.log("[wa] hourly cap reached — staying quiet");
       return;
     }
-    if (!contactBudgetLeft(phone)) {
+    if (!contactBudgetLeft(key)) {
       await tg(`⏸ +${phone} hit the per-contact daily cap. Reply by hand if needed.`);
       return;
     }
 
     const answer = matchAnswer(text);
-    const topics = leadTopics.get(phone) || [];
+    const topics = leadTopics.get(key) || [];
     if (answer && !topics.includes(answer.id)) {
       topics.push(answer.id);
-      leadTopics.set(phone, topics);
+      leadTopics.set(key, topics);
     }
 
     let replyText: string | null = null;
@@ -345,7 +357,7 @@ client.on("message", async (msg: any) => {
     await sleep(1500 + Math.random() * 2500);
 
     await msg.reply(replyText);
-    noteReply(phone);
+    noteReply(key);
     console.log(`[wa] -> +${phone} (${source})`);
   } catch (err: any) {
     console.error("[wa] handler error:", err?.message);
