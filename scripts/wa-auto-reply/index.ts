@@ -342,28 +342,75 @@ const http = await import("node:http");
 http.createServer((req, res) => {
   const url = new URL(req.url || "/", `http://localhost:${PORT}`);
 
+  const keyOk = QR_SECRET && url.searchParams.get("k") === QR_SECRET;
+
+  // Raw current QR image. Polled by the page below so the code on screen is
+  // always the live one — WhatsApp rotates it roughly every 20 seconds, and a
+  // full page reload each time made it impossible to actually finish scanning.
+  if (url.pathname === "/qr.png") {
+    if (!keyOk) { res.writeHead(403); return res.end("forbidden"); }
+    if (!currentQrPng) { res.writeHead(404); return res.end("no qr"); }
+    res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "no-store" });
+    return res.end(currentQrPng);
+  }
+
+  if (url.pathname === "/qr.json") {
+    if (!keyOk) { res.writeHead(403); return res.end("forbidden"); }
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    return res.end(JSON.stringify({
+      hasQr: !!currentQrPng,
+      ageMs: currentQrPng ? Date.now() - currentQrAt : null,
+      linked: !!client.info?.wid?.user,
+      number: client.info?.wid?.user ?? null,
+    }));
+  }
+
   if (url.pathname === "/qr") {
-    if (!QR_SECRET || url.searchParams.get("k") !== QR_SECRET) {
+    if (!keyOk) {
       res.writeHead(403, { "Content-Type": "text/plain" });
       return res.end("forbidden");
     }
-    if (!currentQrPng || Date.now() - currentQrAt > 90_000) {
-      res.writeHead(200, { "Content-Type": "text/html" });
-      return res.end(
-        "<meta http-equiv=refresh content=5><body style='font-family:sans-serif;text-align:center;padding-top:40px'>" +
-        "<h3>No QR pending</h3><p>Either the bot is already linked, or a new code is being generated.</p>" +
-        "<p>This page refreshes itself every 5 seconds.</p></body>",
-      );
+    // The image is swapped in place every 3s; the page itself never reloads.
+    // Barbie can leave this open as long as she likes and always be looking at
+    // a currently-valid code.
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    return res.end(`<!doctype html><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Link WhatsApp</title>
+<body style="font-family:system-ui,sans-serif;background:#0b0b0f;color:#eee;text-align:center;margin:0;padding:24px">
+<h2 style="color:#ff3b8b;margin:8px 0">Link WhatsApp</h2>
+<p style="color:#bbb;margin:0 0 16px">Settings → Linked devices → Link a device</p>
+<div id="box" style="background:#fff;display:inline-block;padding:12px;border-radius:12px;min-height:300px;min-width:300px">
+  <img id="qr" width="300" height="300" alt="QR">
+</div>
+<p id="status" style="color:#888;font-size:14px">Loading…</p>
+<script>
+const k = new URLSearchParams(location.search).get('k');
+async function tick(){
+  try{
+    const s = await (await fetch('/qr.json?k='+k,{cache:'no-store'})).json();
+    if (s.linked){
+      document.getElementById('box').style.display='none';
+      document.getElementById('status').innerHTML =
+        '<b style="color:#25D366;font-size:18px">✅ Linked to +' + s.number + '</b><br>' +
+        '<span style="color:#bbb">Check this is your business number.</span>';
+      return; // stop polling
     }
-    // Auto-refreshing wrapper: codes expire every ~20s, so a bare image would
-    // go stale in the time it takes to open WhatsApp.
-    res.writeHead(200, { "Content-Type": "text/html" });
-    return res.end(
-      "<meta http-equiv=refresh content=15><body style='font-family:sans-serif;text-align:center;background:#111;color:#eee'>" +
-      "<h3>Scan with WhatsApp</h3><p>Settings &rarr; Linked devices &rarr; Link a device</p>" +
-      `<img src="data:image/png;base64,${currentQrPng.toString("base64")}" width="320">` +
-      "<p style='color:#888;font-size:13px'>Refreshes every 15s. Keep this page open.</p></body>",
-    );
+    if (s.hasQr){
+      document.getElementById('qr').src = '/qr.png?k='+k+'&t='+Date.now();
+      document.getElementById('status').textContent =
+        'Code refreshes automatically — take your time.';
+    } else {
+      document.getElementById('status').textContent = 'Waiting for a code…';
+    }
+  }catch(e){
+    document.getElementById('status').textContent = 'Reconnecting…';
+  }
+  setTimeout(tick, 3000);
+}
+tick();
+</script>
+</body>`);
   }
 
   res.writeHead(200, { "Content-Type": "application/json" });
