@@ -336,10 +336,17 @@ DEATH SENTENCES (never do these):
       }),
     });
     const data = await res.json();
+    if (!res.ok) {
+      console.error(`[wa] Groq API error ${res.status}:`, JSON.stringify(data).slice(0, 200));
+    }
     const reply = data.choices?.[0]?.message?.content?.trim();
-    if (!reply) return null;
+    if (!reply) {
+      console.error("[wa] Groq returned no content:", JSON.stringify(data).slice(0, 200));
+      return null;
+    }
     return complianceCheck(reply).ok ? reply : null;
-  } catch {
+  } catch (e: any) {
+    console.error("[wa] writeReply error:", e?.message || e);
     return null;
   }
 }
@@ -1037,12 +1044,18 @@ async function runCampaign(phones: string[], overrideMessage?: string) {
       // Simulate typing before sending
       await sleep(2000 + Math.random() * 4000);
 
-      const chat = await client.getNumberId(phone);
+      let chat;
+      try {
+        chat = await client.getNumberId(phone);
+      } catch (lookupErr: any) {
+        console.error(`[wa] campaign getNumberId error +${phone}:`, lookupErr?.message || lookupErr);
+        continue;
+      }
       if (!chat) {
         console.log(`[wa] campaign: +${phone} not on WhatsApp, skipping`);
         continue;
       }
-      await client.sendMessage(chat, msg);
+      await client.sendMessage(chat._serialized || chat, msg);
       campaignSent++;
       console.log(
         `[wa] campaign -> +${phone} (${campaignSent}/${campaignTotal})`,
@@ -1065,7 +1078,7 @@ async function runCampaign(phones: string[], overrideMessage?: string) {
         } catch {}
       }
     } catch (e: any) {
-      console.error(`[wa] campaign failed +${phone}:`, e?.message);
+      console.error(`[wa] campaign failed +${phone}:`, e?.message || e?.stack?.slice(0, 200) || "unknown");
       if (e?.message?.includes("rate") || e?.message?.includes("limit")) {
         console.log("[wa] campaign rate-limited — stopping");
         await tg(
