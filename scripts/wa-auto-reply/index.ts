@@ -340,6 +340,7 @@ const client = new Client({
   authStrategy: new LocalAuth({ dataPath: SESSION_DIR }),
   puppeteer: {
     headless: true,
+    protocolTimeout: 120_000,
     // Must come from env. A hardcoded Windows path made this unrunnable
     // anywhere but one laptop, while the README promised Railway deploys.
     executablePath:
@@ -475,7 +476,8 @@ client.on("message", async (msg: any) => {
 
     if (optOuts.has(key)) return; // permanent, no exceptions
 
-    // Don't auto-reply to already-converted hosts — they talk to Barbie directly now
+    // Only reply to known leads in wa_leads — ignore everyone else
+    // (ad managers, wrong numbers, etc.)
     const dbUrl = process.env.SUPABASE_DB_URL;
     if (dbUrl) {
       try {
@@ -490,20 +492,26 @@ client.on("message", async (msg: any) => {
           [phone],
         );
         await pg.end();
+        if (!res.rows[0]) {
+          console.log(
+            `[wa] +${phone} not in wa_leads — ignoring (not a known lead)`,
+          );
+          return;
+        }
         const convertedStages = [
           "AGENCY_LINKED",
           "FACE_VERIFIED",
           "FIRST_LIVE",
           "ACTIVE",
         ];
-        if (res.rows[0] && convertedStages.includes(res.rows[0].stage)) {
+        if (convertedStages.includes(res.rows[0].stage)) {
           console.log(
             `[wa] +${phone} is ${res.rows[0].stage} — skipping auto-reply`,
           );
           return;
         }
       } catch {
-        // DB check failed — proceed with auto-reply
+        // DB check failed — proceed with auto-reply (safe fallback)
       }
     }
 
@@ -733,7 +741,12 @@ async function runBroadcast(phones: string[], message: string) {
 // The QR is a live credential: anyone who scans it links a device to her
 // WhatsApp. So it is served ONLY with the correct secret, and only while a QR
 // is actually pending. No secret configured -> the route refuses to serve.
+// No fallback. A hardcoded default sits in git guarding /broadcast,
+// /campaign and /export-chats, and silently masks a missing env var —
+// which is exactly how two services ended up with different secrets.
+// Unset => every protected route refuses.
 const QR_SECRET = process.env.WA_QR_SECRET || "";
+if (!QR_SECRET) console.error("[wa] WA_QR_SECRET unset — protected routes disabled");
 const PORT = Number(process.env.PORT || 8080);
 
 const http = await import("node:http");
@@ -742,6 +755,32 @@ http
     const url = new URL(req.url || "/", `http://localhost:${PORT}`);
 
     const keyOk = QR_SECRET && url.searchParams.get("k") === QR_SECRET;
+
+    // ── reset: wipe session and restart so fresh QR can be scanned ──
+    if (url.pathname === "/reset-session") {
+      // Was completely unauthenticated: any POST to the public URL unlinked
+      // the bot from Barbie's WhatsApp.
+      if (!keyOk) {
+        res.writeHead(403);
+        return res.end("forbidden");
+      }
+      if (req.method !== "POST") {
+        res.writeHead(405);
+        return res.end("method not allowed");
+      }
+      try {
+        fs.rmSync(SESSION_DIR, { recursive: true, force: true });
+        console.log("[wa] session directory wiped");
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true, message: "session wiped, restarting" }));
+        // Exit so Railway restarts the container with a clean session
+        setTimeout(() => process.exit(0), 500);
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: e?.message }));
+      }
+      return;
+    }
 
     // Raw current QR image. Polled by the page below so the code on screen is
     // always the live one — WhatsApp rotates it roughly every 20 seconds, and a
@@ -890,6 +929,105 @@ http
       }
     }
 
+    // ── export: pull chat history from WhatsApp Web into DB ──
+    // GET /export-chats?k=...&limit=50 — exports up to N recent chats
+    if (url.pathname === "/export-chats") {
+      if (!keyOk) {
+        res.writeHead(403);
+        return res.end("forbidden");
+      }
+      if (req.method !== "GET") {
+        res.writeHead(405);
+        return res.end("method not allowed");
+      }
+      if (!isReady) {
+        res.writeHead(503, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "bot not ready" }));
+      }
+      const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 100);
+      const dbUrl = process.env.SUPABASE_DB_URL;
+      if (!dbUrl) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "no DB connection" }));
+      }
+
+      // Run export in background, return immediately
+      res.writeHead(202, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ accepted: true, limit }));
+
+      (async () => {
+        try {
+          const { Client } = await import("pg");
+          const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+          await pg.connect();
+
+          const chats = await client.getChats();
+          console.log(`[export] found ${chats.length} chats, processing top ${limit}`);
+
+          let exported = 0;
+          let skipped = 0;
+          let errors = 0;
+
+          for (const chat of chats.slice(0, limit)) {
+            try {
+              const contact = chat.id;
+              const phone = contact.user?.replace(/@c\.us$/, "") || "";
+              if (!phone || !/^\d{8,15}$/.test(phone)) {
+                skipped++;
+                continue;
+              }
+
+              // Upsert lead and get id
+              const leadRes = await pg.query(
+                `INSERT INTO wa_leads (phone, stage, created_at, updated_at)
+                 VALUES ($1, 'ASKED', NOW(), NOW())
+                 ON CONFLICT (phone) DO UPDATE SET updated_at = NOW()
+                 RETURNING id`,
+                [phone],
+              );
+              const leadId = leadRes.rows[0].id;
+
+              // Get last 20 messages from this chat
+              const messages = await chat.fetchMessages({ limit: 20 });
+              for (const m of messages) {
+                if (!m.body && !m.hasMedia) continue;
+                const direction = m.from?.includes(contact.user) ? "in" : "out";
+                const text = m.body || (m.hasMedia ? `[${m.type || "media"}]` : "");
+                if (!text) continue;
+
+                const ts = new Date(m.timestamp * 1000);
+
+                // Insert message — skip duplicates by lead + body + timestamp window
+                await pg.query(
+                  `INSERT INTO wa_messages (lead_id, direction, body, created_at)
+                   SELECT $1, $2, $3, $4
+                   WHERE NOT EXISTS (
+                     SELECT 1 FROM wa_messages
+                     WHERE lead_id = $1 AND body = $3
+                       AND created_at BETWEEN $4 - interval '5 seconds' AND $4 + interval '5 seconds'
+                   )`,
+                  [leadId, direction, text, ts],
+                );
+              }
+              exported++;
+            } catch (e) {
+              errors++;
+              console.error(`[export] error on chat:`, e?.message);
+            }
+          }
+
+          await pg.end();
+          const msg = `[export] done: ${exported} chats exported, ${skipped} skipped, ${errors} errors`;
+          console.log(msg);
+          await tg(msg);
+        } catch (e) {
+          console.error("[export] fatal:", e);
+          await tg(`[export] fatal: ${e?.message}`);
+        }
+      })();
+      return;
+    }
+
     if (url.pathname === "/qr") {
       if (!keyOk) {
         res.writeHead(403, { "Content-Type": "text/plain" });
@@ -952,8 +1090,24 @@ tick();
   );
 
 console.log("[wa] starting — session dir:", SESSION_DIR);
+
+// If WA_RESET_SESSION=true, wipe session data before starting (for corrupted sessions)
+if (process.env.WA_RESET_SESSION === "true") {
+  console.log("[wa] WA_RESET_SESSION=true — wiping session directory");
+  fs.rmSync(SESSION_DIR, { recursive: true, force: true });
+}
+
 client.initialize().catch(async (err) => {
   console.error("[wa] failed to start:", err);
+  // If it looks like a session corruption, auto-wipe and retry once
+  const msg = err?.message || "";
+  if (msg.includes("Execution context was destroyed") || msg.includes("timed out")) {
+    console.log("[wa] session likely corrupted — auto-wiping and retrying in 5s");
+    try { fs.rmSync(SESSION_DIR, { recursive: true, force: true }); } catch {}
+    await new Promise(r => setTimeout(r, 5000));
+    // Re-exit so Railway restarts with clean session
+    process.exit(1);
+  }
   await tg(`❌ WhatsApp bot failed to start: ${err?.message}`);
   process.exit(1);
 });
