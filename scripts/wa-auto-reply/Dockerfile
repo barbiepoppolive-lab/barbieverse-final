@@ -47,9 +47,12 @@ RUN npm install --omit=dev --no-audit --no-fund
 
 COPY . .
 
-# Session lives on a mounted Railway volume, NOT in the image. Without the
-# volume every deploy wipes the login and demands a fresh QR scan.
+# Session lives on a Railway volume mounted at /data by the service config,
+# NOT in the image. Without that volume every deploy wipes the login and
+# demands a fresh QR scan.
+#
+# Do NOT add a Docker `VOLUME` instruction here — Railway rejects the build
+# outright ("docker VOLUME is not supported, use Railway Volumes").
 ENV WA_SESSION_DIR=/data/wwebjs_auth
-VOLUME ["/data"]
 
 CMD ["npx", "tsx", "index.ts"]
