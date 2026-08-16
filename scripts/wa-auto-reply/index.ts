@@ -21,7 +21,7 @@
 // Barbie's business.
 
 import pkg from "whatsapp-web.js";
-const { Client, LocalAuth } = pkg;
+const { Client, LocalAuth, MessageMedia } = pkg;
 
 import QRCode from "qrcode";
 import path from "path";
@@ -898,11 +898,20 @@ client.on("message", async (msg: any) => {
         const mediaUrl = `${MEDIA_BASE}/cards/${answerObj.mediaTag}.${ext}`;
         // For videos, include the nextNudge as caption on the video itself
         const caption = answerObj.mediaCaption || answerObj.nextNudge || "";
-        if (answerObj.mediaType === "video") {
-          await msg.reply(mediaUrl, { caption });
-        } else {
-          await msg.reply(mediaUrl);
-        }
+        // msg.reply(url, {caption}) never actually sent a video: reply()'s
+        // real signature is reply(content, chatId, options) — the {caption}
+        // object was being passed as chatId, not options, so it threw and
+        // silently fell through to text-only every single time. And even
+        // with args in the right place, a raw URL string is sent as a text
+        // link, not an attachment — it has to be wrapped in MessageMedia.
+        const media = await MessageMedia.fromUrl(mediaUrl, {
+          unsafeMime: true,
+        });
+        await msg.reply(
+          media,
+          undefined,
+          answerObj.mediaType === "video" ? { caption } : {},
+        );
         // Brief pause between media and text, like a human sends a photo then types
         await sleep(800 + Math.random() * 1500);
       } catch (e) {
