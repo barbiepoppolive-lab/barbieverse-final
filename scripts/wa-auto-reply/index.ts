@@ -228,7 +228,7 @@ async function getLeadContext(phone: string): Promise<LeadContext | null> {
     await pg.connect();
 
     const leadRes = await pg.query(
-      "SELECT id, stage, topics_asked, next_step FROM wa_leads WHERE phone = $1",
+      "SELECT id, stage, topics_asked FROM wa_leads WHERE phone = $1",
       [phone],
     );
     if (!leadRes.rows[0]) { await pg.end(); return null; }
@@ -251,7 +251,7 @@ async function getLeadContext(phone: string): Promise<LeadContext | null> {
     return {
       stage: lead.stage,
       topicsCovered: lead.topics_asked || [],
-      nextStep: lead.next_step || "",
+      nextStep: "",
       transcript: msgs,
     };
   } catch {
@@ -698,8 +698,10 @@ client.on("message", async (msg: any) => {
       replyText = [answer.reply, answer.nextNudge].filter(Boolean).join("\n\n");
       source = `canned:${answer.id}`;
     } else if (APPROVE_MODE === "all-auto") {
+      console.log(`[wa] no canned match for +${phone}, calling LLM...`);
       replyText = await writeReply(text, topics, leadCtx);
       source = "llm";
+      console.log(`[wa] LLM returned: ${replyText ? replyText.slice(0, 60) : "NULL"}`);
     }
 
     if (!replyText) {
