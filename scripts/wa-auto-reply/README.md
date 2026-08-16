@@ -80,3 +80,5 @@ Session is saved to `.wwebjs_auth/` — you only scan once.
 - `answer-bank.ts` — Canned answers (14 Q&As)
 - `test.ts` — Test script
 - `Dockerfile` — For Railway/Docker deployment
+
+# deploy marker: 2026-08-16T04:14:50Z
