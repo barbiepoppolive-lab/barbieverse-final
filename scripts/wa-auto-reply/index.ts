@@ -75,6 +75,31 @@ const SEEN_FILE = path.join(SESSION_DIR, "seen.json");
 
 fs.mkdirSync(SESSION_DIR, { recursive: true });
 
+// Remove stale Chromium lock files from previous deploys/crashes.
+// Without this the bot fails with "profile appears to be in use by another process".
+function removeLocks(dir: string, depth = 0) {
+  if (depth > 4) return;
+  try {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (
+        entry.name === "SingletonLock" ||
+        entry.name === "SingletonSocket" ||
+        entry.name === "SingletonCookie"
+      ) {
+        if (entry.isDirectory()) fs.rmSync(full, { recursive: true });
+        else fs.unlinkSync(full);
+        console.log(`[wa] removed stale ${entry.name} at ${full}`);
+      } else if (entry.isDirectory()) {
+        removeLocks(full, depth + 1);
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+}
+removeLocks(SESSION_DIR);
+
 // ── persistence (survives restarts via the volume) ─────────────────────────
 function loadJson<T>(file: string, fallback: T): T {
   try {
