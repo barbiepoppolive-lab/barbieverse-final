@@ -191,7 +191,7 @@ async function writeReply(
   text: string,
   topicsAsked: string[] = [],
 ): Promise<string | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) return null;
   const seen = new Set(topicsAsked);
   const facts = ANSWERS.filter((a) => !seen.has(a.id))
@@ -211,19 +211,24 @@ Rules:
 - Hamesha agla step ya chota sawaal ke saath khatam karo`;
 
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: `${systemPrompt}\n\nUser: ${text}` }] }],
-          generationConfig: { maxOutputTokens: 200, temperature: 0.7 },
-        }),
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
       },
-    );
+      body: JSON.stringify({
+        model: "anthropic/claude-3.5-haiku",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: text },
+        ],
+        max_tokens: 200,
+        temperature: 0.7,
+      }),
+    });
     const data = await res.json();
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const reply = data.choices?.[0]?.message?.content?.trim();
     if (!reply) return null;
     return complianceCheck(reply).ok ? reply : null;
   } catch {
@@ -676,7 +681,7 @@ const PORT = Number(process.env.PORT || 8080);
 
 const http = await import("node:http");
 http
-  .createServer((req, res) => {
+  .createServer(async (req, res) => {
     const url = new URL(req.url || "/", `http://localhost:${PORT}`);
 
     const keyOk = QR_SECRET && url.searchParams.get("k") === QR_SECRET;
