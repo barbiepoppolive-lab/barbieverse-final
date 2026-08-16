@@ -47,6 +47,7 @@ import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminMarketingRouteImport } from './routes/admin.marketing'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminLeadsRouteImport } from './routes/admin.leads'
+import { Route as AdminHostsRouteImport } from './routes/admin.hosts'
 import { Route as AdminHomepageRouteImport } from './routes/admin.homepage'
 import { Route as AdminCreatorLeadsRouteImport } from './routes/admin.creator-leads'
 import { Route as AdminCostsRouteImport } from './routes/admin.costs'
@@ -61,6 +62,7 @@ import { Route as AcademyPkBattleGuideRouteImport } from './routes/academy.pk-ba
 import { Route as AcademyHowToBecomePoppoHostRouteImport } from './routes/academy.how-to-become-poppo-host'
 import { Route as AcademyCoinsPointsGiftsExplainedRouteImport } from './routes/academy.coins-points-gifts-explained'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp-webhook'
+import { Route as ApiPublicWhatsappBotStatusRouteImport } from './routes/api/public/whatsapp-bot-status'
 import { Route as ApiPublicUpiWebhookRouteImport } from './routes/api/public/upi-webhook'
 import { Route as ApiPublicTelegramBotRouteImport } from './routes/api/public/telegram-bot'
 import { Route as ApiPublicOrderActionRouteImport } from './routes/api/public/order-action'
@@ -265,6 +267,11 @@ const AdminLeadsRoute = AdminLeadsRouteImport.update({
   path: '/leads',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminHostsRoute = AdminHostsRouteImport.update({
+  id: '/hosts',
+  path: '/hosts',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminHomepageRoute = AdminHomepageRouteImport.update({
   id: '/homepage',
   path: '/homepage',
@@ -338,6 +345,12 @@ const ApiPublicWhatsappWebhookRoute =
   ApiPublicWhatsappWebhookRouteImport.update({
     id: '/api/public/whatsapp-webhook',
     path: '/api/public/whatsapp-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWhatsappBotStatusRoute =
+  ApiPublicWhatsappBotStatusRouteImport.update({
+    id: '/api/public/whatsapp-bot-status',
+    path: '/api/public/whatsapp-bot-status',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicUpiWebhookRoute = ApiPublicUpiWebhookRouteImport.update({
@@ -436,6 +449,7 @@ export interface FileRoutesByFullPath {
   '/admin/costs': typeof AdminCostsRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
+  '/admin/hosts': typeof AdminHostsRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/marketing': typeof AdminMarketingRoute
@@ -466,6 +480,7 @@ export interface FileRoutesByFullPath {
   '/api/public/order-action': typeof ApiPublicOrderActionRoute
   '/api/public/telegram-bot': typeof ApiPublicTelegramBotRoute
   '/api/public/upi-webhook': typeof ApiPublicUpiWebhookRoute
+  '/api/public/whatsapp-bot-status': typeof ApiPublicWhatsappBotStatusRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -500,6 +515,7 @@ export interface FileRoutesByTo {
   '/admin/costs': typeof AdminCostsRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
+  '/admin/hosts': typeof AdminHostsRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/marketing': typeof AdminMarketingRoute
@@ -530,6 +546,7 @@ export interface FileRoutesByTo {
   '/api/public/order-action': typeof ApiPublicOrderActionRoute
   '/api/public/telegram-bot': typeof ApiPublicTelegramBotRoute
   '/api/public/upi-webhook': typeof ApiPublicUpiWebhookRoute
+  '/api/public/whatsapp-bot-status': typeof ApiPublicWhatsappBotStatusRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRoutesById {
@@ -567,6 +584,7 @@ export interface FileRoutesById {
   '/admin/costs': typeof AdminCostsRoute
   '/admin/creator-leads': typeof AdminCreatorLeadsRoute
   '/admin/homepage': typeof AdminHomepageRoute
+  '/admin/hosts': typeof AdminHostsRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/marketing': typeof AdminMarketingRoute
@@ -597,6 +615,7 @@ export interface FileRoutesById {
   '/api/public/order-action': typeof ApiPublicOrderActionRoute
   '/api/public/telegram-bot': typeof ApiPublicTelegramBotRoute
   '/api/public/upi-webhook': typeof ApiPublicUpiWebhookRoute
+  '/api/public/whatsapp-bot-status': typeof ApiPublicWhatsappBotStatusRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRouteTypes {
@@ -635,6 +654,7 @@ export interface FileRouteTypes {
     | '/admin/costs'
     | '/admin/creator-leads'
     | '/admin/homepage'
+    | '/admin/hosts'
     | '/admin/leads'
     | '/admin/login'
     | '/admin/marketing'
@@ -665,6 +685,7 @@ export interface FileRouteTypes {
     | '/api/public/order-action'
     | '/api/public/telegram-bot'
     | '/api/public/upi-webhook'
+    | '/api/public/whatsapp-bot-status'
     | '/api/public/whatsapp-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -699,6 +720,7 @@ export interface FileRouteTypes {
     | '/admin/costs'
     | '/admin/creator-leads'
     | '/admin/homepage'
+    | '/admin/hosts'
     | '/admin/leads'
     | '/admin/login'
     | '/admin/marketing'
@@ -729,6 +751,7 @@ export interface FileRouteTypes {
     | '/api/public/order-action'
     | '/api/public/telegram-bot'
     | '/api/public/upi-webhook'
+    | '/api/public/whatsapp-bot-status'
     | '/api/public/whatsapp-webhook'
   id:
     | '__root__'
@@ -765,6 +788,7 @@ export interface FileRouteTypes {
     | '/admin/costs'
     | '/admin/creator-leads'
     | '/admin/homepage'
+    | '/admin/hosts'
     | '/admin/leads'
     | '/admin/login'
     | '/admin/marketing'
@@ -795,6 +819,7 @@ export interface FileRouteTypes {
     | '/api/public/order-action'
     | '/api/public/telegram-bot'
     | '/api/public/upi-webhook'
+    | '/api/public/whatsapp-bot-status'
     | '/api/public/whatsapp-webhook'
   fileRoutesById: FileRoutesById
 }
@@ -831,6 +856,7 @@ export interface RootRouteChildren {
   ApiPublicOrderActionRoute: typeof ApiPublicOrderActionRoute
   ApiPublicTelegramBotRoute: typeof ApiPublicTelegramBotRoute
   ApiPublicUpiWebhookRoute: typeof ApiPublicUpiWebhookRoute
+  ApiPublicWhatsappBotStatusRoute: typeof ApiPublicWhatsappBotStatusRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
 
@@ -1102,6 +1128,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLeadsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/hosts': {
+      id: '/admin/hosts'
+      path: '/hosts'
+      fullPath: '/admin/hosts'
+      preLoaderRoute: typeof AdminHostsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/homepage': {
       id: '/admin/homepage'
       path: '/homepage'
@@ -1198,6 +1231,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/whatsapp-webhook'
       fullPath: '/api/public/whatsapp-webhook'
       preLoaderRoute: typeof ApiPublicWhatsappWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/whatsapp-bot-status': {
+      id: '/api/public/whatsapp-bot-status'
+      path: '/api/public/whatsapp-bot-status'
+      fullPath: '/api/public/whatsapp-bot-status'
+      preLoaderRoute: typeof ApiPublicWhatsappBotStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/upi-webhook': {
@@ -1320,6 +1360,7 @@ interface AdminRouteChildren {
   AdminCostsRoute: typeof AdminCostsRoute
   AdminCreatorLeadsRoute: typeof AdminCreatorLeadsRoute
   AdminHomepageRoute: typeof AdminHomepageRoute
+  AdminHostsRoute: typeof AdminHostsRoute
   AdminLeadsRoute: typeof AdminLeadsRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminMarketingRoute: typeof AdminMarketingRoute
@@ -1342,6 +1383,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCostsRoute: AdminCostsRoute,
   AdminCreatorLeadsRoute: AdminCreatorLeadsRoute,
   AdminHomepageRoute: AdminHomepageRoute,
+  AdminHostsRoute: AdminHostsRoute,
   AdminLeadsRoute: AdminLeadsRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminMarketingRoute: AdminMarketingRoute,
@@ -1416,18 +1458,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicOrderActionRoute: ApiPublicOrderActionRoute,
   ApiPublicTelegramBotRoute: ApiPublicTelegramBotRoute,
   ApiPublicUpiWebhookRoute: ApiPublicUpiWebhookRoute,
+  ApiPublicWhatsappBotStatusRoute: ApiPublicWhatsappBotStatusRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

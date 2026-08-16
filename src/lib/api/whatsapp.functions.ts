@@ -1,7 +1,104 @@
 import { createServerFn } from "@tanstack/react-start";
 
-export const listWhatsappPipeline = createServerFn({ method: "GET" })
-  .handler(async () => {
+// Derived column mapping the Dashboard renders to answer "where stuck".
+// Kept in SQL so the dashboard never ships a stage w/ no explanation.
+const NEXTCUE_SQL = `
+  case
+    when l.stage in ('AGENCY_LINKED','FACE_VERIFIED','FIRST_LIVE','ACTIVE') then 'Converted'
+    when l.stage = 'NOT_INTERESTED' then 'Said no'
+    when l.stage = 'STALLED' then 'Chase exhausted / blocked'
+    when l.stage = 'ESCALATED' then 'Escalated to Barbie'
+    when l.stage = 'NEW' then 'First message only'
+    when l.stage = 'ASKED' then 'Answering questions'
+    when l.stage = 'LINK_SENT' then 'Waiting for install'
+    when l.stage = 'INSTALLING' then 'Installing now'
+    when l.stage = 'INSTALLED' then 'Waiting for agency screenshot'
+    else 'In progress'
+  end
+`;
+
+export const LIST_LEADS_SQL = `
+  select
+    l.id,
+    l.phone,
+    l.display_name,
+    l.stage,
+    l.source,
+    l.language,
+    l.escalated,
+    l.escalated_reason,
+    l.human_takeover,
+    l.agency_verified_at,
+    l.face_verified_at,
+    l.first_live_at,
+    l.created_at,
+    l.last_inbound_at,
+    l.last_outbound_at,
+    l.window_expires_at,
+    l.follow_up_due,
+    l.follow_up_count,
+    ${NEXTCUE_SQL} as next_cue,
+    coalesce(d.pending_drafts, 0)::int as pending_drafts,
+    w.last_in as last_message_in,
+    w.last_out as last_message_out,
+    (l.last_inbound_at is not null
+        and now() - l.last_inbound_at > interval '48 hours'
+        and l.stage not in ('ACTIVE','NOT_INTERESTED')) as is_stale
+  from wa_leads l
+  left join (
+    select lead_id,
+           count(*) filter (where decision is null) as pending_drafts
+      from wa_drafts
+     group by lead_id
+  ) d on d.lead_id = l.id
+  left join (
+    select lead_id,
+           max(created_at) filter (where direction = 'in') as last_in,
+           max(created_at) filter (where direction = 'out') as last_out
+      from wa_messages
+     group by lead_id
+  ) w on w.lead_id = l.id
+`;
+
+export const listWhatsappLeads = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const { requireAdmin } = await import("../admin-session.server");
+    await requireAdmin();
+    const { q } = await import("../db.server");
+
+    const rows = await q<any>(
+      `${LIST_LEADS_SQL} order by
+         case when l.stage in ('ESCALATED') then 0
+              when pending_drafts is not null and pending_drafts > 0 then 1
+              when l.escalated or is_stale then 2
+              else 3 end,
+         greatest(l.updated_at, l.created_at) desc`,
+    );
+
+    return { leads: rows };
+  },
+);
+
+export const listHosts = createServerFn({ method: "GET" }).handler(async () => {
+  const { requireAdmin } = await import("../admin-session.server");
+  await requireAdmin();
+  const { q } = await import("../db.server");
+
+  const rows = await q<any>(
+    `${LIST_LEADS_SQL}
+        where l.stage in ('AGENCY_LINKED','FACE_VERIFIED','FIRST_LIVE','ACTIVE')
+        order by
+          case l.stage
+            when 'ACTIVE' then 0 when 'FIRST_LIVE' then 1
+            when 'FACE_VERIFIED' then 2 else 3 end,
+          l.updated_at desc`,
+  );
+
+  return { hosts: rows };
+});
+
+export const listWhatsappPipeline = createServerFn({ method: "GET" }).handler(
+  async () => {
     const { requireAdmin } = await import("../admin-session.server");
     await requireAdmin();
     const { q } = await import("../db.server");
@@ -58,8 +155,11 @@ export const listWhatsappPipeline = createServerFn({ method: "GET" })
         takeovers: s.takeovers ?? 0,
         pending: s.pending ?? 0,
         total: s.total ?? 0,
-        uneditedRate: s.sent_drafts ? (s.unedited_sends / s.sent_drafts) * 100 : null,
+        uneditedRate: s.sent_drafts
+          ? (s.unedited_sends / s.sent_drafts) * 100
+          : null,
       },
       recent,
     };
-  });
+  },
+);

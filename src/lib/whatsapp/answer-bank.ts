@@ -20,9 +20,11 @@ export interface Answer {
   id: string;
   label: string;
   match: RegExp[];
-  reply: string;          // Hinglish, in her register: short, "sister", one emoji max
-  mediaTag?: string;      // card filename, without extension
-  nextNudge?: string;     // never end a message without a way forward
+  reply: string; // Hinglish, in her register: short, "sister", one emoji max
+  mediaTag?: string; // card filename, without extension
+  mediaType?: "photo" | "video"; // defaults to "photo" (.png)
+  mediaCaption?: string; // caption sent with the media (if any)
+  nextNudge?: string; // never end a message without a way forward
   escalate?: boolean;
 }
 
@@ -53,6 +55,8 @@ export const ANSWERS: Answer[] = [
       "Haan, batati hoon 😊\n\n" +
       "Ghar baithe apne phone se live aana hota hai — bas baat karni hoti hai, gaana, dance, ya normal gupshup\n\n" +
       "Koi paisa nahi lagta, na koi fees. Training main khud deti hoon",
+    mediaTag: "00-haan-batati-hoon",
+    mediaType: "video",
     nextNudge: "Aap roz kitna time de sakti hain?",
   },
   {
@@ -81,7 +85,12 @@ export const ANSWERS: Answer[] = [
   {
     id: "Q2",
     label: "per minute kitna",
-    match: [/per minute/i, /per hour/i, /\bghante ka kitna\b/i, /minute me kitna/i],
+    match: [
+      /per minute/i,
+      /per hour/i,
+      /\bghante ka kitna\b/i,
+      /minute me kitna/i,
+    ],
     reply:
       "Per minute ka koi fixed rate nahi hota sister\n\n" +
       "Kamai gift se hoti hai — jitne log gift bhejenge utna banega, aur uske upar daily task ka paisa alag\n\n" +
@@ -92,7 +101,14 @@ export const ANSWERS: Answer[] = [
   {
     id: "Q3",
     label: "calling app hai kya",
-    match: [/\bcalling\b/i, /\bv?cll\b/i, /video call/i, /audio call/i, /private call/i, /\bcall\b.{0,12}(hai|ata|aata|wala)/i],
+    match: [
+      /\bcalling\b/i,
+      /\bv?cll\b/i,
+      /video call/i,
+      /audio call/i,
+      /private call/i,
+      /\bcall\b.{0,12}(hai|ata|aata|wala)/i,
+    ],
     reply:
       "Nahi sister, ye calling app bilkul nahi hai 😊\n\n" +
       "Aap live aati ho, sab log ek saath dekhte hain aur gift bhejte hain. Koi private call nahi, koi aapka personal number nahi le sakta\n\n" +
@@ -103,7 +119,12 @@ export const ANSWERS: Answer[] = [
   {
     id: "Q4",
     label: "earning kaise hoti hai",
-    match: [/earning.{0,12}(kaise|process)/i, /kaise.{0,10}kamai/i, /paisa kaise/i, /kaise milta/i],
+    match: [
+      /earning.{0,12}(kaise|process)/i,
+      /kaise.{0,10}kamai/i,
+      /paisa kaise/i,
+      /kaise milta/i,
+    ],
     reply:
       "Aise hota hai —\n\n" +
       "Viewer real paise se coin kharidta hai, aapko gift bhejta hai, wo aapke points ban jate hain\n\n" +
@@ -114,7 +135,14 @@ export const ANSWERS: Answer[] = [
   {
     id: "Q5",
     label: "withdrawal",
-    match: [/withdraw/i, /\bnikal(na|ti|ta)?\b/i, /\bbank\b/i, /paytm/i, /\bupi\b/i, /paisa kab milega/i],
+    match: [
+      /withdraw/i,
+      /\bnikal(na|ti|ta)?\b/i,
+      /\bbank\b/i,
+      /paytm/i,
+      /\bupi\b/i,
+      /paisa kab milega/i,
+    ],
     reply:
       "Minimum 10 dollar hai, lagbhag 850 rs\n\n" +
       "Aap khud app se withdraw karti ho, seedha apne bank mein — 24 ghante ke andar aa jata hai\n\n" +
@@ -125,7 +153,14 @@ export const ANSWERS: Answer[] = [
   {
     id: "Q6",
     label: "kya karna hota hai",
-    match: [/kya karna/i, /kiya karna/i, /kaisa kaam/i, /kesa work/i, /kaam kya/i, /what.{0,8}work/i],
+    match: [
+      /kya karna/i,
+      /kiya karna/i,
+      /kaisa kaam/i,
+      /kesa work/i,
+      /kaam kya/i,
+      /what.{0,8}work/i,
+    ],
     reply:
       "Logo se interact krna hai, ghar baithe apne phone se\n\n" +
       "Gaana, gappe, makeup, game — jo aapko accha lagta hai\n\n" +
@@ -142,12 +177,19 @@ export const ANSWERS: Answer[] = [
       "Face verification sirf ek baar hota hai, ek selfie jaisa. Usse pata chalta hai ID aapki apni hai\n\n" +
       "Baaki sab aapke control mein — kya baat karni hai, kab aana hai, kisko block karna hai",
     mediaTag: "07-face-verification",
+    mediaType: "video",
     nextNudge: "Karke dekhein? Main saath mein hoon",
   },
   {
     id: "Q8",
     label: "kitne ghante",
-    match: [/kitne ghante/i, /kitna time/i, /how many hours/i, /\bduty\b/i, /time dena/i],
+    match: [
+      /kitne ghante/i,
+      /kitna time/i,
+      /how many hours/i,
+      /\bduty\b/i,
+      /time dena/i,
+    ],
     reply:
       "4-5 ghante roz best hai\n\n" +
       "2 ghante se daily task ka reward shuru ho jata hai, uske aage se regular log aur rank banti hai\n\n" +
@@ -158,7 +200,15 @@ export const ANSWERS: Answer[] = [
   {
     id: "Q9",
     label: "free hai kya / paise lagenge",
-    match: [/\bfree\b/i, /paise dene/i, /charge/i, /\bfees\b/i, /kitna dena/i, /investment/i, /payment karna/i],
+    match: [
+      /\bfree\b/i,
+      /paise dene/i,
+      /charge/i,
+      /\bfees\b/i,
+      /kitna dena/i,
+      /investment/i,
+      /payment karna/i,
+    ],
     reply:
       "Bilkul free hai sister 😊\n\n" +
       "Na registration ka, na training ka, na kisi verification ka — kuch bhi nahi\n\n" +
@@ -169,7 +219,16 @@ export const ANSWERS: Answer[] = [
   {
     id: "Q10",
     label: "genuine hai / scam",
-    match: [/\bscam\b/i, /\bfake\b/i, /fraud/i, /genuine/i, /\bsafe\b/i, /real hai/i, /\btrust\b/i, /dhokha/i],
+    match: [
+      /\bscam\b/i,
+      /\bfake\b/i,
+      /fraud/i,
+      /genuine/i,
+      /\bsafe\b/i,
+      /real hai/i,
+      /\btrust\b/i,
+      /dhokha/i,
+    ],
     reply:
       "Teen cheezein khud check kar lo 😊\n\n" +
       "Aap humein kabhi paisa nahi deti. Paisa app se seedha aapke bank mein aata hai, hum beech mein nahi\n\n" +
@@ -202,12 +261,19 @@ export const ANSWERS: Answer[] = [
       "3) Profile → My Agency kholo\n" +
       "4) Agent ID 2517496 daalo → Apply to Join",
     mediaTag: "06-join-kaise-4-step",
+    mediaType: "video",
     nextNudge: "Ho jaye to screenshot bhej dena, main check kar lungi",
   },
   {
     id: "Q12",
     label: "app ka naam kya hai",
-    match: [/app ka naam/i, /kaunsa app/i, /konsa app/i, /which app/i, /app name/i],
+    match: [
+      /app ka naam/i,
+      /kaunsa app/i,
+      /konsa app/i,
+      /which app/i,
+      /app name/i,
+    ],
     reply:
       "Link se hi install karna sister — tabhi aap meri agency mein aayengi aur main aapko guide kar paungi\n\n" +
       "Bahar se install kiya to aap kisi ki bhi agency mein nahi hongi, na training milegi na support",
@@ -216,7 +282,16 @@ export const ANSWERS: Answer[] = [
   {
     id: "Q13",
     label: "app problem / otp / login",
-    match: [/\berror\b/i, /nahi ho raha/i, /nhi ho raha/i, /not working/i, /\botp\b/i, /\blogin\b/i, /same word/i, /problem aa/i],
+    match: [
+      /\berror\b/i,
+      /nahi ho raha/i,
+      /nhi ho raha/i,
+      /not working/i,
+      /\botp\b/i,
+      /\blogin\b/i,
+      /same word/i,
+      /problem aa/i,
+    ],
     reply:
       "Screenshot bhej do jahan atki ho, main dekh ke bata deti hoon\n\n" +
       "Mobile number wale option se login kijiye, sabse upar wala",
@@ -225,7 +300,13 @@ export const ANSWERS: Answer[] = [
   {
     id: "Q14",
     label: "already in another agency",
-    match: [/dusri agency/i, /doosri agency/i, /another agency/i, /pehle se.{0,15}agency/i, /already.{0,12}agency/i],
+    match: [
+      /dusri agency/i,
+      /doosri agency/i,
+      /another agency/i,
+      /pehle se.{0,15}agency/i,
+      /already.{0,12}agency/i,
+    ],
     reply:
       "To abhi wahin rahiye sister\n\n" +
       "Ek host sirf ek agency mein reh sakti hai, aur hum kisi ki host nahi todte — platform ke rules ke against hai",
@@ -235,13 +316,28 @@ export const ANSWERS: Answer[] = [
 
 // ── escalation: these never get an automated reply ─────────────────────────
 export const ESCALATE_PATTERNS: { re: RegExp; reason: string }[] = [
-  { re: /\bmera\b.{0,20}\b(payment|paisa|withdraw)\b/i, reason: "her own money" },
-  { re: /payment nahi aaya|paisa nahi aaya|withdraw nahi hua/i, reason: "payout problem" },
+  {
+    re: /\bmera\b.{0,20}\b(payment|paisa|withdraw)\b/i,
+    reason: "her own money",
+  },
+  {
+    re: /payment nahi aaya|paisa nahi aaya|withdraw nahi hua/i,
+    reason: "payout problem",
+  },
   { re: /\brefund\b/i, reason: "refund" },
   { re: /\b(police|legal|court|complaint|consumer)\b/i, reason: "legal" },
-  { re: /\b(chutiya|bhenchod|madarchod|fraud ho|cheater)\b/i, reason: "angry/abusive" },
-  { re: /\b(1[0-7]|under\s?18|nabalig)\s?(saal|years|year)?\b/i, reason: "possible minor" },
-  { re: /real person|insaan se baat|human se baat/i, reason: "asked for a human" },
+  {
+    re: /\b(chutiya|bhenchod|madarchod|fraud ho|cheater)\b/i,
+    reason: "angry/abusive",
+  },
+  {
+    re: /\b(1[0-7]|under\s?18|nabalig)\s?(saal|years|year)?\b/i,
+    reason: "possible minor",
+  },
+  {
+    re: /real person|insaan se baat|human se baat/i,
+    reason: "asked for a human",
+  },
 ];
 
 /** First matching answer, or null for the LLM to handle. */
@@ -267,29 +363,44 @@ export function needsEscalation(text: string): string | null {
  * Reuses the existing compliance gate philosophy from src/shared/compliance-gate.ts.
  */
 const BANNED = [
-  { re: /\bguarantee[ds]?\b/i, why: "the word 'guarantee' — promised income is what comes back at you" },
-  { re: /\b(vone|poppo)\b/i, why: "the app name — she can install without our link" },
+  {
+    re: /\bguarantee[ds]?\b/i,
+    why: "the word 'guarantee' — promised income is what comes back at you",
+  },
+  {
+    re: /\b(vone|poppo)\b/i,
+    why: "the app name — she can install without our link",
+  },
   { re: /\b\d+\s*(lakh|lakhs|crore|cr)\b/i, why: "a lakh/crore figure" },
 
   // Rupee amounts, BOTH orders. The second pattern is the one that matters:
   // she once wrote "For withdraw minimum you have to earn 10000 ruppess" to a
   // real lead — twelve times the true figure, and the currency word came AFTER
   // the number, so a prefix-only rule would have let it straight through.
-  { re: /(₹|\brs\.?|\binr\b)\s?\d{3,}/i, why: "a rupee figure (₹ before the number)" },
-  { re: /\b\d{3,}[\d,]*\s*(rs\b|rupees?|ruppess|rupaye|₹)/i, why: "a rupee figure (currency after the number)" },
+  {
+    re: /(₹|\brs\.?|\binr\b)\s?\d{3,}/i,
+    why: "a rupee figure (₹ before the number)",
+  },
+  {
+    re: /\b\d{3,}[\d,]*\s*(rs\b|rupees?|ruppess|rupaye|₹)/i,
+    why: "a rupee figure (currency after the number)",
+  },
 ];
 
 // The only money phrasings the bot is allowed to say, verbatim.
 // Everything else with a number in it gets stopped.
 const APPROVED = [
-  /\b850\s*rs\b/i,          // the real withdrawal minimum
-  /\b10\s*dollar/i,         // same, in dollars
-  /10,?000\s*points/i,      // the conversion rate
-  /\b30k\s*tak\b/i,         // the one approved earnings line
-  /barbieverse\.org/i,      // proof link
+  /\b850\s*rs\b/i, // the real withdrawal minimum
+  /\b10\s*dollar/i, // same, in dollars
+  /10,?000\s*points/i, // the conversion rate
+  /\b30k\s*tak\b/i, // the one approved earnings line
+  /barbieverse\.org/i, // proof link
 ];
 
-export function complianceCheck(text: string): { ok: boolean; issues: string[] } {
+export function complianceCheck(text: string): {
+  ok: boolean;
+  issues: string[];
+} {
   const issues: string[] = [];
   for (const b of BANNED) {
     if (!b.re.test(text)) continue;

@@ -11,10 +11,19 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  normaliseInbound, sendSession, sendImage, windowOpen,
-  verifyWebhook, providerName,
+  normaliseInbound,
+  sendSession,
+  sendImage,
+  windowOpen,
+  verifyWebhook,
+  providerName,
+  resolveMediaUrl,
 } from "@/lib/whatsapp/provider";
-import { matchAnswer, needsEscalation, complianceCheck } from "@/lib/whatsapp/answer-bank";
+import {
+  matchAnswer,
+  needsEscalation,
+  complianceCheck,
+} from "@/lib/whatsapp/answer-bank";
 
 // Approve mode controls how much automation vs human-approval per reply.
 //   all-manual  → every reply needs a Telegram tap (WA_AGENT_ENABLED=false alias)
@@ -30,8 +39,12 @@ function resolveApproveMode(): ApproveMode {
   if (m === "all-manual" || m === "canned-auto" || m === "all-auto") return m;
   // legacy alias: WA_AGENT_ENABLED=false → all-manual, true → canned-auto
   if (process.env.WA_AGENT_ENABLED !== undefined) {
-    console.warn("[wa] WA_AGENT_ENABLED is deprecated — set WA_APPROVE_MODE instead");
-    return process.env.WA_AGENT_ENABLED === "true" ? "canned-auto" : "all-manual";
+    console.warn(
+      "[wa] WA_AGENT_ENABLED is deprecated — set WA_APPROVE_MODE instead",
+    );
+    return process.env.WA_AGENT_ENABLED === "true"
+      ? "canned-auto"
+      : "all-manual";
   }
   return "canned-auto";
 }
@@ -120,7 +133,8 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook")({
             const sig = request.headers.get("x-hub-signature-256") || "";
             const { createHmac, timingSafeEqual } = await import("node:crypto");
             const expected =
-              "sha256=" + createHmac("sha256", appSecret).update(raw).digest("hex");
+              "sha256=" +
+              createHmac("sha256", appSecret).update(raw).digest("hex");
             const a = Buffer.from(sig);
             const b = Buffer.from(expected);
             if (a.length !== b.length || !timingSafeEqual(a, b)) {
@@ -132,20 +146,25 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook")({
 
         // Optional shared secret. AiSensy's header name is confirmed during
         // Phase 1 by logging request headers on the first real delivery.
-        const secret = providerName() === "cloud" ? null : process.env.WA_WEBHOOK_SECRET;
+        const secret =
+          providerName() === "cloud" ? null : process.env.WA_WEBHOOK_SECRET;
         if (secret) {
           const provided =
             request.headers.get("x-webhook-secret") ||
             request.headers.get("x-aisensy-signature") ||
             new URL(request.url).searchParams.get("secret");
-          if (provided !== secret) return new Response("unauthorized", { status: 401 });
+          if (provided !== secret)
+            return new Response("unauthorized", { status: 401 });
         }
 
         const msg = normaliseInbound(body);
 
         // PHASE 1: keep the raw envelope so the shape can be inspected for real.
         if (!msg) {
-          console.log("[wa] UNPARSED payload:", JSON.stringify(body).slice(0, 2000));
+          console.log(
+            "[wa] UNPARSED payload:",
+            JSON.stringify(body).slice(0, 2000),
+          );
           try {
             const { q } = await import("@/lib/db.server");
             await q(
@@ -154,11 +173,14 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook")({
                limit 1`,
               [JSON.stringify(body).slice(0, 4000)],
             );
-          } catch { /* table may not exist yet */ }
+          } catch {
+            /* table may not exist yet */
+          }
           return Response.json({ ok: true, parsed: false });
         }
 
-        if (seen(msg.providerMsgId)) return Response.json({ ok: true, duplicate: true });
+        if (seen(msg.providerMsgId))
+          return Response.json({ ok: true, duplicate: true });
 
         try {
           const { q, q1 } = await import("@/lib/db.server");
@@ -181,7 +203,13 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook")({
             `insert into wa_messages (lead_id, direction, provider_msg_id, body, media_url, media_type, status)
              values ($1,'in',$2,$3,$4,$5,'received')
              on conflict (provider_msg_id) do nothing`,
-            [lead!.id, msg.providerMsgId, msg.text, msg.mediaUrl ?? null, msg.mediaType ?? null],
+            [
+              lead!.id,
+              msg.providerMsgId,
+              msg.text,
+              msg.mediaUrl ?? null,
+              msg.mediaType ?? null,
+            ],
           );
 
           // A screenshot almost always means "I did the step" — that's a human
@@ -193,8 +221,14 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook")({
             if (providerName() === "cloud" && resolveMediaUrl) {
               mediaLink = (await resolveMediaUrl(msg.mediaUrl)) ?? msg.mediaUrl;
             }
-            const { sendScreenshotCard } = await import("@/lib/whatsapp/stages");
-            await sendScreenshotCard(lead!.id, msg.phone, mediaLink, lead!.stage);
+            const { sendScreenshotCard } =
+              await import("@/lib/whatsapp/stages");
+            await sendScreenshotCard(
+              lead!.id,
+              msg.phone,
+              mediaLink,
+              lead!.stage,
+            );
 
             // An image with no caption carries no question to answer. Falling
             // through would hand the LLM an empty prompt and drop a generic
@@ -207,39 +241,48 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook")({
 
           const escalation = needsEscalation(msg.text);
           if (escalation) {
-            await q(`update wa_leads set escalated = true, escalated_reason = $2 where id = $1`,
-              [lead!.id, escalation]);
+            await q(
+              `update wa_leads set escalated = true, escalated_reason = $2 where id = $1`,
+              [lead!.id, escalation],
+            );
             await notifyTelegram(
               `🚨 <b>Escalation — ${escalation}</b>\n+${msg.phone}\n\n"${msg.text.slice(0, 300)}"\n\n` +
-              `The bot has not replied. This one is yours.`,
+                `The bot has not replied. This one is yours.`,
             );
             return Response.json({ ok: true, escalated: escalation });
           }
 
           const answer = matchAnswer(msg.text);
 
-          // 24h free-reply window — outside it, only one of the pre-approved
-          // follow-up templates may fire (handled by cron-whatsapp). Never send
-          // free-form outside the window.
-          const inWindow = windowOpen(lead!.last_inbound_at);
-          if (!inWindow) {
-            return Response.json({ ok: true, skipped: "24h window closed" });
-          }
+          // No more 24h window restriction — we reply to inbound messages anytime.
 
           // Build the reply text whenever one is needed (canned or LLM).
-          const chooseReply = async (): Promise<{ text: string; source: string; mediaTag?: string } | null> => {
+          const chooseReply = async (): Promise<{
+            text: string;
+            source: string;
+            mediaTag?: string;
+          } | null> => {
             if (answer) {
               return {
-                text: [answer.reply, answer.nextNudge].filter(Boolean).join("\n\n"),
+                text: [answer.reply, answer.nextNudge]
+                  .filter(Boolean)
+                  .join("\n\n"),
                 source: `canned:${answer.id}`,
                 mediaTag: answer.mediaTag,
               };
             }
             // No canned match → LLM writer drafts from the bank + her voice.
             const { writeReply } = await import("@/lib/whatsapp/llm-writer");
-            const res = await writeReply({ text: msg.text, topicsAsked: lead!.topics_asked });
+            const res = await writeReply({
+              text: msg.text,
+              topicsAsked: lead!.topics_asked,
+            });
             if (!res.text) return null;
-            return { text: res.text, source: `llm:${res.source}`, mediaTag: undefined };
+            return {
+              text: res.text,
+              source: `llm:${res.source}`,
+              mediaTag: undefined,
+            };
           };
 
           // Whether this reply can auto-send in the current mode:
@@ -284,9 +327,15 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook")({
               await q(
                 `update wa_drafts set draft_text = $2, decision = 'blocked',
                         compliance = $3::jsonb, decided_at = now() where id = $1`,
-                [draft!.id, reply.text, JSON.stringify({ ok: false, issues: gate.issues })],
+                [
+                  draft!.id,
+                  reply.text,
+                  JSON.stringify({ ok: false, issues: gate.issues }),
+                ],
               );
-              await notifyTelegram(`⛔ Blocked auto-reply to +${msg.phone}: ${gate.issues.join("; ")}`);
+              await notifyTelegram(
+                `⛔ Blocked auto-reply to +${msg.phone}: ${gate.issues.join("; ")}`,
+              );
               return Response.json({ ok: true, blocked: gate.issues });
             }
 
@@ -295,9 +344,15 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook")({
             // so the image failure is contained here and does not abort.
             if (reply.mediaTag) {
               try {
-                await sendImage(msg.phone, `${MEDIA_BASE}/${reply.mediaTag}.png`);
+                await sendImage(
+                  msg.phone,
+                  `${MEDIA_BASE}/${reply.mediaTag}.png`,
+                );
               } catch (e: any) {
-                console.error("[wa] card send failed, continuing with text:", e?.message);
+                console.error(
+                  "[wa] card send failed, continuing with text:",
+                  e?.message,
+                );
               }
             }
             try {
@@ -311,12 +366,19 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook")({
               await notifyTelegram(
                 `⚠️ Send FAILED to +${msg.phone}: ${e?.message}\n\nDraft:\n${reply.text.slice(0, 400)}`,
               );
-              return Response.json({ ok: false, sendError: String(e?.message ?? e) });
+              return Response.json({
+                ok: false,
+                sendError: String(e?.message ?? e),
+              });
             }
 
             await q(
               `insert into wa_messages (lead_id, direction, body, media_url, status) values ($1,'out',$2,$3,'sent')`,
-              [lead!.id, reply.text, reply.mediaTag ? `${MEDIA_BASE}/${reply.mediaTag}.png` : null],
+              [
+                lead!.id,
+                reply.text,
+                reply.mediaTag ? `${MEDIA_BASE}/${reply.mediaTag}.png` : null,
+              ],
             );
             await q(
               `update wa_leads
@@ -332,12 +394,19 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook")({
 
             // Stage transition: sending the join link moves her to LINK_SENT.
             // The first real answer on a fresh lead also moves NEW → ASKED.
-            if (answer?.id === "Q11" || (answer?.label ?? "").match(/join kaise|process|link/i)) {
+            if (
+              answer?.id === "Q11" ||
+              (answer?.label ?? "").match(/join kaise|process|link/i)
+            ) {
               const { transitionStage } = await import("@/lib/whatsapp/stages");
-              await transitionStage(q, lead!.id, "LINK_SENT", lead!.stage, { trigger: "link_sent" });
+              await transitionStage(q, lead!.id, "LINK_SENT", lead!.stage, {
+                trigger: "link_sent",
+              });
             } else if (lead!.stage === "NEW") {
               const { transitionStage } = await import("@/lib/whatsapp/stages");
-              await transitionStage(q, lead!.id, "ASKED", lead!.stage, { trigger: "first_reply" });
+              await transitionStage(q, lead!.id, "ASKED", lead!.stage, {
+                trigger: "first_reply",
+              });
             }
 
             await q(
@@ -345,7 +414,10 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook")({
                       decision = 'sent', decided_at = now() where id = $1`,
               [draft!.id, reply.text],
             );
-            return Response.json({ ok: true, sent: answer ? answer.id : "llm" });
+            return Response.json({
+              ok: true,
+              sent: answer ? answer.id : "llm",
+            });
           }
 
           // ── human approval path ── generate the draft text first (so the card
@@ -353,16 +425,22 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook")({
           let draftText: string;
           let finalSource = "llm-pending";
           if (answer) {
-            draftText = [answer.reply, answer.nextNudge].filter(Boolean).join("\n\n");
+            draftText = [answer.reply, answer.nextNudge]
+              .filter(Boolean)
+              .join("\n\n");
             finalSource = `canned:${answer.id}`;
           } else {
             const reply = await chooseReply();
-            draftText = reply ? reply.text : "(could not draft automatically — write by hand, then Send)";
+            draftText = reply
+              ? reply.text
+              : "(could not draft automatically — write by hand, then Send)";
             finalSource = reply ? `llm:${reply.source}` : "llm-pending";
           }
 
-          await q(`update wa_drafts set draft_text = $2, source = $3 where id = $1`,
-            [draft!.id, draftText, finalSource]);
+          await q(
+            `update wa_drafts set draft_text = $2, source = $3 where id = $1`,
+            [draft!.id, draftText, finalSource],
+          );
 
           const { sendApproveCard } = await import("@/lib/whatsapp/approve");
           await sendApproveCard({
@@ -375,12 +453,19 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook")({
             mediaTag: answer?.mediaTag ?? undefined,
           });
 
-          return Response.json({ ok: true, mode: APPROVE_MODE, matched: answer?.id ?? null, awaiting: "approval" });
-
+          return Response.json({
+            ok: true,
+            mode: APPROVE_MODE,
+            matched: answer?.id ?? null,
+            awaiting: "approval",
+          });
         } catch (err: any) {
           console.error("[wa] handler error", err);
           // Never 500 at a provider — it triggers retries and duplicate sends.
-          return Response.json({ ok: false, error: String(err?.message ?? err) });
+          return Response.json({
+            ok: false,
+            error: String(err?.message ?? err),
+          });
         }
       },
     },

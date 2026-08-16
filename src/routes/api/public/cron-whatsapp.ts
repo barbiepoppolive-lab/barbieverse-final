@@ -22,21 +22,57 @@ import { complianceCheck } from "@/lib/whatsapp/answer-bank";
 
 const NUDGES: Record<string, string[][]> = {
   LINK_SENT: [
-    ["Install ho gya? Koi dikkat aayi to screenshot bhej do 🙂", "Install ho gaya? Atki to screenshot bhej do, main dekh lungi 🙂", "Link khola? 2 minute ka kaam hai, abhi kr lein?"],
-    ["Sister app download ho gya? 😊", "Download shuru kiya tha na? Ho gaya to bata do", "Aapka install reh gya tha — aaj kr lein? Main hoon guide krne ke liye"],
+    [
+      "Install ho gya? Koi dikkat aayi to screenshot bhej do 🙂",
+      "Install ho gaya? Atki to screenshot bhej do, main dekh lungi 🙂",
+      "Link khola? 2 minute ka kaam hai, abhi kr lein?",
+    ],
+    [
+      "Sister app download ho gya? 😊",
+      "Download shuru kiya tha na? Ho gaya to bata do",
+      "Aapka install reh gya tha — aaj kr lein? Main hoon guide krne ke liye",
+    ],
   ],
   INSTALLED: [
-    ["My Agency wali screen ka screenshot bhej do, main check kar lungi", "Profile → My Agency kholo, screenshot bhej dena 🙂", "Agency wali screen aa gayi? Screenshot bhejo"],
-    ["Sister ID daalne ka step reh gya — Profile → My Agent kr lo 😊", "Ek chhota step reh gaya, 30 second ka hai — abhi kr lein?", "Main aapko 2 minute mein set kar deti hoon, bas My Agency kholo"],
+    [
+      "My Agency wali screen ka screenshot bhej do, main check kar lungi",
+      "Profile → My Agency kholo, screenshot bhej dena 🙂",
+      "Agency wali screen aa gayi? Screenshot bhejo",
+    ],
+    [
+      "Sister ID daalne ka step reh gya — Profile → My Agent kr lo 😊",
+      "Ek chhota step reh gaya, 30 second ka hai — abhi kr lein?",
+      "Main aapko 2 minute mein set kar deti hoon, bas My Agency kholo",
+    ],
   ],
   AGENCY_LINKED: [
-    ["Face verify ho gya? Atki ho to screenshot bhejo, main bata deti hoon", "Face verification ho gayi? Ek baar ki selfie jaise hai 😊", "Face verify kiya? Nahi to abhi kr lein, main saath hoon"],
-    ["Sister face verify ke bina live nahi jaa sakti — chalo karein 🙂", "Face verification ek baar ka kaam hai, achi roshni mein — abhi kar lo?", "Last step face verify hai — ho gaya? Ya koi dikkat?"],
+    [
+      "Face verify ho gya? Atki ho to screenshot bhejo, main bata deti hoon",
+      "Face verification ho gayi? Ek baar ki selfie jaise hai 😊",
+      "Face verify kiya? Nahi to abhi kr lein, main saath hoon",
+    ],
+    [
+      "Sister face verify ke bina live nahi jaa sakti — chalo karein 🙂",
+      "Face verification ek baar ka kaam hai, achi roshni mein — abhi kar lo?",
+      "Last step face verify hai — ho gaya? Ya koi dikkat?",
+    ],
   ],
   DEFAULT: [
-    ["Sister phir se hello 😊 — shuru karein? 2 minute ka setup hai", "Aapka question reh gya tha — main abhi free hoon, kr lete hain?", "Message dekha? Main madad ke liye yahin hoon 🙂"],
-    ["Kaisi rahi? 😊 Abhi try kar lein, main saath hoon", "Aaj karte hain na? Main khud set kar dungi aapka", "Time ho to batao, main abhi guide kar sakti hoon"],
-    ["Aapko ye sujha tha na — aaj ek mauka de do 🙂", "Main abhi bhi hoon yahin — kabhi bhi message kar dena", "Bas ek baar try kar lo, baaki main sambhal lungi"],
+    [
+      "Sister phir se hello 😊 — shuru karein? 2 minute ka setup hai",
+      "Aapka question reh gya tha — main abhi free hoon, kr lete hain?",
+      "Message dekha? Main madad ke liye yahin hoon 🙂",
+    ],
+    [
+      "Kaisi rahi? 😊 Abhi try kar lein, main saath hoon",
+      "Aaj karte hain na? Main khud set kar dungi aapka",
+      "Time ho to batao, main abhi guide kar sakti hoon",
+    ],
+    [
+      "Aapko ye sujha tha na — aaj ek mauka de do 🙂",
+      "Main abhi bhi hoon yahin — kabhi bhi message kar dena",
+      "Bas ek baar try kar lo, baaki main sambhal lungi",
+    ],
   ],
 };
 
@@ -95,19 +131,35 @@ export const Route = createFileRoute("/api/public/cron-whatsapp")({
             probePhone,
             "Test from BarbieVerse — agar ye mila to setup sahi hai 😊",
           );
-          return Response.json({ ok: !!out.winner, mode: "auth-probe", ...out });
+          return Response.json({
+            ok: !!out.winner,
+            mode: "auth-probe",
+            ...out,
+          });
         }
 
         const testPhone = new URL(request.url).searchParams.get("test");
         if (testPhone) {
           const to = testPhone.replace(/[^0-9]/g, "");
-          const body = "Test from BarbieVerse — agar ye mila to setup sahi hai 😊";
+          const body =
+            "Test from BarbieVerse — agar ye mila to setup sahi hai 😊";
           try {
             const res = await sendSession(to, body);
-            return Response.json({ ok: true, mode: "self-test", to, sent: body, provider: res });
+            return Response.json({
+              ok: true,
+              mode: "self-test",
+              to,
+              sent: body,
+              provider: res,
+            });
           } catch (e: any) {
             return Response.json(
-              { ok: false, mode: "self-test", to, error: String(e?.message ?? e) },
+              {
+                ok: false,
+                mode: "self-test",
+                to,
+                error: String(e?.message ?? e),
+              },
               { status: 502 },
             );
           }
@@ -119,12 +171,18 @@ export const Route = createFileRoute("/api/public/cron-whatsapp")({
           return Response.json({ ok: true, ...results });
         } catch (e: any) {
           console.error("[cron-whatsapp] Error:", e?.message);
-          return Response.json({ ok: false, error: e?.message }, { status: 500 });
+          return Response.json(
+            { ok: false, error: e?.message },
+            { status: 500 },
+          );
         }
       },
       POST: async ({ request }) => {
         const cronSecret = process.env.CRON_SECRET;
-        if (!cronSecret || request.headers.get("x-cron-secret") !== cronSecret) {
+        if (
+          !cronSecret ||
+          request.headers.get("x-cron-secret") !== cronSecret
+        ) {
           return new Response("Unauthorized", { status: 401 });
         }
         // ── single-shot self test ──────────────────────────────────────────
@@ -134,21 +192,44 @@ export const Route = createFileRoute("/api/public/cron-whatsapp")({
         // — their docs disagree with themselves, so we send all variants and
         // let a real call decide.
         let payload: any = null;
-        try { payload = await request.json(); } catch { /* body optional */ }
+        try {
+          payload = await request.json();
+        } catch {
+          /* body optional */
+        }
         if (payload?.test) {
           const to = String(payload.test).replace(/[^0-9]/g, "");
-          const body = String(payload.text || "Test from BarbieVerse — agar ye mila to setup sahi hai 😊");
+          const body = String(
+            payload.text ||
+              "Test from BarbieVerse — agar ye mila to setup sahi hai 😊",
+          );
           const gate = complianceCheck(body);
           if (!gate.ok) {
-            return Response.json({ ok: false, blocked: gate.issues }, { status: 400 });
+            return Response.json(
+              { ok: false, blocked: gate.issues },
+              { status: 400 },
+            );
           }
           try {
             const res = await sendSession(to, body);
-            return Response.json({ ok: true, mode: "self-test", to, sent: body, provider: res });
+            return Response.json({
+              ok: true,
+              mode: "self-test",
+              to,
+              sent: body,
+              provider: res,
+            });
           } catch (e: any) {
             // The error text is the diagnosis — surface it, don't swallow it.
-            return Response.json({ ok: false, mode: "self-test", to, error: String(e?.message ?? e) },
-              { status: 502 });
+            return Response.json(
+              {
+                ok: false,
+                mode: "self-test",
+                to,
+                error: String(e?.message ?? e),
+              },
+              { status: 502 },
+            );
           }
         }
 
@@ -158,7 +239,10 @@ export const Route = createFileRoute("/api/public/cron-whatsapp")({
           return Response.json({ ok: true, ...results });
         } catch (e: any) {
           console.error("[cron-whatsapp] Error:", e?.message);
-          return Response.json({ ok: false, error: e?.message }, { status: 500 });
+          return Response.json(
+            { ok: false, error: e?.message },
+            { status: 500 },
+          );
         }
       },
     },
@@ -166,12 +250,10 @@ export const Route = createFileRoute("/api/public/cron-whatsapp")({
 });
 
 // Main query + send loop, isolated so both handlers share it.
-// Rate limiting. A number that has just been connected to the API and then
-// fires 200 messages an hour looks exactly like spam, and Meta blocks it. The
-// safe ceiling for a warming number is 10-12/hour, so: at most 4 per run on a
-// 15-minute cron (= 16/hour ceiling, ~12 real once quiet hours are applied),
-// with a randomised human-length pause between each send.
-const MAX_PER_RUN = Number(process.env.WA_FOLLOWUP_MAX_PER_RUN || 4);
+// Inbound replies have no rate limit — we only reply to people who message us.
+// Outbound cold contact has separate caps (handled by the campaign system).
+// No time-of-day restrictions — leads message at all hours and we respond.
+const MAX_PER_RUN = Number(process.env.WA_FOLLOWUP_MAX_PER_RUN || 10);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // How many follow-ups a single lead may ever receive.
@@ -196,12 +278,8 @@ export async function runWhatsappFollowUps() {
 async function runFollowUps(q: any, q1: any) {
   const now = new Date();
 
-  // Quiet hours are a property of the clock, not of any one lead — check once
-  // rather than running an UPDATE for every row in the batch.
-  if (istHour(now) < 9 || istHour(now) >= 23) {
-    return { scanned: 0, sent: 0, deferred: 0, windowClosed: 0, blocked: 0, stopped: 0,
-             skipped: "quiet hours (IST 23:00-09:00)" };
-  }
+  // No quiet hours — leads message at all hours and we respond.
+  // Rate limiting is handled per-run by MAX_PER_RUN.
 
   const due: any[] = await q(
     `select id, phone, stage, follow_up_count, last_inbound_at
@@ -217,13 +295,20 @@ async function runFollowUps(q: any, q1: any) {
     [MAX_PER_RUN, MAX_FOLLOW_UPS],
   );
 
-  const totals = { sent: 0, deferred: 0, windowClosed: 0, blocked: 0, stopped: 0 };
+  const totals = {
+    sent: 0,
+    deferred: 0,
+    windowClosed: 0,
+    blocked: 0,
+    stopped: 0,
+  };
   let sentThisRun = 0;
 
   for (const lead of due) {
     // Space the sends out. Back to back API calls from one number read as a
     // bot even when the wording is perfect.
-    if (sentThisRun > 0) await sleep(20_000 + Math.floor(Math.random() * 25_000));
+    if (sentThisRun > 0)
+      await sleep(20_000 + Math.floor(Math.random() * 25_000));
 
     const table = NUDGES[lead.stage] || NUDGES.DEFAULT;
     // Which nudge in the sequence (1st, 2nd, 3rd chase) — softer as it goes.
@@ -231,45 +316,37 @@ async function runFollowUps(q: any, q1: any) {
     const candidates = table[variantIndex];
     // Vary the wording by LEAD, not by count, so two leads on the same nudge
     // never receive character-identical messages.
-    const seed = String(lead.id).split("").reduce((a: number, c: string) => a + c.charCodeAt(0), 0);
+    const seed = String(lead.id)
+      .split("")
+      .reduce((a: number, c: string) => a + c.charCodeAt(0), 0);
     const body = candidates[(seed + lead.follow_up_count) % candidates.length];
 
     // compliance gate — always
     const gate = complianceCheck(body);
     if (!gate.ok) {
-      await q(`update wa_leads set follow_up_due = null, stage = 'STALLED' where id = $1`, [lead.id]);
-      console.warn("[cron-whatsapp] blocked follow-up, stopped chasing:", gate.issues);
+      await q(
+        `update wa_leads set follow_up_due = null, stage = 'STALLED' where id = $1`,
+        [lead.id],
+      );
+      console.warn(
+        "[cron-whatsapp] blocked follow-up, stopped chasing:",
+        gate.issues,
+      );
       totals.blocked++;
       continue;
     }
 
-    const windowOpenFlag = windowOpen(lead.last_inbound_at);
-    if (!windowOpenFlag) {
-      const template = process.env.WA_FOLLOWUP_TEMPLATE;
-      if (!template) {
-        // no approved template yet — defer until the next inbound reopens the window
-        await q(
-          `update wa_leads set follow_up_due = now() + interval '4 hours' where id = $1`,
-          [lead.id],
-        );
-        totals.windowClosed++;
-        continue;
-      }
-      try {
-        await sendTemplate(lead.phone, template, lead.display_name || "", [body]);
-      } catch (e: any) {
-        console.error("[cron-whatsapp] template send failed:", e?.message);
-        await q(`update wa_leads set follow_up_due = now() + interval '1 hour' where id = $1`, [lead.id]);
-        continue;
-      }
-    } else {
-      try {
-        await sendSession(lead.phone, body);
-      } catch (e: any) {
-        console.error("[cron-whatsapp] send failed:", e?.message);
-        await q(`update wa_leads set follow_up_due = now() + interval '15 minutes' where id = $1`, [lead.id]);
-        continue;
-      }
+    // Always send as session message — no 24h window check needed.
+    // We reply to inbound messages anytime and handle outbound via the campaign system.
+    try {
+      await sendSession(lead.phone, body);
+    } catch (e: any) {
+      console.error("[cron-whatsapp] send failed:", e?.message);
+      await q(
+        `update wa_leads set follow_up_due = now() + interval '15 minutes' where id = $1`,
+        [lead.id],
+      );
+      continue;
     }
 
     sentThisRun++;
@@ -281,11 +358,14 @@ async function runFollowUps(q: any, q1: any) {
     );
 
     // next timer: 20h → day 1 → day 3 → stop at the cap
-    const next = newCount >= MAX_FOLLOW_UPS ? null : newCount === 1
-      ? new Date(now.getTime() + 20 * 60 * 60 * 1000)
-      : newCount === 2
-        ? new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
-        : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const next =
+      newCount >= MAX_FOLLOW_UPS
+        ? null
+        : newCount === 1
+          ? new Date(now.getTime() + 20 * 60 * 60 * 1000)
+          : newCount === 2
+            ? new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
+            : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     if (next) {
       // keep the 24h-per-message cap if the previous send was inside this day

@@ -1,6 +1,22 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { listWhatsappPipeline } from "@/lib/api/whatsapp.functions";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  queryOptions,
+  useSuspenseQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useState, useCallback } from "react";
+import {
+  listWhatsappPipeline,
+  listWhatsappLeads,
+} from "@/lib/api/whatsapp.functions";
+import {
+  MessageCircle,
+  ExternalLink,
+  Pause,
+  Play,
+  Send,
+  Loader2,
+} from "lucide-react";
 
 const STAGE_ORDER = [
   "NEW",
@@ -38,9 +54,20 @@ const STAGE_COLOR: Record<string, string> = {
   NOT_INTERESTED: "bg-muted text-muted-foreground",
 };
 
+// Bot server URL — set via env, falls back to the Railway deployment
+const BOT_URL =
+  import.meta.env.VITE_WA_BOT_URL ||
+  "https://wa-bot-production-da76.up.railway.app";
+const BOT_KEY = import.meta.env.VITE_WA_BOT_KEY || "";
+
 const qo = queryOptions({
   queryKey: ["admin", "whatsapp-pipeline"],
   queryFn: () => listWhatsappPipeline(),
+});
+
+const leadsQO = queryOptions({
+  queryKey: ["admin", "whatsapp-leads"],
+  queryFn: () => listWhatsappLeads(),
 });
 
 export const Route = createFileRoute("/admin/whatsapp")({
@@ -51,6 +78,8 @@ export const Route = createFileRoute("/admin/whatsapp")({
 
 function WhatsappPage() {
   const { data } = useSuspenseQuery(qo);
+  const leadData = useSuspenseQuery(leadsQO);
+  const leads = leadData.data.leads || [];
   const stageMap = new Map(
     (data.byStage || []).map((r: any) => [r.stage, r.count]),
   );
@@ -58,6 +87,61 @@ function WhatsappPage() {
     (data.todaysMessages || []).map((r: any) => [r.direction, r.count]),
   );
   const s = data.draftStats;
+
+  // Bot control state
+  const [botPaused, setBotPaused] = useState(false);
+  const [pausing, setPausing] = useState(false);
+  const [campaignRunning, setCampaignRunning] = useState(false);
+  const [campaignResult, setCampaignResult] = useState<string | null>(null);
+
+  const togglePause = useCallback(async (action: "pause" | "resume") => {
+    setPausing(true);
+    try {
+      const res = await fetch(`${BOT_URL}/pause?action=${action}&k=${BOT_KEY}`);
+      const data = await res.json();
+      setBotPaused(data.paused);
+    } catch (e) {
+      console.error("Failed to toggle pause:", e);
+    } finally {
+      setPausing(false);
+    }
+  }, []);
+
+  const startCampaign = useCallback(async () => {
+    // Get all leads that are in ASKED or LINK_SENT stage (lost leads)
+    const lostLeads = leads
+      .filter(
+        (l: any) => ["ASKED", "LINK_SENT"].includes(l.stage) && !l.escalated,
+      )
+      .map((l: any) => String(l.phone).replace(/[^\d]/g, ""));
+
+    if (!lostLeads.length) {
+      setCampaignResult("No lost leads to contact");
+      setTimeout(() => setCampaignResult(null), 3000);
+      return;
+    }
+
+    setCampaignRunning(true);
+    setCampaignResult(null);
+    try {
+      const res = await fetch(`${BOT_URL}/campaign?k=${BOT_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phones: lostLeads }),
+      });
+      const data = await res.json();
+      if (data.accepted) {
+        setCampaignResult(`Campaign started — ${data.total} leads queued`);
+      } else {
+        setCampaignResult(data.error || "Failed to start campaign");
+      }
+    } catch (e) {
+      setCampaignResult("Failed to reach bot server");
+    } finally {
+      setCampaignRunning(false);
+      setTimeout(() => setCampaignResult(null), 5000);
+    }
+  }, [leads]);
 
   return (
     <div>
@@ -78,6 +162,55 @@ function WhatsappPage() {
         />
       </div>
 
+      {/* bot controls */}
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <button
+          onClick={() => togglePause(botPaused ? "resume" : "pause")}
+          disabled={pausing}
+          className={
+            "inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors " +
+            (botPaused
+              ? "border-green-500/40 bg-green-500/10 text-green-400 hover:bg-green-500/20"
+              : "border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20")
+          }
+        >
+          {pausing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : botPaused ? (
+            <Play className="h-4 w-4" />
+          ) : (
+            <Pause className="h-4 w-4" />
+          )}
+          {botPaused ? "Resume Bot" : "Pause Bot"}
+        </button>
+
+        <button
+          onClick={startCampaign}
+          disabled={campaignRunning}
+          className="inline-flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/20 disabled:opacity-50"
+        >
+          {campaignRunning ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+          Re-engage Lost Leads (
+          {
+            leads.filter(
+              (l: any) =>
+                ["ASKED", "LINK_SENT"].includes(l.stage) && !l.escalated,
+            ).length
+          }
+          )
+        </button>
+
+        {campaignResult && (
+          <span className="text-sm text-muted-foreground">
+            {campaignResult}
+          </span>
+        )}
+      </div>
+
       {/* stage pipeline */}
       <div className="mt-6 overflow-x-auto rounded-2xl border border-border/60 bg-card/40">
         <div className="flex items-center gap-2 border-b border-border/40 px-4 py-3">
@@ -95,7 +228,8 @@ function WhatsappPage() {
                 <span
                   className={
                     "rounded-md px-2 py-0.5 text-xs font-medium " +
-                    (STAGE_COLOR[stage] || "bg-secondary/40 text-muted-foreground")
+                    (STAGE_COLOR[stage] ||
+                      "bg-secondary/40 text-muted-foreground")
                   }
                 >
                   {stage}
@@ -105,11 +239,15 @@ function WhatsappPage() {
               </div>
             );
           })}
-          {STAGE_ORDER.filter((s) => stageMap.has(s) && !STAGE_ORDER.includes(s)).length >
-            0 && (
+          {STAGE_ORDER.filter(
+            (s) => stageMap.has(s) && !STAGE_ORDER.includes(s),
+          ).length > 0 && (
             <div className="text-xs text-muted-foreground">
               (+ unknown stages:{" "}
-              {STAGE_ORDER.filter((s) => stageMap.has(s) && !STAGE_ORDER.includes(s)).join(", ")})
+              {STAGE_ORDER.filter(
+                (s) => stageMap.has(s) && !STAGE_ORDER.includes(s),
+              ).join(", ")}
+              )
             </div>
           )}
         </div>
@@ -120,13 +258,12 @@ function WhatsappPage() {
         <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
           <div className="text-sm font-semibold">Unedited-send rate</div>
           <div className="mt-2 text-3xl font-bold">
-            {s.uneditedRate === null
-              ? "—"
-              : `${s.uneditedRate.toFixed(0)}%`}
+            {s.uneditedRate === null ? "—" : `${s.uneditedRate.toFixed(0)}%`}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            {s.sentDrafts} sent · {s.uneditedSends} unedited · {s.editedSends} edited.
-            Over 85% across 100+ drafts in a stage → that stage can move to all-auto.
+            {s.sentDrafts} sent · {s.uneditedSends} unedited · {s.editedSends}{" "}
+            edited. Over 85% across 100+ drafts in a stage → that stage can move
+            to all-auto.
           </p>
         </div>
         <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
@@ -140,9 +277,21 @@ function WhatsappPage() {
         <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
           <div className="text-sm font-semibold">Conversions</div>
           <div className="mt-2 flex flex-wrap gap-2 text-sm">
-            <Chip label="agency linked" value={stageMap.get("AGENCY_LINKED") ?? 0} star />
-            <Chip label="face verified" value={stageMap.get("FACE_VERIFIED") ?? 0} star />
-            <Chip label="first live" value={stageMap.get("FIRST_LIVE") ?? 0} star />
+            <Chip
+              label="agency linked"
+              value={stageMap.get("AGENCY_LINKED") ?? 0}
+              star
+            />
+            <Chip
+              label="face verified"
+              value={stageMap.get("FACE_VERIFIED") ?? 0}
+              star
+            />
+            <Chip
+              label="first live"
+              value={stageMap.get("FIRST_LIVE") ?? 0}
+              star
+            />
           </div>
         </div>
       </div>
@@ -169,19 +318,170 @@ function WhatsappPage() {
                   {r.display_name || "—"}
                   <div className="text-xs text-muted-foreground">{r.phone}</div>
                 </td>
-                <td className="px-4 py-3 max-w-[220px] truncate text-xs" title={r.trigger_text || ""}>
+                <td
+                  className="px-4 py-3 max-w-[220px] truncate text-xs"
+                  title={r.trigger_text || ""}
+                >
                   {r.trigger_text || "—"}
                 </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{r.source}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">
+                  {r.source}
+                </td>
                 <td className="px-4 py-3">
-                  <DecisionBadge decision={r.decision} wasEdited={r.was_edited} />
+                  <DecisionBadge
+                    decision={r.decision}
+                    wasEdited={r.was_edited}
+                  />
                 </td>
               </tr>
             ))}
             {(data.recent || []).length === 0 && (
               <tr>
-                <td colSpan={5} className="py-10 text-center text-muted-foreground">
+                <td
+                  colSpan={5}
+                  className="py-10 text-center text-muted-foreground"
+                >
                   No drafts yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* per-lead status table */}
+      <div className="mt-6 overflow-x-auto rounded-2xl border border-border/60 bg-card/40">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 px-4 py-3">
+          <div>
+            <span className="text-sm font-semibold">
+              All leads — where they are, where stuck
+            </span>
+            <span className="ml-2 text-xs text-muted-foreground">
+              {leads.length} conversations
+            </span>
+          </div>
+          <Link
+            to="/admin/hosts"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary hover:bg-primary/10"
+          >
+            <ExternalLink className="h-3.5 w-3.5" /> View converted hosts
+          </Link>
+        </div>
+        <table className="w-full min-w-[900px] text-sm">
+          <thead className="bg-secondary/40 text-left text-xs uppercase text-muted-foreground">
+            <tr>
+              <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Where stuck</th>
+              <th className="px-4 py-3">Last msg</th>
+              <th className="px-4 py-3">Next follow-up</th>
+              <th className="px-4 py-3">Drafts</th>
+              <th className="px-4 py-3">Joined</th>
+              <th className="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {leads.map((l: any) => (
+              <tr key={l.id} className="border-t border-border/40">
+                <td className="px-4 py-3">
+                  <div className="font-medium">{l.display_name || "—"}</div>
+                  <div className="text-xs text-muted-foreground">{l.phone}</div>
+                </td>
+                <td className="px-4 py-3">
+                  <StagePill stage={l.stage} />
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={
+                        l.pending_drafts > 0
+                          ? "text-amber-400"
+                          : l.escalated || l.is_stale
+                            ? "text-red-400"
+                            : "text-muted-foreground"
+                      }
+                    >
+                      {l.next_cue || l.stage}
+                    </span>
+                    {l.escalated && (
+                      <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-red-300">
+                        escalated
+                        {l.escalated_reason ? `: ${l.escalated_reason}` : ""}
+                      </span>
+                    )}
+                    {l.pending_drafts > 0 && (
+                      <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
+                        {l.pending_drafts} draft(s) need you
+                      </span>
+                    )}
+                    {l.is_stale && (
+                      <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-red-300">
+                        idle 48h+
+                      </span>
+                    )}
+                  </div>
+                  {l.source && (
+                    <div className="mt-0.5 text-[11px] text-muted-foreground">
+                      src: {l.source}
+                    </div>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">
+                  {l.last_message_in ? (
+                    <div>
+                      <div>in: {relTime(l.last_message_in)}</div>
+                      {l.last_message_out && (
+                        <div>out: {relTime(l.last_message_out)}</div>
+                      )}
+                    </div>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">
+                  {l.follow_up_due ? (
+                    <div>
+                      <div>{relTime(l.follow_up_due)}</div>
+                      <div className="text-[11px]">
+                        {l.follow_up_count}/4 chases
+                      </div>
+                    </div>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="px-4 py-3 text-center text-sm">
+                  {l.pending_drafts > 0 ? (
+                    <span className="font-bold text-amber-400">
+                      {l.pending_drafts}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">0</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">
+                  {new Date(l.created_at).toLocaleDateString("en-IN")}
+                </td>
+                <td className="px-4 py-3">
+                  <a
+                    href={`https://wa.me/${String(l.phone).replace(/[^\d]/g, "")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border hover:border-primary"
+                    title="Open WhatsApp"
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" />
+                  </a>
+                </td>
+              </tr>
+            ))}
+            {leads.length === 0 && (
+              <tr>
+                <td
+                  colSpan={8}
+                  className="py-10 text-center text-muted-foreground"
+                >
+                  No WhatsApp conversations yet.
                 </td>
               </tr>
             )}
@@ -192,7 +492,38 @@ function WhatsappPage() {
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+function relTime(ts: string | null) {
+  if (!ts) return "—";
+  const d = new Date(ts);
+  const diff = Date.now() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 0) return "now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+function StagePill({ stage }: { stage: string }) {
+  const cls = STAGE_COLOR[stage] || "bg-secondary/40 text-muted-foreground";
+  return (
+    <span className={"rounded-md px-2 py-0.5 text-xs font-medium " + cls}>
+      {stage}
+      {STAGE_STAR[stage] ? " ★" : ""}
+    </span>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: number;
+  accent?: boolean;
+}) {
   return (
     <div
       className={
@@ -206,7 +537,15 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
   );
 }
 
-function Chip({ label, value, star }: { label: string; value: number; star?: boolean }) {
+function Chip({
+  label,
+  value,
+  star,
+}: {
+  label: string;
+  value: number;
+  star?: boolean;
+}) {
   return (
     <span className="rounded-md bg-secondary/40 px-2 py-1 text-xs">
       {label}
@@ -215,12 +554,21 @@ function Chip({ label, value, star }: { label: string; value: number; star?: boo
   );
 }
 
-function DecisionBadge({ decision, wasEdited }: { decision: string; wasEdited?: boolean }) {
+function DecisionBadge({
+  decision,
+  wasEdited,
+}: {
+  decision: string;
+  wasEdited?: boolean;
+}) {
   if (!decision) return <span className="text-xs text-amber-400">pending</span>;
   if (decision === "sent" && wasEdited)
     return <span className="text-xs text-blue-400">sent (edited)</span>;
-  if (decision === "sent") return <span className="text-xs text-green-400">sent</span>;
-  if (decision === "skipped") return <span className="text-xs text-muted-foreground">skipped</span>;
-  if (decision === "takeover") return <span className="text-xs text-purple-400">takeover</span>;
+  if (decision === "sent")
+    return <span className="text-xs text-green-400">sent</span>;
+  if (decision === "skipped")
+    return <span className="text-xs text-muted-foreground">skipped</span>;
+  if (decision === "takeover")
+    return <span className="text-xs text-purple-400">takeover</span>;
   return <span className="text-xs">{decision}</span>;
 }

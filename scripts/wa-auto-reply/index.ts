@@ -26,7 +26,12 @@ const { Client, LocalAuth } = pkg;
 import QRCode from "qrcode";
 import path from "path";
 import fs from "fs";
-import { matchAnswer, needsEscalation, complianceCheck, ANSWERS } from "./answer-bank";
+import {
+  matchAnswer,
+  needsEscalation,
+  complianceCheck,
+  ANSWERS,
+} from "./answer-bank";
 
 if (!process.env.RAILWAY_PROJECT_ID) {
   try {
@@ -36,17 +41,31 @@ if (!process.env.RAILWAY_PROJECT_ID) {
 }
 
 // ── configuration ──────────────────────────────────────────────────────────
-const APPROVE_MODE = (process.env.WA_APPROVE_MODE || "canned-auto") as
-  | "all-manual" | "canned-auto" | "all-auto";
+const APPROVE_MODE = (process.env.WA_APPROVE_MODE || "all-auto") as
+  | "all-manual"
+  | "canned-auto"
+  | "all-auto";
 
 // Session lives on a Railway volume. Without this the container's disk is wiped
 // on every deploy and WhatsApp demands a fresh QR scan each time.
 const SESSION_DIR = process.env.WA_SESSION_DIR || "/data/wwebjs_auth";
 
-const MAX_REPLIES_PER_HOUR = Number(process.env.WA_MAX_REPLIES_PER_HOUR || 25);
-const MAX_REPLIES_PER_CONTACT_PER_DAY = Number(process.env.WA_MAX_PER_CONTACT_DAY || 8);
-const MIN_DELAY_MS = Number(process.env.WA_MIN_DELAY_MS || 6_000);
-const MAX_DELAY_MS = Number(process.env.WA_MAX_DELAY_MS || 22_000);
+// Rate limits: inbound replies are unlimited (we only reply to people who message us).
+// Set very high defaults so the checks are effectively no-ops while keeping the
+// code available for if Barbie wants to re-enable caps later.
+const MAX_REPLIES_PER_HOUR = Number(
+  process.env.WA_MAX_REPLIES_PER_HOUR || 9999,
+);
+const MAX_REPLIES_PER_CONTACT_PER_DAY = Number(
+  process.env.WA_MAX_PER_CONTACT_DAY || 999,
+);
+const MIN_DELAY_MS = Number(process.env.WA_MIN_DELAY_MS || 3_000);
+const MAX_DELAY_MS = Number(process.env.WA_MAX_DELAY_MS || 12_000);
+
+// Pause toggle: WA_BOT_PAUSED=true shuts off all replies without killing the process.
+let botPaused = process.env.WA_BOT_PAUSED === "true";
+
+const MEDIA_BASE = process.env.PUBLIC_APP_URL || "https://barbieverse.org";
 
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT = process.env.TELEGRAM_CHAT_ID;
@@ -58,10 +77,16 @@ fs.mkdirSync(SESSION_DIR, { recursive: true });
 
 // ── persistence (survives restarts via the volume) ─────────────────────────
 function loadJson<T>(file: string, fallback: T): T {
-  try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return fallback; }
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch {
+    return fallback;
+  }
 }
 function saveJson(file: string, data: unknown) {
-  try { fs.writeFileSync(file, JSON.stringify(data)); } catch (e) {
+  try {
+    fs.writeFileSync(file, JSON.stringify(data));
+  } catch (e) {
     console.error("[wa] could not persist", file, e);
   }
 }
@@ -85,9 +110,40 @@ async function tg(text: string) {
     await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: TELEGRAM_CHAT, text, parse_mode: "HTML" }),
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT,
+        text,
+        parse_mode: "HTML",
+      }),
     });
-  } catch (e) { console.error("[wa] telegram failed", e); }
+  } catch (e) {
+    console.error("[wa] telegram failed", e);
+  }
+}
+
+/** Send media (photo/video) to Barbie via Telegram. */
+async function tgMedia(caption: string, media: any, filename: string) {
+  if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT) return;
+  try {
+    const isVideo = media.mimetype?.startsWith("video/");
+    const endpoint = isVideo ? "sendVideo" : "sendPhoto";
+    const formData = new FormData();
+    formData.append("chat_id", TELEGRAM_CHAT);
+    formData.append("caption", caption);
+    formData.append("parse_mode", "HTML");
+    const blob = new Blob([Buffer.from(media.data, "base64")], {
+      type: media.mimetype,
+    });
+    formData.append(isVideo ? "video" : "photo", blob, filename);
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/${endpoint}`, {
+      method: "POST",
+      body: formData,
+    });
+  } catch (e) {
+    console.error("[wa] telegram media failed", e);
+    // Fallback: send text only
+    await tg(caption);
+  }
 }
 
 /**
@@ -107,22 +163,40 @@ async function tgPhoto(pngBuffer: Buffer, caption: string) {
     const form = new FormData();
     form.append("chat_id", TELEGRAM_CHAT);
     form.append("caption", caption);
-    form.append("photo", new Blob([pngBuffer], { type: "image/png" }), "qr.png");
-    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
-      method: "POST", body: form,
-    });
+    form.append(
+      "photo",
+      new Blob([pngBuffer], { type: "image/png" }),
+      "qr.png",
+    );
+    const res = await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`,
+      {
+        method: "POST",
+        body: form,
+      },
+    );
     const body = await res.text();
-    if (!res.ok) console.error(`[wa] telegram sendPhoto ${res.status}: ${body.slice(0, 300)}`);
+    if (!res.ok)
+      console.error(
+        `[wa] telegram sendPhoto ${res.status}: ${body.slice(0, 300)}`,
+      );
     else console.log("[wa] QR delivered to Telegram");
-  } catch (e) { console.error("[wa] telegram photo threw:", e); }
+  } catch (e) {
+    console.error("[wa] telegram photo threw:", e);
+  }
 }
 
 // ── LLM long-tail (optional) ───────────────────────────────────────────────
-async function writeReply(text: string, topicsAsked: string[] = []): Promise<string | null> {
+async function writeReply(
+  text: string,
+  topicsAsked: string[] = [],
+): Promise<string | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
   const seen = new Set(topicsAsked);
-  const facts = ANSWERS.filter((a) => !seen.has(a.id)).map((a) => `${a.id}: ${a.reply}`).join("\n\n");
+  const facts = ANSWERS.filter((a) => !seen.has(a.id))
+    .map((a) => `${a.id}: ${a.reply}`)
+    .join("\n\n");
 
   const systemPrompt = `Barbie ki WhatsApp agent. Roman Hinglish mein jawab do.
 Short messages (2-4 lines max). "sister"/"aap" se address karo.
@@ -152,20 +226,28 @@ Rules:
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (!reply) return null;
     return complianceCheck(reply).ok ? reply : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 // ── rate limiting ──────────────────────────────────────────────────────────
 function hourlyBudgetLeft(): boolean {
   const h = new Date().getUTCHours();
-  if (h !== hourStamp) { hourStamp = h; repliesThisHour = 0; }
+  if (h !== hourStamp) {
+    hourStamp = h;
+    repliesThisHour = 0;
+  }
   return repliesThisHour < MAX_REPLIES_PER_HOUR;
 }
 
 function contactBudgetLeft(phone: string): boolean {
   const today = new Date().toISOString().slice(0, 10);
   const rec = contactCounts.get(phone);
-  if (!rec || rec.day !== today) { contactCounts.set(phone, { day: today, n: 0 }); return true; }
+  if (!rec || rec.day !== today) {
+    contactCounts.set(phone, { day: today, n: 0 });
+    return true;
+  }
   return rec.n < MAX_REPLIES_PER_CONTACT_PER_DAY;
 }
 
@@ -173,17 +255,55 @@ function noteReply(phone: string) {
   repliesThisHour++;
   const today = new Date().toISOString().slice(0, 10);
   const rec = contactCounts.get(phone);
-  contactCounts.set(phone, rec && rec.day === today ? { day: today, n: rec.n + 1 } : { day: today, n: 1 });
+  contactCounts.set(
+    phone,
+    rec && rec.day === today
+      ? { day: today, n: rec.n + 1 }
+      : { day: today, n: 1 },
+  );
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-/** Longer messages take longer to type. Roughly human. */
-function thinkTime(replyLength: number) {
-  const base = MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS);
-  return Math.round(base + Math.min(replyLength * 25, 12_000));
+
+/**
+ * Multi-phase typing simulation — mimics how a real person actually types.
+ * Phase 1: brief pause (reading the message)
+ * Phase 2: start typing (sendStateTyping)
+ * Phase 3: burst of typing, brief pause (thinking of what to say)
+ * Phase 4: finish typing, send
+ * Longer messages take longer to type. Occasional longer pauses mixed in.
+ */
+async function humanTyping(msg: any, replyLength: number) {
+  // Phase 1: read the message (0.5-2s)
+  await sleep(500 + Math.random() * 1500);
+
+  // Phase 2: start typing indicator
+  try {
+    await (await msg.getChat()).sendStateTyping();
+  } catch {}
+
+  // Phase 3: first typing burst (1-3s)
+  await sleep(1000 + Math.random() * 2000);
+
+  // Phase 4: brief pause mid-think (0.3-1.5s) — like pausing to think
+  if (Math.random() > 0.4) {
+    try {
+      await (await msg.getChat()).sendStateTyping();
+    } catch {}
+    await sleep(300 + Math.random() * 1200);
+  }
+
+  // Phase 5: finish typing — longer for longer messages
+  const typingDuration =
+    Math.min(replyLength * 15, 6000) + Math.random() * 2000;
+  try {
+    await (await msg.getChat()).sendStateTyping();
+  } catch {}
+  await sleep(typingDuration);
 }
 
-const OPT_OUT = /\b(stop|unsubscribe|band karo|mat bhejo|message mat|block|don'?t message|do not message|nahi chahiye|not interested)\b/i;
+const OPT_OUT =
+  /\b(stop|unsubscribe|band karo|mat bhejo|message mat|block|don'?t message|do not message|nahi chahiye|not interested)\b/i;
 
 // ── client ─────────────────────────────────────────────────────────────────
 const client = new Client({
@@ -192,7 +312,8 @@ const client = new Client({
     headless: true,
     // Must come from env. A hardcoded Windows path made this unrunnable
     // anywhere but one laptop, while the README promised Railway deploys.
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium",
+    executablePath:
+      process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium",
     // NOTE: --single-process and --no-zygote are deliberately ABSENT.
     // With them, whatsapp-web.js authenticates and then hangs forever before
     // emitting `ready` — the session links, the logs look healthy, and no
@@ -224,7 +345,9 @@ client.on("qr", async (qr) => {
   try {
     currentQrPng = await QRCode.toBuffer(qr, { width: 512, margin: 2 });
     currentQrAt = Date.now();
-    console.log(`[wa] QR ready — open /qr?k=... to scan (also attempting Telegram)`);
+    console.log(
+      `[wa] QR ready — open /qr?k=... to scan (also attempting Telegram)`,
+    );
     await tgPhoto(
       currentQrPng,
       "📱 Scan within 60 seconds:\nWhatsApp → Settings → Linked devices → Link a device",
@@ -240,18 +363,29 @@ client.on("ready", async () => {
   console.log("[wa] connected as", me);
   // Barbie must SEE which number linked. The whole disaster earlier today was
   // a message that sent successfully from the wrong number.
-  await tg(`✅ <b>WhatsApp bot connected</b>\nLinked number: <b>+${me}</b>\n\nMode: ${APPROVE_MODE}\nCaps: ${MAX_REPLIES_PER_HOUR}/hour, ${MAX_REPLIES_PER_CONTACT_PER_DAY}/contact/day\n\nIf this is NOT your business number, stop the service now.`);
+  await tg(
+    `✅ <b>WhatsApp bot connected</b>\nLinked number: <b>+${me}</b>\n\nMode: ${APPROVE_MODE}\nCaps: ${MAX_REPLIES_PER_HOUR}/hour, ${MAX_REPLIES_PER_CONTACT_PER_DAY}/contact/day\n\nIf this is NOT your business number, stop the service now.`,
+  );
 });
 
-client.on("authenticated", () => console.log("[wa] authenticated, session saved to", SESSION_DIR));
+client.on("authenticated", () =>
+  console.log("[wa] authenticated, session saved to", SESSION_DIR),
+);
 
 // Visibility into the gap between `authenticated` and `ready`. That gap is
 // where this silently died: linked, logs clean, no messages ever handled.
 client.on("loading_screen", (percent, message) =>
-  console.log(`[wa] loading ${percent}% ${message || ""}`));
+  console.log(`[wa] loading ${percent}% ${message || ""}`),
+);
 client.on("change_state", (state) => console.log("[wa] state:", state));
-client.on("auth_failure", async (m) => { console.error("[wa] auth failure", m); await tg(`❌ WhatsApp auth failed: ${m}`); });
-client.on("disconnected", async (r) => { console.log("[wa] disconnected:", r); await tg(`⚠️ WhatsApp bot disconnected: ${r}`); });
+client.on("auth_failure", async (m) => {
+  console.error("[wa] auth failure", m);
+  await tg(`❌ WhatsApp auth failed: ${m}`);
+});
+client.on("disconnected", async (r) => {
+  console.log("[wa] disconnected:", r);
+  await tg(`⚠️ WhatsApp bot disconnected: ${r}`);
+});
 
 client.on("message", async (msg: any) => {
   try {
@@ -262,10 +396,24 @@ client.on("message", async (msg: any) => {
     // most visible "this is a bot" signal there is, and it annoys people who
     // never asked us anything.
     const from: string = msg.from || "";
-    if (from.endsWith("@g.us") || from.includes("broadcast") || from.includes("status")) return;
+    if (
+      from.endsWith("@g.us") ||
+      from.includes("broadcast") ||
+      from.includes("status")
+    )
+      return;
+
+    // Pause toggle — check env first, then the in-memory flag (toggled via HTTP)
+    if (process.env.WA_BOT_PAUSED === "true" || botPaused) {
+      console.log(`[wa] paused — ignoring +${(from || "").replace(/@.*/, "")}`);
+      return;
+    }
 
     if (msg.id?._serialized && seenIds.has(msg.id._serialized)) return;
-    if (msg.id?._serialized) { seenIds.add(msg.id._serialized); persistSeen(); }
+    if (msg.id?._serialized) {
+      seenIds.add(msg.id._serialized);
+      persistSeen();
+    }
 
     // WhatsApp now addresses individuals by LID (…@lid), not phone number, so
     // stripping "@c.us" leaves an unusable id like 234002787123445@lid. That is
@@ -277,8 +425,11 @@ client.on("message", async (msg: any) => {
     try {
       const contact = await msg.getContact();
       const resolved = contact?.number || contact?.id?.user;
-      if (resolved && /^\d{8,15}$/.test(String(resolved))) phone = String(resolved);
-    } catch { /* keep the key */ }
+      if (resolved && /^\d{8,15}$/.test(String(resolved)))
+        phone = String(resolved);
+    } catch {
+      /* keep the key */
+    }
 
     if (optOuts.has(key)) return; // permanent, no exceptions
 
@@ -286,12 +437,28 @@ client.on("message", async (msg: any) => {
 
     // Media with no caption: acknowledge, tell Barbie, do not improvise.
     if (msg.hasMedia && !text) {
-      await tg(`📷 <b>Screenshot from +${phone}</b>\nCheck it and reply yourself.`);
-      if (hourlyBudgetLeft() && contactBudgetLeft(key)) {
-        await sleep(thinkTime(40));
-        await msg.reply("Screenshot mil gya sister 👍 main abhi dekh ke batati hoon");
-        noteReply(key);
+      const media = await msg.downloadMedia();
+      const mediaType = msg.type; // "image", "video", "audio", "document"
+      const caption =
+        mediaType === "video"
+          ? `🎬 <b>Video from +${phone}</b>\nCheck it and reply yourself.`
+          : `📷 <b>Screenshot from +${phone}</b>\nCheck it and reply yourself.`;
+
+      // Forward to Barbie via Telegram with the media attached
+      if (media) {
+        await tgMedia(caption, media, `wa-media-${Date.now()}`);
+      } else {
+        await tg(caption);
       }
+
+      // Acknowledge to the lead
+      await humanTyping(msg, 40);
+      await msg.reply(
+        mediaType === "video"
+          ? "Video dekh li sister 👍 main abhi check karti hoon"
+          : "Screenshot mil gya sister 👍 main abhi dekh ke batati hoon",
+      );
+      noteReply(key);
       return;
     }
     if (!text) return;
@@ -302,7 +469,9 @@ client.on("message", async (msg: any) => {
     if (OPT_OUT.test(text)) {
       optOuts.add(key);
       saveJson(OPTOUT_FILE, [...optOuts]);
-      await tg(`🚫 <b>+${phone} opted out</b> — added to permanent do-not-reply.\n"${text.slice(0, 150)}"`);
+      await tg(
+        `🚫 <b>+${phone} opted out</b> — added to permanent do-not-reply.\n"${text.slice(0, 150)}"`,
+      );
       return;
     }
 
@@ -310,16 +479,9 @@ client.on("message", async (msg: any) => {
     if (escalation) {
       // Stay silent. Barbie answers money, refunds, anger and anything about a
       // minor herself — an automated reply to those is how real damage happens.
-      await tg(`🚨 <b>Escalation — ${escalation}</b>\n+${phone}\n\n"${text.slice(0, 300)}"\n\nBot stayed silent. This one is yours.`);
-      return;
-    }
-
-    if (!hourlyBudgetLeft()) {
-      console.log("[wa] hourly cap reached — staying quiet");
-      return;
-    }
-    if (!contactBudgetLeft(key)) {
-      await tg(`⏸ +${phone} hit the per-contact daily cap. Reply by hand if needed.`);
+      await tg(
+        `🚨 <b>Escalation — ${escalation}</b>\n+${phone}\n\n"${text.slice(0, 300)}"\n\nBot stayed silent. This one is yours.`,
+      );
       return;
     }
 
@@ -341,7 +503,9 @@ client.on("message", async (msg: any) => {
     }
 
     if (!replyText) {
-      await tg(`❓ <b>+${phone}</b> — no canned answer matched.\n"${text.slice(0, 200)}"\n\nReply by hand.`);
+      await tg(
+        `❓ <b>+${phone}</b> — no canned answer matched.\n"${text.slice(0, 200)}"\n\nReply by hand.`,
+      );
       return;
     }
 
@@ -352,10 +516,30 @@ client.on("message", async (msg: any) => {
     }
 
     // Think, then type. Instant replies at any hour are the clearest tell.
-    await sleep(thinkTime(replyText.length));
-    try { await (await msg.getChat()).sendStateTyping(); } catch {}
-    await sleep(1500 + Math.random() * 2500);
+    await humanTyping(msg, replyText.length);
 
+    // Send the reply — media card first if applicable, then text
+    const answerObj = answer;
+    if (answerObj?.mediaTag) {
+      try {
+        const ext = answerObj.mediaType === "video" ? "mp4" : "png";
+        const mediaUrl = `${MEDIA_BASE}/cards/${answerObj.mediaTag}.${ext}`;
+        // For videos, include the nextNudge as caption on the video itself
+        const caption = answerObj.mediaCaption || answerObj.nextNudge || "";
+        if (answerObj.mediaType === "video") {
+          await msg.reply(mediaUrl, { caption });
+        } else {
+          await msg.reply(mediaUrl);
+        }
+        // Brief pause between media and text, like a human sends a photo then types
+        await sleep(800 + Math.random() * 1500);
+      } catch (e) {
+        console.error(
+          "[wa] media send failed, continuing with text:",
+          (e as any)?.message,
+        );
+      }
+    }
     await msg.reply(replyText);
     noteReply(key);
     console.log(`[wa] -> +${phone} (${source})`);
@@ -363,6 +547,74 @@ client.on("message", async (msg: any) => {
     console.error("[wa] handler error:", err?.message);
   }
 });
+
+// ── outbound campaign state ─────────────────────────────────────────────────
+let campaignActive = false;
+let campaignSent = 0;
+let campaignTotal = 0;
+
+// Re-engagement messages — varied, human, never identical to each other
+const REENGAGE_MESSAGES = [
+  "Hey 😊 pending hai aapka — kab free ho to baat karte hain?",
+  "Sister aapka setup reh gaya tha, main help kar deti hoon agar abhi bhi interested ho?",
+  "Hi! Aapka process incomplete tha — ready ho to continue karein?",
+  "Hey, missed you 😊 abhi bhi soch rahi ho to ek baar baat kar lete hain?",
+  "Sister aapka step reh gaya tha — baaki sab set hai, bas ek chhota sa kaam baaki hai",
+  "Hi! Long time — agar abhi bhi karna chahti ho to main hoon guide karne ke liye 🙂",
+  "Aapka application pending hai — koi dikkat aayi thi kya? Batao to help karoon",
+];
+
+/**
+ * Outbound re-engagement campaign. Sends messages to lost leads with human
+ * timing. Rate-limited to max 4 per run with 30-60s gaps (cold outbound is
+ * the #1 ban signal — we go slow).
+ */
+async function runCampaign(phones: string[], overrideMessage?: string) {
+  campaignActive = true;
+  campaignSent = 0;
+  campaignTotal = phones.length;
+  console.log(`[wa] campaign started — ${phones.length} leads`);
+
+  for (let i = 0; i < phones.length; i++) {
+    const phone = phones[i].replace(/[^\d]/g, "");
+    const msg =
+      overrideMessage || REENGAGE_MESSAGES[i % REENGAGE_MESSAGES.length];
+
+    try {
+      // Human delay between cold messages (30-60s)
+      if (i > 0) await sleep(30_000 + Math.random() * 30_000);
+
+      // Simulate typing before sending
+      await sleep(2000 + Math.random() * 4000);
+
+      const chat = await client.getNumberId(phone);
+      if (!chat) {
+        console.log(`[wa] campaign: +${phone} not on WhatsApp, skipping`);
+        continue;
+      }
+      await client.sendMessage(chat, msg);
+      campaignSent++;
+      console.log(
+        `[wa] campaign -> +${phone} (${campaignSent}/${campaignTotal})`,
+      );
+      await tg(`📤 Campaign -> +${phone} (${campaignSent}/${campaignTotal})`);
+    } catch (e: any) {
+      console.error(`[wa] campaign failed +${phone}:`, e?.message);
+      // If rate-limited by WhatsApp, stop the campaign
+      if (e?.message?.includes("rate") || e?.message?.includes("limit")) {
+        console.log("[wa] campaign rate-limited — stopping");
+        await tg(
+          `⛔ Campaign STOPPED — WhatsApp rate limit hit at ${campaignSent}/${campaignTotal}`,
+        );
+        break;
+      }
+    }
+  }
+
+  campaignActive = false;
+  console.log(`[wa] campaign done — sent ${campaignSent}/${campaignTotal}`);
+  await tg(`✅ Campaign complete: ${campaignSent}/${campaignTotal} sent`);
+}
 
 // ── tiny HTTP server, purely to hand Barbie the QR ─────────────────────────
 //
@@ -373,44 +625,132 @@ const QR_SECRET = process.env.WA_QR_SECRET || "";
 const PORT = Number(process.env.PORT || 8080);
 
 const http = await import("node:http");
-http.createServer((req, res) => {
-  const url = new URL(req.url || "/", `http://localhost:${PORT}`);
+http
+  .createServer((req, res) => {
+    const url = new URL(req.url || "/", `http://localhost:${PORT}`);
 
-  const keyOk = QR_SECRET && url.searchParams.get("k") === QR_SECRET;
+    const keyOk = QR_SECRET && url.searchParams.get("k") === QR_SECRET;
 
-  // Raw current QR image. Polled by the page below so the code on screen is
-  // always the live one — WhatsApp rotates it roughly every 20 seconds, and a
-  // full page reload each time made it impossible to actually finish scanning.
-  if (url.pathname === "/qr.png") {
-    if (!keyOk) { res.writeHead(403); return res.end("forbidden"); }
-    if (!currentQrPng) { res.writeHead(404); return res.end("no qr"); }
-    res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "no-store" });
-    return res.end(currentQrPng);
-  }
-
-  if (url.pathname === "/qr.json") {
-    if (!keyOk) { res.writeHead(403); return res.end("forbidden"); }
-    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
-    return res.end(JSON.stringify({
-      hasQr: !!currentQrPng,
-      ageMs: currentQrPng ? Date.now() - currentQrAt : null,
-      linked: !!client.info?.wid?.user,
-      number: client.info?.wid?.user ?? null,
-      ready: isReady,
-      messagesSeen,
-    }));
-  }
-
-  if (url.pathname === "/qr") {
-    if (!keyOk) {
-      res.writeHead(403, { "Content-Type": "text/plain" });
-      return res.end("forbidden");
+    // Raw current QR image. Polled by the page below so the code on screen is
+    // always the live one — WhatsApp rotates it roughly every 20 seconds, and a
+    // full page reload each time made it impossible to actually finish scanning.
+    if (url.pathname === "/qr.png") {
+      if (!keyOk) {
+        res.writeHead(403);
+        return res.end("forbidden");
+      }
+      if (!currentQrPng) {
+        res.writeHead(404);
+        return res.end("no qr");
+      }
+      res.writeHead(200, {
+        "Content-Type": "image/png",
+        "Cache-Control": "no-store",
+      });
+      return res.end(currentQrPng);
     }
-    // The image is swapped in place every 3s; the page itself never reloads.
-    // Barbie can leave this open as long as she likes and always be looking at
-    // a currently-valid code.
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    return res.end(`<!doctype html><meta charset=utf-8>
+
+    if (url.pathname === "/qr.json") {
+      if (!keyOk) {
+        res.writeHead(403);
+        return res.end("forbidden");
+      }
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
+      });
+      return res.end(
+        JSON.stringify({
+          hasQr: !!currentQrPng,
+          ageMs: currentQrPng ? Date.now() - currentQrAt : null,
+          linked: !!client.info?.wid?.user,
+          number: client.info?.wid?.user ?? null,
+          ready: isReady,
+          messagesSeen,
+          paused: botPaused,
+        }),
+      );
+    }
+
+    // ── pause/resume toggle ──
+    if (url.pathname === "/pause") {
+      if (!keyOk) {
+        res.writeHead(403);
+        return res.end("forbidden");
+      }
+      const action = url.searchParams.get("action");
+      if (action === "pause") {
+        botPaused = true;
+        console.log("[wa] bot PAUSED via HTTP");
+        await tg("⏸ WhatsApp bot PAUSED via admin");
+      } else if (action === "resume") {
+        botPaused = false;
+        console.log("[wa] bot RESUMED via HTTP");
+        await tg("▶️ WhatsApp bot RESUMED via admin");
+      }
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ paused: botPaused }));
+    }
+
+    // ── outbound campaign: send re-engagement to lost leads ──
+    // POST body: { phones: ["919876543210", ...], message: "optional override" }
+    // GET: returns campaign status
+    if (url.pathname === "/campaign") {
+      if (!keyOk) {
+        res.writeHead(403);
+        return res.end("forbidden");
+      }
+
+      if (req.method === "GET") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(
+          JSON.stringify({
+            active: campaignActive,
+            sent: campaignSent,
+            total: campaignTotal,
+          }),
+        );
+      }
+
+      if (req.method === "POST") {
+        if (campaignActive) {
+          res.writeHead(409, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "campaign already running" }));
+        }
+        let body = "";
+        for await (const chunk of req) body += chunk;
+        try {
+          const data = JSON.parse(body);
+          const phones: string[] = data.phones || [];
+          if (!phones.length) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "no phones provided" }));
+          }
+          // Start campaign in background
+          runCampaign(phones, data.message).catch((e) =>
+            console.error("[wa] campaign error:", e),
+          );
+          res.writeHead(202, { "Content-Type": "application/json" });
+          return res.end(
+            JSON.stringify({ accepted: true, total: phones.length }),
+          );
+        } catch {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "invalid json" }));
+        }
+      }
+    }
+
+    if (url.pathname === "/qr") {
+      if (!keyOk) {
+        res.writeHead(403, { "Content-Type": "text/plain" });
+        return res.end("forbidden");
+      }
+      // The image is swapped in place every 3s; the page itself never reloads.
+      // Barbie can leave this open as long as she likes and always be looking at
+      // a currently-valid code.
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      return res.end(`<!doctype html><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
 <title>Link WhatsApp</title>
 <body style="font-family:system-ui,sans-serif;background:#0b0b0f;color:#eee;text-align:center;margin:0;padding:24px">
@@ -447,11 +787,20 @@ async function tick(){
 tick();
 </script>
 </body>`);
-  }
+    }
 
-  res.writeHead(200, { "Content-Type": "application/json" });
-  res.end(JSON.stringify({ ok: true, linked: !!client.info?.wid?.user, qrPending: !!currentQrPng }));
-}).listen(PORT, () => console.log(`[wa] http listening on ${PORT} — QR at /qr?k=...`));
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        ok: true,
+        linked: !!client.info?.wid?.user,
+        qrPending: !!currentQrPng,
+      }),
+    );
+  })
+  .listen(PORT, () =>
+    console.log(`[wa] http listening on ${PORT} — QR at /qr?k=...`),
+  );
 
 console.log("[wa] starting — session dir:", SESSION_DIR);
 client.initialize().catch(async (err) => {
@@ -464,7 +813,9 @@ async function shutdown() {
   console.log("[wa] shutting down");
   persistSeen();
   saveJson(OPTOUT_FILE, [...optOuts]);
-  try { await client.destroy(); } catch {}
+  try {
+    await client.destroy();
+  } catch {}
   process.exit(0);
 }
 process.on("SIGINT", shutdown);
