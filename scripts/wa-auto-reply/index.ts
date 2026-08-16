@@ -354,7 +354,12 @@ async function analyzeScreenshot(
   if (!apiKey) return null;
 
   const stageLabel = leadCtx?.stage ?? "unknown";
-  const transcriptSnippet = leadCtx?.transcript?.slice(-5).join("\n") ?? "(no history)";
+  // leadCtx.transcript is a newline-joined STRING, not an array — .slice(-5)
+  // on a string takes the last 5 characters and .join doesn't exist on a
+  // string at all, so this threw on every call and silently fell back to the
+  // generic ack. Split into lines first.
+  const transcriptSnippet =
+    leadCtx?.transcript?.split("\n").slice(-5).join("\n") || "(no history)";
 
   const prompt = `You are Barbie, a friendly Indian woman who runs an agency for live streaming hosts.
 
@@ -563,7 +568,58 @@ client.on("ready", async () => {
   await tg(
     `✅ <b>WhatsApp bot connected</b>\nLinked number: <b>+${me}</b>\n\nMode: ${APPROVE_MODE}\nCaps: ${MAX_REPLIES_PER_HOUR}/hour, ${MAX_REPLIES_PER_CONTACT_PER_DAY}/contact/day\n\nIf this is NOT your business number, stop the service now.`,
   );
+  // Give the session a couple minutes to settle before touching old leads.
+  setTimeout(() => maybeRunDailyReengagement(), 2 * 60_000);
 });
+
+// ── daily auto re-engagement of old leads ──────────────────────────────────
+// Barbie asked the bot to start working the existing database, not just
+// reply inbound. Runs once per calendar day (persisted so a crash-loop or
+// redeploy can't fire it twice), pulls leads who haven't converted, haven't
+// been messaged in 3+ days, and aren't mid-conversation right now, and sends
+// them through the same paced/quiet-hours campaign logic as a manual run.
+const LAST_CAMPAIGN_FILE = path.join(SESSION_DIR, "last-auto-campaign.json");
+const AUTO_CAMPAIGN_BATCH = Number(process.env.WA_AUTO_CAMPAIGN_BATCH || 40);
+
+async function maybeRunDailyReengagement() {
+  const dbUrl = process.env.SUPABASE_DB_URL;
+  if (!dbUrl) return;
+  const today = new Date().toISOString().slice(0, 10);
+  const last = loadJson<{ date?: string }>(LAST_CAMPAIGN_FILE, {});
+  if (last.date === today) {
+    console.log("[wa] daily re-engagement already ran today, skipping");
+    return;
+  }
+  try {
+    const { Client } = await import("pg");
+    const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    await pg.connect();
+    const res = await pg.query(
+      `select phone from wa_leads
+       where stage not in ('AGENCY_LINKED','FACE_VERIFIED','FIRST_LIVE','ACTIVE','NOT_INTERESTED')
+         and coalesce(escalated, false) = false
+         and coalesce(human_takeover, false) = false
+         and (last_outbound_at is null or last_outbound_at < now() - interval '3 days')
+         and (last_inbound_at is null or last_inbound_at < now() - interval '1 day')
+       order by coalesce(follow_up_due, created_at) asc
+       limit $1`,
+      [AUTO_CAMPAIGN_BATCH],
+    );
+    await pg.end();
+    saveJson(LAST_CAMPAIGN_FILE, { date: today });
+    if (!res.rows.length) {
+      console.log("[wa] daily re-engagement: no eligible leads today");
+      return;
+    }
+    console.log(`[wa] daily re-engagement: ${res.rows.length} old leads eligible, starting`);
+    await tg(`🔄 Daily re-engagement starting — ${res.rows.length} old leads`);
+    runCampaign(res.rows.map((r: any) => r.phone)).catch((e) =>
+      console.error("[wa] daily re-engagement error:", e),
+    );
+  } catch (e: any) {
+    console.error("[wa] daily re-engagement query failed:", e?.message);
+  }
+}
 
 client.on("authenticated", () =>
   console.log("[wa] authenticated, session saved to", SESSION_DIR),
@@ -939,6 +995,13 @@ async function runCampaign(phones: string[], overrideMessage?: string) {
 
   for (let i = 0; i < phones.length; i++) {
     const phone = phones[i].replace(/[^\d]/g, "");
+    const bare = phone.startsWith("91") ? phone.slice(2) : phone;
+
+    // A "stop" reply is permanent, no exceptions — including cold campaigns.
+    if (optOuts.has(phone) || optOuts.has(bare)) {
+      console.log(`[wa] campaign: +${phone} opted out, skipping`);
+      continue;
+    }
 
     // Pick stage-specific message or use override or rotate generic
     let msg: string;
@@ -976,6 +1039,22 @@ async function runCampaign(phones: string[], overrideMessage?: string) {
         `[wa] campaign -> +${phone} (${campaignSent}/${campaignTotal})`,
       );
       await tg(`📤 Campaign -> +${phone} (${campaignSent}/${campaignTotal})`);
+
+      // Mark so tomorrow's auto re-engagement pass doesn't hit her again today,
+      // and log the message so the admin dashboard shows it.
+      if (dbUrl) {
+        try {
+          const { Client } = await import("pg");
+          const pg2 = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+          await pg2.connect();
+          const upd = await pg2.query(
+            "update wa_leads set last_outbound_at = now() where phone = any($1) returning id",
+            [[phone, bare]],
+          );
+          await pg2.end();
+          await saveMessage(upd.rows[0]?.id ?? null, "out", msg);
+        } catch {}
+      }
     } catch (e: any) {
       console.error(`[wa] campaign failed +${phone}:`, e?.message);
       if (e?.message?.includes("rate") || e?.message?.includes("limit")) {
@@ -1003,6 +1082,11 @@ async function runBroadcast(phones: string[], message: string) {
 
   for (let i = 0; i < phones.length; i++) {
     const phone = phones[i].replace(/[^\d]/g, "");
+    const bare = phone.startsWith("91") ? phone.slice(2) : phone;
+    if (optOuts.has(phone) || optOuts.has(bare)) {
+      console.log(`[wa] broadcast: +${phone} opted out, skipping`);
+      continue;
+    }
     try {
       // Human delay between sends (2-5s)
       if (i > 0) await sleep(2000 + Math.random() * 3000);
