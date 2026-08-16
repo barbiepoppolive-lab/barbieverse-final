@@ -344,6 +344,64 @@ DEATH SENTENCES (never do these):
   }
 }
 
+// ── Gemini Vision — screenshot analysis ──────────────────────────────────────
+async function analyzeScreenshot(
+  base64Data: string,
+  mimeType: string,
+  leadCtx: LeadContext | null,
+): Promise<string | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  const stageLabel = leadCtx?.stage ?? "unknown";
+  const transcriptSnippet = leadCtx?.transcript?.slice(-5).join("\n") ?? "(no history)";
+
+  const prompt = `You are Barbie, a friendly Indian woman who runs an agency for live streaming hosts.
+
+A lead (current stage: ${stageLabel}) just sent a screenshot. Analyze it and reply naturally in Barbie's voice.
+
+Recent conversation:
+${transcriptSnippet}
+
+Rules:
+- Reply in Hinglish (Hindi + English mix), casual sisterly tone
+- Keep it short (1-2 lines max)
+- If it's a verification screenshot: confirm and guide next step
+- If it's an error: troubleshoot simply
+- If it's a payment/earnings screenshot: congratulate and motivate
+- If you can't tell what it is: ask a simple clarifying question
+- NEVER say "guarantee", "lifetime", "100%", or share rupee figures
+- Match the voice profile: median 23 chars, many replies are 1-15 chars`;
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: prompt },
+                { inline_data: { mime_type: mimeType, data: base64Data } },
+              ],
+            },
+          ],
+          generationConfig: { maxOutputTokens: 150, temperature: 0.7 },
+        }),
+      },
+    );
+    const data = await res.json();
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!reply) return null;
+    return complianceCheck(reply).ok ? reply : null;
+  } catch (e: any) {
+    console.error("[wa] Gemini vision failed:", e?.message);
+    return null;
+  }
+}
+
 // Persist one turn of the live conversation. Without this the bot could talk
 // but the admin dashboard (barbieverse.org/admin/whatsapp) and every future
 // LLM call would never see it — getLeadContext only ever showed the Aug 15
@@ -663,28 +721,50 @@ client.on("message", async (msg: any) => {
 
     console.log(`[wa] <- +${phone} (from=${from} key=${key}): ${text.slice(0, 80)}`);
 
-    // Media with no caption: acknowledge, tell Barbie, do not improvise.
+    // Media with no caption: analyze images with Gemini Vision, forward to Barbie.
     if (msg.hasMedia && !text) {
       const media = await msg.downloadMedia();
       const mediaType = msg.type; // "image", "video", "audio", "document"
-      const caption =
-        mediaType === "video"
-          ? `🎬 <b>Video from +${phone}</b>\nCheck it and reply yourself.`
-          : `📷 <b>Screenshot from +${phone}</b>\nCheck it and reply yourself.`;
 
-      // Forward to Barbie via Telegram with the media attached
+      // Always forward to Barbie via Telegram
+      const fwdCaption =
+        mediaType === "video"
+          ? `🎬 <b>Video from +${phone}</b>`
+          : `📷 <b>Screenshot from +${phone}</b>`;
       if (media) {
-        await tgMedia(caption, media, `wa-media-${Date.now()}`);
+        await tgMedia(fwdCaption, media, `wa-media-${Date.now()}`);
       } else {
-        await tg(caption);
+        await tg(fwdCaption);
       }
       await saveMessage(leadId, "in", `[${mediaType}]`);
 
-      // Acknowledge to the lead
+      // For images: analyze with Gemini Vision and reply contextually
+      if (media && (mediaType === "image" || mediaType === "sticker")) {
+        console.log(`[wa] analyzing screenshot from +${phone} with Gemini Vision...`);
+        const leadCtx = await getLeadContext(phone);
+        const visionReply = await analyzeScreenshot(media.data, media.mimetype, leadCtx);
+        if (visionReply) {
+          console.log(`[wa] vision reply: ${visionReply.slice(0, 60)}`);
+          await humanTyping(msg, visionReply.length);
+          await msg.reply(visionReply);
+          await saveMessage(leadId, "out", visionReply);
+          noteReply(key);
+          return;
+        }
+        // Fallback: generic ack if vision fails
+        const ack = "Screenshot mil gya sister 👍 main abhi dekh ke batati hoon";
+        await humanTyping(msg, 40);
+        await msg.reply(ack);
+        await saveMessage(leadId, "out", ack);
+        noteReply(key);
+        return;
+      }
+
+      // Video/audio/document: acknowledge only
       const ack =
         mediaType === "video"
           ? "Video dekh li sister 👍 main abhi check karti hoon"
-          : "Screenshot mil gya sister 👍 main abhi dekh ke batati hoon";
+          : "Mil gya sister 👍 main abhi check karti hoon";
       await humanTyping(msg, 40);
       await msg.reply(ack);
       await saveMessage(leadId, "out", ack);
