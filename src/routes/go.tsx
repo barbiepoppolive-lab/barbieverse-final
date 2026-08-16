@@ -13,7 +13,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-const REFERRAL_URL = process.env.WA_REFERRAL_URL || "https://vone.live/";
+// Confirmed by Barbie 15 Aug 2026: this link credits agent ID 2517496, the
+// same ID quoted in every message, card and PDF. A second link exists
+// (YWWPdx) crediting 68315765 — do NOT use it, the agency IDs disagree and
+// installs would be credited to the wrong account.
+//
+// The fallback is deliberately the referral link and not a generic page: an
+// unset env var previously meant every install earned nothing, silently.
+const REFERRAL_URL =
+  process.env.WA_REFERRAL_URL || "https://invite-vone.com/xptdDd";
 
 export const Route = createFileRoute("/go")({
   head: () => ({
@@ -22,7 +30,7 @@ export const Route = createFileRoute("/go")({
       {
         name: "description",
         content:
-          "Join BarbieVerse and start live streaming from home for free. Free setup, free training, withdraw to your own bank. Agncy ID 2517496.",
+          "Join BarbieVerse and start live streaming from home for free. Free setup, free training, withdraw to your own bank. Agency ID 2517496.",
       },
       { property: "og:title", content: "BarbieVerse — Start Live Streaming Today" },
       {
