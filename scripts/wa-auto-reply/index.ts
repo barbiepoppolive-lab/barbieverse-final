@@ -570,6 +570,7 @@ client.on("message", async (msg: any) => {
           ssl: { rejectUnauthorized: false },
         });
         await pg.connect();
+        console.log(`[wa] DB lookup for phone=${phone}`);
         const res = await pg.query(
           "select stage from wa_leads where phone = $1",
           [phone],
@@ -599,6 +600,8 @@ client.on("message", async (msg: any) => {
     }
 
     const text = (msg.body || "").trim();
+
+    console.log(`[wa] <- +${phone} (from=${from} key=${key}): ${text.slice(0, 80)}`);
 
     // Media with no caption: acknowledge, tell Barbie, do not improvise.
     if (msg.hasMedia && !text) {
