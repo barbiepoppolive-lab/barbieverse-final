@@ -539,7 +539,18 @@ client.on("message", async (msg: any) => {
     let contactName = "";
     try {
       const contact = await msg.getContact();
-      const resolved = contact?.number || contact?.id?.user;
+      let resolved = contact?.number || contact?.id?.user;
+      // @lid contacts often don't resolve via .number/.id.user — try the
+      // WhatsApp-internal formatted-number lookup as a second attempt.
+      if (
+        (!resolved || !/^\d{8,15}$/.test(String(resolved))) &&
+        typeof contact?.getFormattedNumber === "function"
+      ) {
+        try {
+          const formatted = await contact.getFormattedNumber();
+          if (formatted) resolved = String(formatted).replace(/\D/g, "");
+        } catch {}
+      }
       if (resolved && /^\d{8,15}$/.test(String(resolved)))
         phone = String(resolved);
       // Sync contact name back to the database
@@ -559,8 +570,19 @@ client.on("message", async (msg: any) => {
 
     if (optOuts.has(key)) return; // permanent, no exceptions
 
-    // Only reply to known leads in wa_leads — ignore everyone else
-    // (ad managers, wrong numbers, etc.)
+    // Normalize to the E.164-no-plus format wa_leads stores (e.g. 919876543210)
+    // so a bare 10-digit number and a 91-prefixed one both match the same row.
+    const digits = String(phone).replace(/\D/g, "");
+    const normPhone = digits.length === 10 ? `91${digits}` : digits;
+    const bare91 = normPhone.startsWith("91") ? normPhone.slice(2) : normPhone;
+
+    console.log(
+      `[wa] resolve from=${from} key=${key} phone=${phone} normalized=${normPhone}`,
+    );
+
+    // Known leads get pipeline-aware replies; unknown inbound numbers are
+    // added as new leads (stage default NEW) rather than dropped, so first
+    // contact from an ad click still gets engaged.
     const dbUrl = process.env.SUPABASE_DB_URL;
     if (dbUrl) {
       try {
@@ -570,34 +592,41 @@ client.on("message", async (msg: any) => {
           ssl: { rejectUnauthorized: false },
         });
         await pg.connect();
-        console.log(`[wa] DB lookup for phone=${phone}`);
         const res = await pg.query(
-          "select stage from wa_leads where phone = $1",
-          [phone],
+          "select stage from wa_leads where phone = any($1)",
+          [[normPhone, bare91, phone, digits]],
         );
-        await pg.end();
         if (!res.rows[0]) {
-          console.log(
-            `[wa] +${phone} not in wa_leads — ignoring (not a known lead)`,
-          );
-          return;
+          console.log(`[wa] +${normPhone} not in wa_leads — adding as new lead`);
+          try {
+            await pg.query(
+              "insert into wa_leads (phone) values ($1) on conflict (phone) do nothing",
+              [normPhone],
+            );
+          } catch (e: any) {
+            console.error("[wa] new-lead insert failed:", e?.message);
+          }
+        } else {
+          const convertedStages = [
+            "AGENCY_LINKED",
+            "FACE_VERIFIED",
+            "FIRST_LIVE",
+            "ACTIVE",
+          ];
+          if (convertedStages.includes(res.rows[0].stage)) {
+            await pg.end();
+            console.log(
+              `[wa] +${normPhone} is ${res.rows[0].stage} — skipping auto-reply`,
+            );
+            return;
+          }
         }
-        const convertedStages = [
-          "AGENCY_LINKED",
-          "FACE_VERIFIED",
-          "FIRST_LIVE",
-          "ACTIVE",
-        ];
-        if (convertedStages.includes(res.rows[0].stage)) {
-          console.log(
-            `[wa] +${phone} is ${res.rows[0].stage} — skipping auto-reply`,
-          );
-          return;
-        }
-      } catch {
-        // DB check failed — proceed with auto-reply (safe fallback)
+        await pg.end();
+      } catch (e: any) {
+        console.error("[wa] DB check failed, proceeding without it:", e?.message);
       }
     }
+    phone = normPhone || phone;
 
     const text = (msg.body || "").trim();
 
