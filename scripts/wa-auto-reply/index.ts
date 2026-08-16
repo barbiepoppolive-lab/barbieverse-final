@@ -90,18 +90,31 @@ async function tg(text: string) {
   } catch (e) { console.error("[wa] telegram failed", e); }
 }
 
-/** The QR must reach Barbie's phone — she cannot read a container's stdout. */
+/**
+ * The QR must reach Barbie's phone — she cannot read a container's stdout.
+ *
+ * NOTE: fetch only throws on network failure. A Telegram rejection (bad
+ * chat_id, malformed upload) returns 4xx and looked exactly like success in
+ * the previous version, which is why QRs "sent" for minutes and never arrived.
+ * Always read the body.
+ */
 async function tgPhoto(pngBuffer: Buffer, caption: string) {
-  if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT) return;
+  if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT) {
+    console.error("[wa] telegram not configured — cannot deliver QR");
+    return;
+  }
   try {
     const form = new FormData();
     form.append("chat_id", TELEGRAM_CHAT);
     form.append("caption", caption);
     form.append("photo", new Blob([pngBuffer], { type: "image/png" }), "qr.png");
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
       method: "POST", body: form,
     });
-  } catch (e) { console.error("[wa] telegram photo failed", e); }
+    const body = await res.text();
+    if (!res.ok) console.error(`[wa] telegram sendPhoto ${res.status}: ${body.slice(0, 300)}`);
+    else console.log("[wa] QR delivered to Telegram");
+  } catch (e) { console.error("[wa] telegram photo threw:", e); }
 }
 
 // ── LLM long-tail (optional) ───────────────────────────────────────────────
@@ -188,14 +201,22 @@ const client = new Client({
   authTimeoutMs: 180_000,
 });
 
+// Latest QR, held in memory and served over HTTP as a fallback. Telegram
+// delivery has proven unreliable and a QR nobody can see is a dead bot.
+let currentQrPng: Buffer | null = null;
+let currentQrAt = 0;
+
 client.on("qr", async (qr) => {
-  console.log("[wa] QR generated — sending to Telegram");
   try {
-    const buf = await QRCode.toBuffer(qr, { width: 512, margin: 2 });
-    await tgPhoto(buf, "📱 Scan within 60 seconds:\nWhatsApp → Settings → Linked devices → Link a device");
+    currentQrPng = await QRCode.toBuffer(qr, { width: 512, margin: 2 });
+    currentQrAt = Date.now();
+    console.log(`[wa] QR ready — open /qr?k=... to scan (also attempting Telegram)`);
+    await tgPhoto(
+      currentQrPng,
+      "📱 Scan within 60 seconds:\nWhatsApp → Settings → Linked devices → Link a device",
+    );
   } catch (e) {
     console.error("[wa] QR render failed", e);
-    await tg("⚠️ QR generated but could not be rendered. Check Railway logs.");
   }
 });
 
@@ -308,6 +329,46 @@ client.on("message", async (msg: any) => {
     console.error("[wa] handler error:", err?.message);
   }
 });
+
+// ── tiny HTTP server, purely to hand Barbie the QR ─────────────────────────
+//
+// The QR is a live credential: anyone who scans it links a device to her
+// WhatsApp. So it is served ONLY with the correct secret, and only while a QR
+// is actually pending. No secret configured -> the route refuses to serve.
+const QR_SECRET = process.env.WA_QR_SECRET || "";
+const PORT = Number(process.env.PORT || 8080);
+
+const http = await import("node:http");
+http.createServer((req, res) => {
+  const url = new URL(req.url || "/", `http://localhost:${PORT}`);
+
+  if (url.pathname === "/qr") {
+    if (!QR_SECRET || url.searchParams.get("k") !== QR_SECRET) {
+      res.writeHead(403, { "Content-Type": "text/plain" });
+      return res.end("forbidden");
+    }
+    if (!currentQrPng || Date.now() - currentQrAt > 90_000) {
+      res.writeHead(200, { "Content-Type": "text/html" });
+      return res.end(
+        "<meta http-equiv=refresh content=5><body style='font-family:sans-serif;text-align:center;padding-top:40px'>" +
+        "<h3>No QR pending</h3><p>Either the bot is already linked, or a new code is being generated.</p>" +
+        "<p>This page refreshes itself every 5 seconds.</p></body>",
+      );
+    }
+    // Auto-refreshing wrapper: codes expire every ~20s, so a bare image would
+    // go stale in the time it takes to open WhatsApp.
+    res.writeHead(200, { "Content-Type": "text/html" });
+    return res.end(
+      "<meta http-equiv=refresh content=15><body style='font-family:sans-serif;text-align:center;background:#111;color:#eee'>" +
+      "<h3>Scan with WhatsApp</h3><p>Settings &rarr; Linked devices &rarr; Link a device</p>" +
+      `<img src="data:image/png;base64,${currentQrPng.toString("base64")}" width="320">` +
+      "<p style='color:#888;font-size:13px'>Refreshes every 15s. Keep this page open.</p></body>",
+    );
+  }
+
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ ok: true, linked: !!client.info?.wid?.user, qrPending: !!currentQrPng }));
+}).listen(PORT, () => console.log(`[wa] http listening on ${PORT} — QR at /qr?k=...`));
 
 console.log("[wa] starting — session dir:", SESSION_DIR);
 client.initialize().catch(async (err) => {
