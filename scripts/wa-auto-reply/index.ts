@@ -344,6 +344,31 @@ DEATH SENTENCES (never do these):
   }
 }
 
+// Persist one turn of the live conversation. Without this the bot could talk
+// but the admin dashboard (barbieverse.org/admin/whatsapp) and every future
+// LLM call would never see it — getLeadContext only ever showed the Aug 15
+// imported history because nothing after that was ever written back.
+async function saveMessage(
+  leadId: string | null,
+  direction: "in" | "out",
+  body: string,
+) {
+  const dbUrl = process.env.SUPABASE_DB_URL;
+  if (!dbUrl || !leadId || !body) return;
+  try {
+    const { Client } = await import("pg");
+    const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    await pg.connect();
+    await pg.query(
+      `INSERT INTO wa_messages (lead_id, direction, body, created_at) VALUES ($1, $2, $3, NOW())`,
+      [leadId, direction, body],
+    );
+    await pg.end();
+  } catch (e: any) {
+    console.error("[wa] saveMessage failed:", e?.message);
+  }
+}
+
 // ── rate limiting ──────────────────────────────────────────────────────────
 function hourlyBudgetLeft(): boolean {
   const h = new Date().getUTCHours();
@@ -583,6 +608,7 @@ client.on("message", async (msg: any) => {
     // Known leads get pipeline-aware replies; unknown inbound numbers are
     // added as new leads (stage default NEW) rather than dropped, so first
     // contact from an ad click still gets engaged.
+    let leadId: string | null = null;
     const dbUrl = process.env.SUPABASE_DB_URL;
     if (dbUrl) {
       try {
@@ -592,21 +618,26 @@ client.on("message", async (msg: any) => {
           ssl: { rejectUnauthorized: false },
         });
         await pg.connect();
+        // any() over all format variants — both a bare 10-digit row and a
+        // 91-prefixed row can exist for the same person (import history vs.
+        // live testing created duplicates for at least one number already).
         const res = await pg.query(
-          "select stage from wa_leads where phone = any($1)",
+          "select id, stage from wa_leads where phone = any($1)",
           [[normPhone, bare91, phone, digits]],
         );
         if (!res.rows[0]) {
           console.log(`[wa] +${normPhone} not in wa_leads — adding as new lead`);
           try {
-            await pg.query(
-              "insert into wa_leads (phone) values ($1) on conflict (phone) do nothing",
+            const ins = await pg.query(
+              "insert into wa_leads (phone) values ($1) on conflict (phone) do update set updated_at = now() returning id",
               [normPhone],
             );
+            leadId = ins.rows[0]?.id ?? null;
           } catch (e: any) {
             console.error("[wa] new-lead insert failed:", e?.message);
           }
         } else {
+          leadId = res.rows[0].id;
           const convertedStages = [
             "AGENCY_LINKED",
             "FACE_VERIFIED",
@@ -647,20 +678,23 @@ client.on("message", async (msg: any) => {
       } else {
         await tg(caption);
       }
+      await saveMessage(leadId, "in", `[${mediaType}]`);
 
       // Acknowledge to the lead
-      await humanTyping(msg, 40);
-      await msg.reply(
+      const ack =
         mediaType === "video"
           ? "Video dekh li sister 👍 main abhi check karti hoon"
-          : "Screenshot mil gya sister 👍 main abhi dekh ke batati hoon",
-      );
+          : "Screenshot mil gya sister 👍 main abhi dekh ke batati hoon";
+      await humanTyping(msg, 40);
+      await msg.reply(ack);
+      await saveMessage(leadId, "out", ack);
       noteReply(key);
       return;
     }
     if (!text) return;
 
     console.log(`[wa] <- +${phone}: ${text.slice(0, 80)}`);
+    await saveMessage(leadId, "in", text);
 
     // Opt-out is checked BEFORE anything else can generate a reply.
     if (OPT_OUT.test(text)) {
@@ -743,6 +777,7 @@ client.on("message", async (msg: any) => {
       }
     }
     await msg.reply(replyText);
+    await saveMessage(leadId, "out", replyText);
     noteReply(key);
     console.log(`[wa] -> +${phone} (${source})`);
   } catch (err: any) {
