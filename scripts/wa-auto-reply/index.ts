@@ -1595,6 +1595,21 @@ if (process.env.WA_RESET_SESSION === "true") {
   fs.rmSync(SESSION_DIR, { recursive: true, force: true });
 }
 
+// Self-healing: this container has, more than once, gotten stuck between
+// `authenticated` and `ready` — logs go quiet, CPU drops to 0%, memory sits
+// idle, and no message is ever processed again until someone notices and
+// manually restarts the service. A plain restart has reliably cleared it
+// within seconds every time it's happened. Don't wait for a human to notice.
+const READY_TIMEOUT_MS = 3 * 60_000;
+setTimeout(() => {
+  if (!isReady) {
+    console.error(`[wa] not ready ${READY_TIMEOUT_MS / 1000}s after start — restarting`);
+    tg("⚠️ Bot stuck (never reached ready) — auto-restarting").finally(() =>
+      process.exit(1),
+    );
+  }
+}, READY_TIMEOUT_MS);
+
 client.initialize().catch(async (err) => {
   console.error("[wa] failed to start:", err);
   // If it looks like a session corruption, auto-wipe and retry once
