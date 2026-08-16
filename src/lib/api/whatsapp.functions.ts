@@ -163,3 +163,62 @@ export const listWhatsappPipeline = createServerFn({ method: "GET" }).handler(
     };
   },
 );
+
+/** Update a lead's display name from the admin dashboard. */
+export const updateLeadName = createServerFn({ method: "POST" })
+  .validator((data: { phone: string; name: string }) => data)
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("../admin-session.server");
+    await requireAdmin();
+    const { q } = await import("../db.server");
+
+    const phone = data.phone.replace(/[^\d]/g, "");
+    const name = data.name.trim();
+    if (!phone || !name) return { ok: false, error: "phone and name required" };
+
+    await q(
+      `update wa_leads set display_name = $2, updated_at = now() where phone = $1`,
+      [phone, name],
+    );
+    return { ok: true };
+  });
+
+/** Broadcast a message to all hosts via the Railway bot. */
+export const broadcastToHosts = createServerFn({ method: "POST" })
+  .validator((data: { message: string }) => data)
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("../admin-session.server");
+    await requireAdmin();
+    const { q } = await import("../db.server");
+
+    const message = data.message.trim();
+    if (!message) return { ok: false, error: "message required" };
+
+    // Get all host phones
+    const hosts = await q<{ phone: string }>(
+      `select phone from wa_leads
+       where stage in ('AGENCY_LINKED','FACE_VERIFIED','FIRST_LIVE','ACTIVE')`,
+    );
+    if (!hosts.length) return { ok: false, error: "no hosts found" };
+
+    const phones = hosts.map((h) => h.phone.replace(/[^\d]/g, ""));
+
+    // Call the Railway bot's broadcast endpoint
+    const botUrl =
+      process.env.WA_BOT_URL || "https://wa-bot-production-da76.up.railway.app";
+    const botKey = process.env.WA_BOT_KEY || "";
+    try {
+      const res = await fetch(`${botUrl}/broadcast?k=${botKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phones, message }),
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        return { ok: false, error: err };
+      }
+      return { ok: true, total: phones.length };
+    } catch (e: any) {
+      return { ok: false, error: e?.message || "failed to reach bot" };
+    }
+  });

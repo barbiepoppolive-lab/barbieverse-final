@@ -8,1335 +8,1356 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as VerifyRouteImport } from './routes/verify'
-import { Route as TrackApplicationRouteImport } from './routes/track-application'
-import { Route as TrackRouteImport } from './routes/track'
-import { Route as TestAiRouteImport } from './routes/test-ai'
-import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
-import { Route as RechargePolicyRouteImport } from './routes/recharge-policy'
-import { Route as ProofRouteImport } from './routes/proof'
-import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
-import { Route as JoinRouteImport } from './routes/join'
-import { Route as GoRouteImport } from './routes/go'
-import { Route as EarningsRouteImport } from './routes/earnings'
-import { Route as CreatorRewardPolicyRouteImport } from './routes/creator-reward-policy'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as CoinsRouteImport } from './routes/coins'
-import { Route as BlogRouteImport } from './routes/blog'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AcademyRouteImport } from './routes/academy'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AdminIndexRouteImport } from './routes/admin.index'
-import { Route as AcademyIndexRouteImport } from './routes/academy.index'
-import { Route as JoinWobbRouteImport } from './routes/join.wobb'
-import { Route as BlogHowToEarnMoneyOnPoppoLiveIndiaRouteImport } from './routes/blog.how-to-earn-money-on-poppo-live-india'
-import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
-import { Route as AdminWhatsappRouteImport } from './routes/admin.whatsapp'
-import { Route as AdminUnmatchedRouteImport } from './routes/admin.unmatched'
-import { Route as AdminSocialLeadsRouteImport } from './routes/admin.social-leads'
-import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
-import { Route as AdminScraperRouteImport } from './routes/admin.scraper'
-import { Route as AdminScoutRouteImport } from './routes/admin.scout'
-import { Route as AdminPostsRouteImport } from './routes/admin.posts'
-import { Route as AdminPoliciesRouteImport } from './routes/admin.policies'
-import { Route as AdminPayoutsRouteImport } from './routes/admin.payouts'
-import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
-import { Route as AdminMarketingRouteImport } from './routes/admin.marketing'
-import { Route as AdminLoginRouteImport } from './routes/admin.login'
-import { Route as AdminLeadsRouteImport } from './routes/admin.leads'
-import { Route as AdminHostsRouteImport } from './routes/admin.hosts'
-import { Route as AdminHomepageRouteImport } from './routes/admin.homepage'
-import { Route as AdminCreatorLeadsRouteImport } from './routes/admin.creator-leads'
-import { Route as AdminCostsRouteImport } from './routes/admin.costs'
-import { Route as AdminContentRouteImport } from './routes/admin.content'
-import { Route as AdminBrandManagerRouteImport } from './routes/admin.brand-manager'
-import { Route as AcademyWhatIsPoppoLiveRouteImport } from './routes/academy.what-is-poppo-live'
-import { Route as AcademyVoneAppIndiaRouteImport } from './routes/academy.vone-app-india'
-import { Route as AcademyPoppoWithdrawalGuideRouteImport } from './routes/academy.poppo-withdrawal-guide'
-import { Route as AcademyPoppoLiveEarningIndiaRouteImport } from './routes/academy.poppo-live-earning-india'
-import { Route as AcademyPoppoDailyTasksRouteImport } from './routes/academy.poppo-daily-tasks'
-import { Route as AcademyPkBattleGuideRouteImport } from './routes/academy.pk-battle-guide'
-import { Route as AcademyHowToBecomePoppoHostRouteImport } from './routes/academy.how-to-become-poppo-host'
-import { Route as AcademyCoinsPointsGiftsExplainedRouteImport } from './routes/academy.coins-points-gifts-explained'
-import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp-webhook'
-import { Route as ApiPublicWhatsappBotStatusRouteImport } from './routes/api/public/whatsapp-bot-status'
-import { Route as ApiPublicUpiWebhookRouteImport } from './routes/api/public/upi-webhook'
-import { Route as ApiPublicTelegramBotRouteImport } from './routes/api/public/telegram-bot'
-import { Route as ApiPublicOrderActionRouteImport } from './routes/api/public/order-action'
-import { Route as ApiPublicInteraktActionRouteImport } from './routes/api/public/interakt-action'
-import { Route as ApiPublicGenerateAdCreativeRouteImport } from './routes/api/public/generate-ad-creative'
-import { Route as ApiPublicCronWhatsappRouteImport } from './routes/api/public/cron-whatsapp'
-import { Route as ApiPublicCronSocialRouteImport } from './routes/api/public/cron-social'
-import { Route as ApiPublicCronScrapeRouteImport } from './routes/api/public/cron-scrape'
-import { Route as ApiPublicCronMojRouteImport } from './routes/api/public/cron-moj'
-import { Route as ApiPublicCronIgmojRouteImport } from './routes/api/public/cron-igmoj'
-import { Route as ApiPublicCronContentRouteImport } from './routes/api/public/cron-content'
-import { Route as ApiPublicChatRouteImport } from './routes/api/public/chat'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as IndexRouteImport } from "./routes/index";
+import { Route as AcademyRouteImport } from "./routes/academy";
+import { Route as AdminRouteImport } from "./routes/admin";
+import { Route as BlogRouteImport } from "./routes/blog";
+import { Route as CoinsRouteImport } from "./routes/coins";
+import { Route as ContactRouteImport } from "./routes/contact";
+import { Route as CreatorRewardPolicyRouteImport } from "./routes/creator-reward-policy";
+import { Route as EarningsRouteImport } from "./routes/earnings";
+import { Route as GoRouteImport } from "./routes/go";
+import { Route as JoinRouteImport } from "./routes/join";
+import { Route as PrivacyPolicyRouteImport } from "./routes/privacy-policy";
+import { Route as ProofRouteImport } from "./routes/proof";
+import { Route as RechargePolicyRouteImport } from "./routes/recharge-policy";
+import { Route as RobotsDottxtRouteImport } from "./routes/robots[.]txt";
+import { Route as SitemapDotxmlRouteImport } from "./routes/sitemap[.]xml";
+import { Route as TermsAndConditionsRouteImport } from "./routes/terms-and-conditions";
+import { Route as TestAiRouteImport } from "./routes/test-ai";
+import { Route as TrackRouteImport } from "./routes/track";
+import { Route as TrackApplicationRouteImport } from "./routes/track-application";
+import { Route as VerifyRouteImport } from "./routes/verify";
+import { Route as AcademyIndexRouteImport } from "./routes/academy.index";
+import { Route as AcademyCoinsPointsGiftsExplainedRouteImport } from "./routes/academy.coins-points-gifts-explained";
+import { Route as AcademyHowToBecomePoppoHostRouteImport } from "./routes/academy.how-to-become-poppo-host";
+import { Route as AcademyPkBattleGuideRouteImport } from "./routes/academy.pk-battle-guide";
+import { Route as AcademyPoppoDailyTasksRouteImport } from "./routes/academy.poppo-daily-tasks";
+import { Route as AcademyPoppoLiveEarningIndiaRouteImport } from "./routes/academy.poppo-live-earning-india";
+import { Route as AcademyPoppoWithdrawalGuideRouteImport } from "./routes/academy.poppo-withdrawal-guide";
+import { Route as AcademyVoneAppIndiaRouteImport } from "./routes/academy.vone-app-india";
+import { Route as AcademyWhatIsPoppoLiveRouteImport } from "./routes/academy.what-is-poppo-live";
+import { Route as AdminIndexRouteImport } from "./routes/admin.index";
+import { Route as AdminBrandManagerRouteImport } from "./routes/admin.brand-manager";
+import { Route as AdminContentRouteImport } from "./routes/admin.content";
+import { Route as AdminCostsRouteImport } from "./routes/admin.costs";
+import { Route as AdminCreatorLeadsRouteImport } from "./routes/admin.creator-leads";
+import { Route as AdminHomepageRouteImport } from "./routes/admin.homepage";
+import { Route as AdminHostsRouteImport } from "./routes/admin.hosts";
+import { Route as AdminLeadsRouteImport } from "./routes/admin.leads";
+import { Route as AdminLoginRouteImport } from "./routes/admin.login";
+import { Route as AdminMarketingRouteImport } from "./routes/admin.marketing";
+import { Route as AdminOrdersRouteImport } from "./routes/admin.orders";
+import { Route as AdminPayoutsRouteImport } from "./routes/admin.payouts";
+import { Route as AdminPoliciesRouteImport } from "./routes/admin.policies";
+import { Route as AdminPostsRouteImport } from "./routes/admin.posts";
+import { Route as AdminScoutRouteImport } from "./routes/admin.scout";
+import { Route as AdminScraperRouteImport } from "./routes/admin.scraper";
+import { Route as AdminSettingsRouteImport } from "./routes/admin.settings";
+import { Route as AdminSocialLeadsRouteImport } from "./routes/admin.social-leads";
+import { Route as AdminUnmatchedRouteImport } from "./routes/admin.unmatched";
+import { Route as AdminWhatsappRouteImport } from "./routes/admin.whatsapp";
+import { Route as BlogSlugRouteImport } from "./routes/blog.$slug";
+import { Route as BlogHowToEarnMoneyOnPoppoLiveIndiaRouteImport } from "./routes/blog.how-to-earn-money-on-poppo-live-india";
+import { Route as JoinWobbRouteImport } from "./routes/join.wobb";
+import { Route as ApiPublicChatRouteImport } from "./routes/api/public/chat";
+import { Route as ApiPublicCronContentRouteImport } from "./routes/api/public/cron-content";
+import { Route as ApiPublicCronIgmojRouteImport } from "./routes/api/public/cron-igmoj";
+import { Route as ApiPublicCronMojRouteImport } from "./routes/api/public/cron-moj";
+import { Route as ApiPublicCronScrapeRouteImport } from "./routes/api/public/cron-scrape";
+import { Route as ApiPublicCronSocialRouteImport } from "./routes/api/public/cron-social";
+import { Route as ApiPublicCronWhatsappRouteImport } from "./routes/api/public/cron-whatsapp";
+import { Route as ApiPublicGenerateAdCreativeRouteImport } from "./routes/api/public/generate-ad-creative";
+import { Route as ApiPublicInteraktActionRouteImport } from "./routes/api/public/interakt-action";
+import { Route as ApiPublicOrderActionRouteImport } from "./routes/api/public/order-action";
+import { Route as ApiPublicTelegramBotRouteImport } from "./routes/api/public/telegram-bot";
+import { Route as ApiPublicUpiWebhookRouteImport } from "./routes/api/public/upi-webhook";
+import { Route as ApiPublicWhatsappBotStatusRouteImport } from "./routes/api/public/whatsapp-bot-status";
+import { Route as ApiPublicWhatsappSyncNameRouteImport } from "./routes/api/public/whatsapp-sync-name";
+import { Route as ApiPublicWhatsappWebhookRouteImport } from "./routes/api/public/whatsapp-webhook";
 
-const VerifyRoute = VerifyRouteImport.update({
-  id: '/verify',
-  path: '/verify',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TrackApplicationRoute = TrackApplicationRouteImport.update({
-  id: '/track-application',
-  path: '/track-application',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TrackRoute = TrackRouteImport.update({
-  id: '/track',
-  path: '/track',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TestAiRoute = TestAiRouteImport.update({
-  id: '/test-ai',
-  path: '/test-ai',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermsAndConditionsRoute = TermsAndConditionsRouteImport.update({
-  id: '/terms-and-conditions',
-  path: '/terms-and-conditions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
-  id: '/robots.txt',
-  path: '/robots.txt',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RechargePolicyRoute = RechargePolicyRouteImport.update({
-  id: '/recharge-policy',
-  path: '/recharge-policy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProofRoute = ProofRouteImport.update({
-  id: '/proof',
-  path: '/proof',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
-  id: '/privacy-policy',
-  path: '/privacy-policy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JoinRoute = JoinRouteImport.update({
-  id: '/join',
-  path: '/join',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GoRoute = GoRouteImport.update({
-  id: '/go',
-  path: '/go',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EarningsRoute = EarningsRouteImport.update({
-  id: '/earnings',
-  path: '/earnings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CreatorRewardPolicyRoute = CreatorRewardPolicyRouteImport.update({
-  id: '/creator-reward-policy',
-  path: '/creator-reward-policy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CoinsRoute = CoinsRouteImport.update({
-  id: '/coins',
-  path: '/coins',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BlogRoute = BlogRouteImport.update({
-  id: '/blog',
-  path: '/blog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AcademyRoute = AcademyRouteImport.update({
-  id: '/academy',
-  path: '/academy',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRouteImport,
-} as any)
-const AdminIndexRoute = AdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminRoute,
-} as any)
+} as any);
+const AcademyRoute = AcademyRouteImport.update({
+  id: "/academy",
+  path: "/academy",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const AdminRoute = AdminRouteImport.update({
+  id: "/admin",
+  path: "/admin",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const BlogRoute = BlogRouteImport.update({
+  id: "/blog",
+  path: "/blog",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const CoinsRoute = CoinsRouteImport.update({
+  id: "/coins",
+  path: "/coins",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ContactRoute = ContactRouteImport.update({
+  id: "/contact",
+  path: "/contact",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const CreatorRewardPolicyRoute = CreatorRewardPolicyRouteImport.update({
+  id: "/creator-reward-policy",
+  path: "/creator-reward-policy",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const EarningsRoute = EarningsRouteImport.update({
+  id: "/earnings",
+  path: "/earnings",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const GoRoute = GoRouteImport.update({
+  id: "/go",
+  path: "/go",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const JoinRoute = JoinRouteImport.update({
+  id: "/join",
+  path: "/join",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: "/privacy-policy",
+  path: "/privacy-policy",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ProofRoute = ProofRouteImport.update({
+  id: "/proof",
+  path: "/proof",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const RechargePolicyRoute = RechargePolicyRouteImport.update({
+  id: "/recharge-policy",
+  path: "/recharge-policy",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: "/robots.txt",
+  path: "/robots.txt",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: "/sitemap.xml",
+  path: "/sitemap.xml",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const TermsAndConditionsRoute = TermsAndConditionsRouteImport.update({
+  id: "/terms-and-conditions",
+  path: "/terms-and-conditions",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const TestAiRoute = TestAiRouteImport.update({
+  id: "/test-ai",
+  path: "/test-ai",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const TrackRoute = TrackRouteImport.update({
+  id: "/track",
+  path: "/track",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const TrackApplicationRoute = TrackApplicationRouteImport.update({
+  id: "/track-application",
+  path: "/track-application",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const VerifyRoute = VerifyRouteImport.update({
+  id: "/verify",
+  path: "/verify",
+  getParentRoute: () => rootRouteImport,
+} as any);
 const AcademyIndexRoute = AcademyIndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => AcademyRoute,
-} as any)
-const JoinWobbRoute = JoinWobbRouteImport.update({
-  id: '/wobb',
-  path: '/wobb',
-  getParentRoute: () => JoinRoute,
-} as any)
-const BlogHowToEarnMoneyOnPoppoLiveIndiaRoute =
-  BlogHowToEarnMoneyOnPoppoLiveIndiaRouteImport.update({
-    id: '/how-to-earn-money-on-poppo-live-india',
-    path: '/how-to-earn-money-on-poppo-live-india',
-    getParentRoute: () => BlogRoute,
-  } as any)
-const BlogSlugRoute = BlogSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => BlogRoute,
-} as any)
-const AdminWhatsappRoute = AdminWhatsappRouteImport.update({
-  id: '/whatsapp',
-  path: '/whatsapp',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminUnmatchedRoute = AdminUnmatchedRouteImport.update({
-  id: '/unmatched',
-  path: '/unmatched',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminSocialLeadsRoute = AdminSocialLeadsRouteImport.update({
-  id: '/social-leads',
-  path: '/social-leads',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminSettingsRoute = AdminSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminScraperRoute = AdminScraperRouteImport.update({
-  id: '/scraper',
-  path: '/scraper',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminScoutRoute = AdminScoutRouteImport.update({
-  id: '/scout',
-  path: '/scout',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPostsRoute = AdminPostsRouteImport.update({
-  id: '/posts',
-  path: '/posts',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPoliciesRoute = AdminPoliciesRouteImport.update({
-  id: '/policies',
-  path: '/policies',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPayoutsRoute = AdminPayoutsRouteImport.update({
-  id: '/payouts',
-  path: '/payouts',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminOrdersRoute = AdminOrdersRouteImport.update({
-  id: '/orders',
-  path: '/orders',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminMarketingRoute = AdminMarketingRouteImport.update({
-  id: '/marketing',
-  path: '/marketing',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminLoginRoute = AdminLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminLeadsRoute = AdminLeadsRouteImport.update({
-  id: '/leads',
-  path: '/leads',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminHostsRoute = AdminHostsRouteImport.update({
-  id: '/hosts',
-  path: '/hosts',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminHomepageRoute = AdminHomepageRouteImport.update({
-  id: '/homepage',
-  path: '/homepage',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminCreatorLeadsRoute = AdminCreatorLeadsRouteImport.update({
-  id: '/creator-leads',
-  path: '/creator-leads',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminCostsRoute = AdminCostsRouteImport.update({
-  id: '/costs',
-  path: '/costs',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminContentRoute = AdminContentRouteImport.update({
-  id: '/content',
-  path: '/content',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminBrandManagerRoute = AdminBrandManagerRouteImport.update({
-  id: '/brand-manager',
-  path: '/brand-manager',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AcademyWhatIsPoppoLiveRoute = AcademyWhatIsPoppoLiveRouteImport.update({
-  id: '/what-is-poppo-live',
-  path: '/what-is-poppo-live',
-  getParentRoute: () => AcademyRoute,
-} as any)
-const AcademyVoneAppIndiaRoute = AcademyVoneAppIndiaRouteImport.update({
-  id: '/vone-app-india',
-  path: '/vone-app-india',
-  getParentRoute: () => AcademyRoute,
-} as any)
-const AcademyPoppoWithdrawalGuideRoute =
-  AcademyPoppoWithdrawalGuideRouteImport.update({
-    id: '/poppo-withdrawal-guide',
-    path: '/poppo-withdrawal-guide',
-    getParentRoute: () => AcademyRoute,
-  } as any)
-const AcademyPoppoLiveEarningIndiaRoute =
-  AcademyPoppoLiveEarningIndiaRouteImport.update({
-    id: '/poppo-live-earning-india',
-    path: '/poppo-live-earning-india',
-    getParentRoute: () => AcademyRoute,
-  } as any)
-const AcademyPoppoDailyTasksRoute = AcademyPoppoDailyTasksRouteImport.update({
-  id: '/poppo-daily-tasks',
-  path: '/poppo-daily-tasks',
-  getParentRoute: () => AcademyRoute,
-} as any)
-const AcademyPkBattleGuideRoute = AcademyPkBattleGuideRouteImport.update({
-  id: '/pk-battle-guide',
-  path: '/pk-battle-guide',
-  getParentRoute: () => AcademyRoute,
-} as any)
-const AcademyHowToBecomePoppoHostRoute =
-  AcademyHowToBecomePoppoHostRouteImport.update({
-    id: '/how-to-become-poppo-host',
-    path: '/how-to-become-poppo-host',
-    getParentRoute: () => AcademyRoute,
-  } as any)
+} as any);
 const AcademyCoinsPointsGiftsExplainedRoute =
   AcademyCoinsPointsGiftsExplainedRouteImport.update({
-    id: '/coins-points-gifts-explained',
-    path: '/coins-points-gifts-explained',
+    id: "/coins-points-gifts-explained",
+    path: "/coins-points-gifts-explained",
     getParentRoute: () => AcademyRoute,
-  } as any)
-const ApiPublicWhatsappWebhookRoute =
-  ApiPublicWhatsappWebhookRouteImport.update({
-    id: '/api/public/whatsapp-webhook',
-    path: '/api/public/whatsapp-webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicWhatsappBotStatusRoute =
-  ApiPublicWhatsappBotStatusRouteImport.update({
-    id: '/api/public/whatsapp-bot-status',
-    path: '/api/public/whatsapp-bot-status',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicUpiWebhookRoute = ApiPublicUpiWebhookRouteImport.update({
-  id: '/api/public/upi-webhook',
-  path: '/api/public/upi-webhook',
+  } as any);
+const AcademyHowToBecomePoppoHostRoute =
+  AcademyHowToBecomePoppoHostRouteImport.update({
+    id: "/how-to-become-poppo-host",
+    path: "/how-to-become-poppo-host",
+    getParentRoute: () => AcademyRoute,
+  } as any);
+const AcademyPkBattleGuideRoute = AcademyPkBattleGuideRouteImport.update({
+  id: "/pk-battle-guide",
+  path: "/pk-battle-guide",
+  getParentRoute: () => AcademyRoute,
+} as any);
+const AcademyPoppoDailyTasksRoute = AcademyPoppoDailyTasksRouteImport.update({
+  id: "/poppo-daily-tasks",
+  path: "/poppo-daily-tasks",
+  getParentRoute: () => AcademyRoute,
+} as any);
+const AcademyPoppoLiveEarningIndiaRoute =
+  AcademyPoppoLiveEarningIndiaRouteImport.update({
+    id: "/poppo-live-earning-india",
+    path: "/poppo-live-earning-india",
+    getParentRoute: () => AcademyRoute,
+  } as any);
+const AcademyPoppoWithdrawalGuideRoute =
+  AcademyPoppoWithdrawalGuideRouteImport.update({
+    id: "/poppo-withdrawal-guide",
+    path: "/poppo-withdrawal-guide",
+    getParentRoute: () => AcademyRoute,
+  } as any);
+const AcademyVoneAppIndiaRoute = AcademyVoneAppIndiaRouteImport.update({
+  id: "/vone-app-india",
+  path: "/vone-app-india",
+  getParentRoute: () => AcademyRoute,
+} as any);
+const AcademyWhatIsPoppoLiveRoute = AcademyWhatIsPoppoLiveRouteImport.update({
+  id: "/what-is-poppo-live",
+  path: "/what-is-poppo-live",
+  getParentRoute: () => AcademyRoute,
+} as any);
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: "/",
+  path: "/",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminBrandManagerRoute = AdminBrandManagerRouteImport.update({
+  id: "/brand-manager",
+  path: "/brand-manager",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminContentRoute = AdminContentRouteImport.update({
+  id: "/content",
+  path: "/content",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminCostsRoute = AdminCostsRouteImport.update({
+  id: "/costs",
+  path: "/costs",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminCreatorLeadsRoute = AdminCreatorLeadsRouteImport.update({
+  id: "/creator-leads",
+  path: "/creator-leads",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminHomepageRoute = AdminHomepageRouteImport.update({
+  id: "/homepage",
+  path: "/homepage",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminHostsRoute = AdminHostsRouteImport.update({
+  id: "/hosts",
+  path: "/hosts",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminLeadsRoute = AdminLeadsRouteImport.update({
+  id: "/leads",
+  path: "/leads",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: "/login",
+  path: "/login",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminMarketingRoute = AdminMarketingRouteImport.update({
+  id: "/marketing",
+  path: "/marketing",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminOrdersRoute = AdminOrdersRouteImport.update({
+  id: "/orders",
+  path: "/orders",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminPayoutsRoute = AdminPayoutsRouteImport.update({
+  id: "/payouts",
+  path: "/payouts",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminPoliciesRoute = AdminPoliciesRouteImport.update({
+  id: "/policies",
+  path: "/policies",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminPostsRoute = AdminPostsRouteImport.update({
+  id: "/posts",
+  path: "/posts",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminScoutRoute = AdminScoutRouteImport.update({
+  id: "/scout",
+  path: "/scout",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminScraperRoute = AdminScraperRouteImport.update({
+  id: "/scraper",
+  path: "/scraper",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: "/settings",
+  path: "/settings",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminSocialLeadsRoute = AdminSocialLeadsRouteImport.update({
+  id: "/social-leads",
+  path: "/social-leads",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminUnmatchedRoute = AdminUnmatchedRouteImport.update({
+  id: "/unmatched",
+  path: "/unmatched",
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminWhatsappRoute = AdminWhatsappRouteImport.update({
+  id: "/whatsapp",
+  path: "/whatsapp",
+  getParentRoute: () => AdminRoute,
+} as any);
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: "/$slug",
+  path: "/$slug",
+  getParentRoute: () => BlogRoute,
+} as any);
+const BlogHowToEarnMoneyOnPoppoLiveIndiaRoute =
+  BlogHowToEarnMoneyOnPoppoLiveIndiaRouteImport.update({
+    id: "/how-to-earn-money-on-poppo-live-india",
+    path: "/how-to-earn-money-on-poppo-live-india",
+    getParentRoute: () => BlogRoute,
+  } as any);
+const JoinWobbRoute = JoinWobbRouteImport.update({
+  id: "/wobb",
+  path: "/wobb",
+  getParentRoute: () => JoinRoute,
+} as any);
+const ApiPublicChatRoute = ApiPublicChatRouteImport.update({
+  id: "/api/public/chat",
+  path: "/api/public/chat",
   getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicTelegramBotRoute = ApiPublicTelegramBotRouteImport.update({
-  id: '/api/public/telegram-bot',
-  path: '/api/public/telegram-bot',
+} as any);
+const ApiPublicCronContentRoute = ApiPublicCronContentRouteImport.update({
+  id: "/api/public/cron-content",
+  path: "/api/public/cron-content",
   getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicOrderActionRoute = ApiPublicOrderActionRouteImport.update({
-  id: '/api/public/order-action',
-  path: '/api/public/order-action',
+} as any);
+const ApiPublicCronIgmojRoute = ApiPublicCronIgmojRouteImport.update({
+  id: "/api/public/cron-igmoj",
+  path: "/api/public/cron-igmoj",
   getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicInteraktActionRoute = ApiPublicInteraktActionRouteImport.update({
-  id: '/api/public/interakt-action',
-  path: '/api/public/interakt-action',
+} as any);
+const ApiPublicCronMojRoute = ApiPublicCronMojRouteImport.update({
+  id: "/api/public/cron-moj",
+  path: "/api/public/cron-moj",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
+const ApiPublicCronScrapeRoute = ApiPublicCronScrapeRouteImport.update({
+  id: "/api/public/cron-scrape",
+  path: "/api/public/cron-scrape",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ApiPublicCronSocialRoute = ApiPublicCronSocialRouteImport.update({
+  id: "/api/public/cron-social",
+  path: "/api/public/cron-social",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ApiPublicCronWhatsappRoute = ApiPublicCronWhatsappRouteImport.update({
+  id: "/api/public/cron-whatsapp",
+  path: "/api/public/cron-whatsapp",
+  getParentRoute: () => rootRouteImport,
+} as any);
 const ApiPublicGenerateAdCreativeRoute =
   ApiPublicGenerateAdCreativeRouteImport.update({
-    id: '/api/public/generate-ad-creative',
-    path: '/api/public/generate-ad-creative',
+    id: "/api/public/generate-ad-creative",
+    path: "/api/public/generate-ad-creative",
     getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCronWhatsappRoute = ApiPublicCronWhatsappRouteImport.update({
-  id: '/api/public/cron-whatsapp',
-  path: '/api/public/cron-whatsapp',
+  } as any);
+const ApiPublicInteraktActionRoute = ApiPublicInteraktActionRouteImport.update({
+  id: "/api/public/interakt-action",
+  path: "/api/public/interakt-action",
   getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicCronSocialRoute = ApiPublicCronSocialRouteImport.update({
-  id: '/api/public/cron-social',
-  path: '/api/public/cron-social',
+} as any);
+const ApiPublicOrderActionRoute = ApiPublicOrderActionRouteImport.update({
+  id: "/api/public/order-action",
+  path: "/api/public/order-action",
   getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicCronScrapeRoute = ApiPublicCronScrapeRouteImport.update({
-  id: '/api/public/cron-scrape',
-  path: '/api/public/cron-scrape',
+} as any);
+const ApiPublicTelegramBotRoute = ApiPublicTelegramBotRouteImport.update({
+  id: "/api/public/telegram-bot",
+  path: "/api/public/telegram-bot",
   getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicCronMojRoute = ApiPublicCronMojRouteImport.update({
-  id: '/api/public/cron-moj',
-  path: '/api/public/cron-moj',
+} as any);
+const ApiPublicUpiWebhookRoute = ApiPublicUpiWebhookRouteImport.update({
+  id: "/api/public/upi-webhook",
+  path: "/api/public/upi-webhook",
   getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicCronIgmojRoute = ApiPublicCronIgmojRouteImport.update({
-  id: '/api/public/cron-igmoj',
-  path: '/api/public/cron-igmoj',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicCronContentRoute = ApiPublicCronContentRouteImport.update({
-  id: '/api/public/cron-content',
-  path: '/api/public/cron-content',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicChatRoute = ApiPublicChatRouteImport.update({
-  id: '/api/public/chat',
-  path: '/api/public/chat',
-  getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
+const ApiPublicWhatsappBotStatusRoute =
+  ApiPublicWhatsappBotStatusRouteImport.update({
+    id: "/api/public/whatsapp-bot-status",
+    path: "/api/public/whatsapp-bot-status",
+    getParentRoute: () => rootRouteImport,
+  } as any);
+const ApiPublicWhatsappSyncNameRoute =
+  ApiPublicWhatsappSyncNameRouteImport.update({
+    id: "/api/public/whatsapp-sync-name",
+    path: "/api/public/whatsapp-sync-name",
+    getParentRoute: () => rootRouteImport,
+  } as any);
+const ApiPublicWhatsappWebhookRoute =
+  ApiPublicWhatsappWebhookRouteImport.update({
+    id: "/api/public/whatsapp-webhook",
+    path: "/api/public/whatsapp-webhook",
+    getParentRoute: () => rootRouteImport,
+  } as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/academy': typeof AcademyRouteWithChildren
-  '/admin': typeof AdminRouteWithChildren
-  '/blog': typeof BlogRouteWithChildren
-  '/coins': typeof CoinsRoute
-  '/contact': typeof ContactRoute
-  '/creator-reward-policy': typeof CreatorRewardPolicyRoute
-  '/earnings': typeof EarningsRoute
-  '/go': typeof GoRoute
-  '/join': typeof JoinRouteWithChildren
-  '/privacy-policy': typeof PrivacyPolicyRoute
-  '/proof': typeof ProofRoute
-  '/recharge-policy': typeof RechargePolicyRoute
-  '/robots.txt': typeof RobotsDottxtRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/terms-and-conditions': typeof TermsAndConditionsRoute
-  '/test-ai': typeof TestAiRoute
-  '/track': typeof TrackRoute
-  '/track-application': typeof TrackApplicationRoute
-  '/verify': typeof VerifyRoute
-  '/academy/coins-points-gifts-explained': typeof AcademyCoinsPointsGiftsExplainedRoute
-  '/academy/how-to-become-poppo-host': typeof AcademyHowToBecomePoppoHostRoute
-  '/academy/pk-battle-guide': typeof AcademyPkBattleGuideRoute
-  '/academy/poppo-daily-tasks': typeof AcademyPoppoDailyTasksRoute
-  '/academy/poppo-live-earning-india': typeof AcademyPoppoLiveEarningIndiaRoute
-  '/academy/poppo-withdrawal-guide': typeof AcademyPoppoWithdrawalGuideRoute
-  '/academy/vone-app-india': typeof AcademyVoneAppIndiaRoute
-  '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
-  '/admin/brand-manager': typeof AdminBrandManagerRoute
-  '/admin/content': typeof AdminContentRoute
-  '/admin/costs': typeof AdminCostsRoute
-  '/admin/creator-leads': typeof AdminCreatorLeadsRoute
-  '/admin/homepage': typeof AdminHomepageRoute
-  '/admin/hosts': typeof AdminHostsRoute
-  '/admin/leads': typeof AdminLeadsRoute
-  '/admin/login': typeof AdminLoginRoute
-  '/admin/marketing': typeof AdminMarketingRoute
-  '/admin/orders': typeof AdminOrdersRoute
-  '/admin/payouts': typeof AdminPayoutsRoute
-  '/admin/policies': typeof AdminPoliciesRoute
-  '/admin/posts': typeof AdminPostsRoute
-  '/admin/scout': typeof AdminScoutRoute
-  '/admin/scraper': typeof AdminScraperRoute
-  '/admin/settings': typeof AdminSettingsRoute
-  '/admin/social-leads': typeof AdminSocialLeadsRoute
-  '/admin/unmatched': typeof AdminUnmatchedRoute
-  '/admin/whatsapp': typeof AdminWhatsappRoute
-  '/blog/$slug': typeof BlogSlugRoute
-  '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyOnPoppoLiveIndiaRoute
-  '/join/wobb': typeof JoinWobbRoute
-  '/academy/': typeof AcademyIndexRoute
-  '/admin/': typeof AdminIndexRoute
-  '/api/public/chat': typeof ApiPublicChatRoute
-  '/api/public/cron-content': typeof ApiPublicCronContentRoute
-  '/api/public/cron-igmoj': typeof ApiPublicCronIgmojRoute
-  '/api/public/cron-moj': typeof ApiPublicCronMojRoute
-  '/api/public/cron-scrape': typeof ApiPublicCronScrapeRoute
-  '/api/public/cron-social': typeof ApiPublicCronSocialRoute
-  '/api/public/cron-whatsapp': typeof ApiPublicCronWhatsappRoute
-  '/api/public/generate-ad-creative': typeof ApiPublicGenerateAdCreativeRoute
-  '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
-  '/api/public/order-action': typeof ApiPublicOrderActionRoute
-  '/api/public/telegram-bot': typeof ApiPublicTelegramBotRoute
-  '/api/public/upi-webhook': typeof ApiPublicUpiWebhookRoute
-  '/api/public/whatsapp-bot-status': typeof ApiPublicWhatsappBotStatusRoute
-  '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
+  "/": typeof IndexRoute;
+  "/academy": typeof AcademyRouteWithChildren;
+  "/admin": typeof AdminRouteWithChildren;
+  "/blog": typeof BlogRouteWithChildren;
+  "/coins": typeof CoinsRoute;
+  "/contact": typeof ContactRoute;
+  "/creator-reward-policy": typeof CreatorRewardPolicyRoute;
+  "/earnings": typeof EarningsRoute;
+  "/go": typeof GoRoute;
+  "/join": typeof JoinRouteWithChildren;
+  "/privacy-policy": typeof PrivacyPolicyRoute;
+  "/proof": typeof ProofRoute;
+  "/recharge-policy": typeof RechargePolicyRoute;
+  "/robots.txt": typeof RobotsDottxtRoute;
+  "/sitemap.xml": typeof SitemapDotxmlRoute;
+  "/terms-and-conditions": typeof TermsAndConditionsRoute;
+  "/test-ai": typeof TestAiRoute;
+  "/track": typeof TrackRoute;
+  "/track-application": typeof TrackApplicationRoute;
+  "/verify": typeof VerifyRoute;
+  "/academy/coins-points-gifts-explained": typeof AcademyCoinsPointsGiftsExplainedRoute;
+  "/academy/how-to-become-poppo-host": typeof AcademyHowToBecomePoppoHostRoute;
+  "/academy/pk-battle-guide": typeof AcademyPkBattleGuideRoute;
+  "/academy/poppo-daily-tasks": typeof AcademyPoppoDailyTasksRoute;
+  "/academy/poppo-live-earning-india": typeof AcademyPoppoLiveEarningIndiaRoute;
+  "/academy/poppo-withdrawal-guide": typeof AcademyPoppoWithdrawalGuideRoute;
+  "/academy/vone-app-india": typeof AcademyVoneAppIndiaRoute;
+  "/academy/what-is-poppo-live": typeof AcademyWhatIsPoppoLiveRoute;
+  "/admin/brand-manager": typeof AdminBrandManagerRoute;
+  "/admin/content": typeof AdminContentRoute;
+  "/admin/costs": typeof AdminCostsRoute;
+  "/admin/creator-leads": typeof AdminCreatorLeadsRoute;
+  "/admin/homepage": typeof AdminHomepageRoute;
+  "/admin/hosts": typeof AdminHostsRoute;
+  "/admin/leads": typeof AdminLeadsRoute;
+  "/admin/login": typeof AdminLoginRoute;
+  "/admin/marketing": typeof AdminMarketingRoute;
+  "/admin/orders": typeof AdminOrdersRoute;
+  "/admin/payouts": typeof AdminPayoutsRoute;
+  "/admin/policies": typeof AdminPoliciesRoute;
+  "/admin/posts": typeof AdminPostsRoute;
+  "/admin/scout": typeof AdminScoutRoute;
+  "/admin/scraper": typeof AdminScraperRoute;
+  "/admin/settings": typeof AdminSettingsRoute;
+  "/admin/social-leads": typeof AdminSocialLeadsRoute;
+  "/admin/unmatched": typeof AdminUnmatchedRoute;
+  "/admin/whatsapp": typeof AdminWhatsappRoute;
+  "/blog/$slug": typeof BlogSlugRoute;
+  "/blog/how-to-earn-money-on-poppo-live-india": typeof BlogHowToEarnMoneyOnPoppoLiveIndiaRoute;
+  "/join/wobb": typeof JoinWobbRoute;
+  "/academy/": typeof AcademyIndexRoute;
+  "/admin/": typeof AdminIndexRoute;
+  "/api/public/chat": typeof ApiPublicChatRoute;
+  "/api/public/cron-content": typeof ApiPublicCronContentRoute;
+  "/api/public/cron-igmoj": typeof ApiPublicCronIgmojRoute;
+  "/api/public/cron-moj": typeof ApiPublicCronMojRoute;
+  "/api/public/cron-scrape": typeof ApiPublicCronScrapeRoute;
+  "/api/public/cron-social": typeof ApiPublicCronSocialRoute;
+  "/api/public/cron-whatsapp": typeof ApiPublicCronWhatsappRoute;
+  "/api/public/generate-ad-creative": typeof ApiPublicGenerateAdCreativeRoute;
+  "/api/public/interakt-action": typeof ApiPublicInteraktActionRoute;
+  "/api/public/order-action": typeof ApiPublicOrderActionRoute;
+  "/api/public/telegram-bot": typeof ApiPublicTelegramBotRoute;
+  "/api/public/upi-webhook": typeof ApiPublicUpiWebhookRoute;
+  "/api/public/whatsapp-bot-status": typeof ApiPublicWhatsappBotStatusRoute;
+  "/api/public/whatsapp-sync-name": typeof ApiPublicWhatsappSyncNameRoute;
+  "/api/public/whatsapp-webhook": typeof ApiPublicWhatsappWebhookRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/blog': typeof BlogRouteWithChildren
-  '/coins': typeof CoinsRoute
-  '/contact': typeof ContactRoute
-  '/creator-reward-policy': typeof CreatorRewardPolicyRoute
-  '/earnings': typeof EarningsRoute
-  '/go': typeof GoRoute
-  '/join': typeof JoinRouteWithChildren
-  '/privacy-policy': typeof PrivacyPolicyRoute
-  '/proof': typeof ProofRoute
-  '/recharge-policy': typeof RechargePolicyRoute
-  '/robots.txt': typeof RobotsDottxtRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/terms-and-conditions': typeof TermsAndConditionsRoute
-  '/test-ai': typeof TestAiRoute
-  '/track': typeof TrackRoute
-  '/track-application': typeof TrackApplicationRoute
-  '/verify': typeof VerifyRoute
-  '/academy/coins-points-gifts-explained': typeof AcademyCoinsPointsGiftsExplainedRoute
-  '/academy/how-to-become-poppo-host': typeof AcademyHowToBecomePoppoHostRoute
-  '/academy/pk-battle-guide': typeof AcademyPkBattleGuideRoute
-  '/academy/poppo-daily-tasks': typeof AcademyPoppoDailyTasksRoute
-  '/academy/poppo-live-earning-india': typeof AcademyPoppoLiveEarningIndiaRoute
-  '/academy/poppo-withdrawal-guide': typeof AcademyPoppoWithdrawalGuideRoute
-  '/academy/vone-app-india': typeof AcademyVoneAppIndiaRoute
-  '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
-  '/admin/brand-manager': typeof AdminBrandManagerRoute
-  '/admin/content': typeof AdminContentRoute
-  '/admin/costs': typeof AdminCostsRoute
-  '/admin/creator-leads': typeof AdminCreatorLeadsRoute
-  '/admin/homepage': typeof AdminHomepageRoute
-  '/admin/hosts': typeof AdminHostsRoute
-  '/admin/leads': typeof AdminLeadsRoute
-  '/admin/login': typeof AdminLoginRoute
-  '/admin/marketing': typeof AdminMarketingRoute
-  '/admin/orders': typeof AdminOrdersRoute
-  '/admin/payouts': typeof AdminPayoutsRoute
-  '/admin/policies': typeof AdminPoliciesRoute
-  '/admin/posts': typeof AdminPostsRoute
-  '/admin/scout': typeof AdminScoutRoute
-  '/admin/scraper': typeof AdminScraperRoute
-  '/admin/settings': typeof AdminSettingsRoute
-  '/admin/social-leads': typeof AdminSocialLeadsRoute
-  '/admin/unmatched': typeof AdminUnmatchedRoute
-  '/admin/whatsapp': typeof AdminWhatsappRoute
-  '/blog/$slug': typeof BlogSlugRoute
-  '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyOnPoppoLiveIndiaRoute
-  '/join/wobb': typeof JoinWobbRoute
-  '/academy': typeof AcademyIndexRoute
-  '/admin': typeof AdminIndexRoute
-  '/api/public/chat': typeof ApiPublicChatRoute
-  '/api/public/cron-content': typeof ApiPublicCronContentRoute
-  '/api/public/cron-igmoj': typeof ApiPublicCronIgmojRoute
-  '/api/public/cron-moj': typeof ApiPublicCronMojRoute
-  '/api/public/cron-scrape': typeof ApiPublicCronScrapeRoute
-  '/api/public/cron-social': typeof ApiPublicCronSocialRoute
-  '/api/public/cron-whatsapp': typeof ApiPublicCronWhatsappRoute
-  '/api/public/generate-ad-creative': typeof ApiPublicGenerateAdCreativeRoute
-  '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
-  '/api/public/order-action': typeof ApiPublicOrderActionRoute
-  '/api/public/telegram-bot': typeof ApiPublicTelegramBotRoute
-  '/api/public/upi-webhook': typeof ApiPublicUpiWebhookRoute
-  '/api/public/whatsapp-bot-status': typeof ApiPublicWhatsappBotStatusRoute
-  '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
+  "/": typeof IndexRoute;
+  "/blog": typeof BlogRouteWithChildren;
+  "/coins": typeof CoinsRoute;
+  "/contact": typeof ContactRoute;
+  "/creator-reward-policy": typeof CreatorRewardPolicyRoute;
+  "/earnings": typeof EarningsRoute;
+  "/go": typeof GoRoute;
+  "/join": typeof JoinRouteWithChildren;
+  "/privacy-policy": typeof PrivacyPolicyRoute;
+  "/proof": typeof ProofRoute;
+  "/recharge-policy": typeof RechargePolicyRoute;
+  "/robots.txt": typeof RobotsDottxtRoute;
+  "/sitemap.xml": typeof SitemapDotxmlRoute;
+  "/terms-and-conditions": typeof TermsAndConditionsRoute;
+  "/test-ai": typeof TestAiRoute;
+  "/track": typeof TrackRoute;
+  "/track-application": typeof TrackApplicationRoute;
+  "/verify": typeof VerifyRoute;
+  "/academy/coins-points-gifts-explained": typeof AcademyCoinsPointsGiftsExplainedRoute;
+  "/academy/how-to-become-poppo-host": typeof AcademyHowToBecomePoppoHostRoute;
+  "/academy/pk-battle-guide": typeof AcademyPkBattleGuideRoute;
+  "/academy/poppo-daily-tasks": typeof AcademyPoppoDailyTasksRoute;
+  "/academy/poppo-live-earning-india": typeof AcademyPoppoLiveEarningIndiaRoute;
+  "/academy/poppo-withdrawal-guide": typeof AcademyPoppoWithdrawalGuideRoute;
+  "/academy/vone-app-india": typeof AcademyVoneAppIndiaRoute;
+  "/academy/what-is-poppo-live": typeof AcademyWhatIsPoppoLiveRoute;
+  "/admin/brand-manager": typeof AdminBrandManagerRoute;
+  "/admin/content": typeof AdminContentRoute;
+  "/admin/costs": typeof AdminCostsRoute;
+  "/admin/creator-leads": typeof AdminCreatorLeadsRoute;
+  "/admin/homepage": typeof AdminHomepageRoute;
+  "/admin/hosts": typeof AdminHostsRoute;
+  "/admin/leads": typeof AdminLeadsRoute;
+  "/admin/login": typeof AdminLoginRoute;
+  "/admin/marketing": typeof AdminMarketingRoute;
+  "/admin/orders": typeof AdminOrdersRoute;
+  "/admin/payouts": typeof AdminPayoutsRoute;
+  "/admin/policies": typeof AdminPoliciesRoute;
+  "/admin/posts": typeof AdminPostsRoute;
+  "/admin/scout": typeof AdminScoutRoute;
+  "/admin/scraper": typeof AdminScraperRoute;
+  "/admin/settings": typeof AdminSettingsRoute;
+  "/admin/social-leads": typeof AdminSocialLeadsRoute;
+  "/admin/unmatched": typeof AdminUnmatchedRoute;
+  "/admin/whatsapp": typeof AdminWhatsappRoute;
+  "/blog/$slug": typeof BlogSlugRoute;
+  "/blog/how-to-earn-money-on-poppo-live-india": typeof BlogHowToEarnMoneyOnPoppoLiveIndiaRoute;
+  "/join/wobb": typeof JoinWobbRoute;
+  "/academy": typeof AcademyIndexRoute;
+  "/admin": typeof AdminIndexRoute;
+  "/api/public/chat": typeof ApiPublicChatRoute;
+  "/api/public/cron-content": typeof ApiPublicCronContentRoute;
+  "/api/public/cron-igmoj": typeof ApiPublicCronIgmojRoute;
+  "/api/public/cron-moj": typeof ApiPublicCronMojRoute;
+  "/api/public/cron-scrape": typeof ApiPublicCronScrapeRoute;
+  "/api/public/cron-social": typeof ApiPublicCronSocialRoute;
+  "/api/public/cron-whatsapp": typeof ApiPublicCronWhatsappRoute;
+  "/api/public/generate-ad-creative": typeof ApiPublicGenerateAdCreativeRoute;
+  "/api/public/interakt-action": typeof ApiPublicInteraktActionRoute;
+  "/api/public/order-action": typeof ApiPublicOrderActionRoute;
+  "/api/public/telegram-bot": typeof ApiPublicTelegramBotRoute;
+  "/api/public/upi-webhook": typeof ApiPublicUpiWebhookRoute;
+  "/api/public/whatsapp-bot-status": typeof ApiPublicWhatsappBotStatusRoute;
+  "/api/public/whatsapp-sync-name": typeof ApiPublicWhatsappSyncNameRoute;
+  "/api/public/whatsapp-webhook": typeof ApiPublicWhatsappWebhookRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/academy': typeof AcademyRouteWithChildren
-  '/admin': typeof AdminRouteWithChildren
-  '/blog': typeof BlogRouteWithChildren
-  '/coins': typeof CoinsRoute
-  '/contact': typeof ContactRoute
-  '/creator-reward-policy': typeof CreatorRewardPolicyRoute
-  '/earnings': typeof EarningsRoute
-  '/go': typeof GoRoute
-  '/join': typeof JoinRouteWithChildren
-  '/privacy-policy': typeof PrivacyPolicyRoute
-  '/proof': typeof ProofRoute
-  '/recharge-policy': typeof RechargePolicyRoute
-  '/robots.txt': typeof RobotsDottxtRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/terms-and-conditions': typeof TermsAndConditionsRoute
-  '/test-ai': typeof TestAiRoute
-  '/track': typeof TrackRoute
-  '/track-application': typeof TrackApplicationRoute
-  '/verify': typeof VerifyRoute
-  '/academy/coins-points-gifts-explained': typeof AcademyCoinsPointsGiftsExplainedRoute
-  '/academy/how-to-become-poppo-host': typeof AcademyHowToBecomePoppoHostRoute
-  '/academy/pk-battle-guide': typeof AcademyPkBattleGuideRoute
-  '/academy/poppo-daily-tasks': typeof AcademyPoppoDailyTasksRoute
-  '/academy/poppo-live-earning-india': typeof AcademyPoppoLiveEarningIndiaRoute
-  '/academy/poppo-withdrawal-guide': typeof AcademyPoppoWithdrawalGuideRoute
-  '/academy/vone-app-india': typeof AcademyVoneAppIndiaRoute
-  '/academy/what-is-poppo-live': typeof AcademyWhatIsPoppoLiveRoute
-  '/admin/brand-manager': typeof AdminBrandManagerRoute
-  '/admin/content': typeof AdminContentRoute
-  '/admin/costs': typeof AdminCostsRoute
-  '/admin/creator-leads': typeof AdminCreatorLeadsRoute
-  '/admin/homepage': typeof AdminHomepageRoute
-  '/admin/hosts': typeof AdminHostsRoute
-  '/admin/leads': typeof AdminLeadsRoute
-  '/admin/login': typeof AdminLoginRoute
-  '/admin/marketing': typeof AdminMarketingRoute
-  '/admin/orders': typeof AdminOrdersRoute
-  '/admin/payouts': typeof AdminPayoutsRoute
-  '/admin/policies': typeof AdminPoliciesRoute
-  '/admin/posts': typeof AdminPostsRoute
-  '/admin/scout': typeof AdminScoutRoute
-  '/admin/scraper': typeof AdminScraperRoute
-  '/admin/settings': typeof AdminSettingsRoute
-  '/admin/social-leads': typeof AdminSocialLeadsRoute
-  '/admin/unmatched': typeof AdminUnmatchedRoute
-  '/admin/whatsapp': typeof AdminWhatsappRoute
-  '/blog/$slug': typeof BlogSlugRoute
-  '/blog/how-to-earn-money-on-poppo-live-india': typeof BlogHowToEarnMoneyOnPoppoLiveIndiaRoute
-  '/join/wobb': typeof JoinWobbRoute
-  '/academy/': typeof AcademyIndexRoute
-  '/admin/': typeof AdminIndexRoute
-  '/api/public/chat': typeof ApiPublicChatRoute
-  '/api/public/cron-content': typeof ApiPublicCronContentRoute
-  '/api/public/cron-igmoj': typeof ApiPublicCronIgmojRoute
-  '/api/public/cron-moj': typeof ApiPublicCronMojRoute
-  '/api/public/cron-scrape': typeof ApiPublicCronScrapeRoute
-  '/api/public/cron-social': typeof ApiPublicCronSocialRoute
-  '/api/public/cron-whatsapp': typeof ApiPublicCronWhatsappRoute
-  '/api/public/generate-ad-creative': typeof ApiPublicGenerateAdCreativeRoute
-  '/api/public/interakt-action': typeof ApiPublicInteraktActionRoute
-  '/api/public/order-action': typeof ApiPublicOrderActionRoute
-  '/api/public/telegram-bot': typeof ApiPublicTelegramBotRoute
-  '/api/public/upi-webhook': typeof ApiPublicUpiWebhookRoute
-  '/api/public/whatsapp-bot-status': typeof ApiPublicWhatsappBotStatusRoute
-  '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
+  __root__: typeof rootRouteImport;
+  "/": typeof IndexRoute;
+  "/academy": typeof AcademyRouteWithChildren;
+  "/admin": typeof AdminRouteWithChildren;
+  "/blog": typeof BlogRouteWithChildren;
+  "/coins": typeof CoinsRoute;
+  "/contact": typeof ContactRoute;
+  "/creator-reward-policy": typeof CreatorRewardPolicyRoute;
+  "/earnings": typeof EarningsRoute;
+  "/go": typeof GoRoute;
+  "/join": typeof JoinRouteWithChildren;
+  "/privacy-policy": typeof PrivacyPolicyRoute;
+  "/proof": typeof ProofRoute;
+  "/recharge-policy": typeof RechargePolicyRoute;
+  "/robots.txt": typeof RobotsDottxtRoute;
+  "/sitemap.xml": typeof SitemapDotxmlRoute;
+  "/terms-and-conditions": typeof TermsAndConditionsRoute;
+  "/test-ai": typeof TestAiRoute;
+  "/track": typeof TrackRoute;
+  "/track-application": typeof TrackApplicationRoute;
+  "/verify": typeof VerifyRoute;
+  "/academy/coins-points-gifts-explained": typeof AcademyCoinsPointsGiftsExplainedRoute;
+  "/academy/how-to-become-poppo-host": typeof AcademyHowToBecomePoppoHostRoute;
+  "/academy/pk-battle-guide": typeof AcademyPkBattleGuideRoute;
+  "/academy/poppo-daily-tasks": typeof AcademyPoppoDailyTasksRoute;
+  "/academy/poppo-live-earning-india": typeof AcademyPoppoLiveEarningIndiaRoute;
+  "/academy/poppo-withdrawal-guide": typeof AcademyPoppoWithdrawalGuideRoute;
+  "/academy/vone-app-india": typeof AcademyVoneAppIndiaRoute;
+  "/academy/what-is-poppo-live": typeof AcademyWhatIsPoppoLiveRoute;
+  "/admin/brand-manager": typeof AdminBrandManagerRoute;
+  "/admin/content": typeof AdminContentRoute;
+  "/admin/costs": typeof AdminCostsRoute;
+  "/admin/creator-leads": typeof AdminCreatorLeadsRoute;
+  "/admin/homepage": typeof AdminHomepageRoute;
+  "/admin/hosts": typeof AdminHostsRoute;
+  "/admin/leads": typeof AdminLeadsRoute;
+  "/admin/login": typeof AdminLoginRoute;
+  "/admin/marketing": typeof AdminMarketingRoute;
+  "/admin/orders": typeof AdminOrdersRoute;
+  "/admin/payouts": typeof AdminPayoutsRoute;
+  "/admin/policies": typeof AdminPoliciesRoute;
+  "/admin/posts": typeof AdminPostsRoute;
+  "/admin/scout": typeof AdminScoutRoute;
+  "/admin/scraper": typeof AdminScraperRoute;
+  "/admin/settings": typeof AdminSettingsRoute;
+  "/admin/social-leads": typeof AdminSocialLeadsRoute;
+  "/admin/unmatched": typeof AdminUnmatchedRoute;
+  "/admin/whatsapp": typeof AdminWhatsappRoute;
+  "/blog/$slug": typeof BlogSlugRoute;
+  "/blog/how-to-earn-money-on-poppo-live-india": typeof BlogHowToEarnMoneyOnPoppoLiveIndiaRoute;
+  "/join/wobb": typeof JoinWobbRoute;
+  "/academy/": typeof AcademyIndexRoute;
+  "/admin/": typeof AdminIndexRoute;
+  "/api/public/chat": typeof ApiPublicChatRoute;
+  "/api/public/cron-content": typeof ApiPublicCronContentRoute;
+  "/api/public/cron-igmoj": typeof ApiPublicCronIgmojRoute;
+  "/api/public/cron-moj": typeof ApiPublicCronMojRoute;
+  "/api/public/cron-scrape": typeof ApiPublicCronScrapeRoute;
+  "/api/public/cron-social": typeof ApiPublicCronSocialRoute;
+  "/api/public/cron-whatsapp": typeof ApiPublicCronWhatsappRoute;
+  "/api/public/generate-ad-creative": typeof ApiPublicGenerateAdCreativeRoute;
+  "/api/public/interakt-action": typeof ApiPublicInteraktActionRoute;
+  "/api/public/order-action": typeof ApiPublicOrderActionRoute;
+  "/api/public/telegram-bot": typeof ApiPublicTelegramBotRoute;
+  "/api/public/upi-webhook": typeof ApiPublicUpiWebhookRoute;
+  "/api/public/whatsapp-bot-status": typeof ApiPublicWhatsappBotStatusRoute;
+  "/api/public/whatsapp-sync-name": typeof ApiPublicWhatsappSyncNameRoute;
+  "/api/public/whatsapp-webhook": typeof ApiPublicWhatsappWebhookRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    | '/'
-    | '/academy'
-    | '/admin'
-    | '/blog'
-    | '/coins'
-    | '/contact'
-    | '/creator-reward-policy'
-    | '/earnings'
-    | '/go'
-    | '/join'
-    | '/privacy-policy'
-    | '/proof'
-    | '/recharge-policy'
-    | '/robots.txt'
-    | '/sitemap.xml'
-    | '/terms-and-conditions'
-    | '/test-ai'
-    | '/track'
-    | '/track-application'
-    | '/verify'
-    | '/academy/coins-points-gifts-explained'
-    | '/academy/how-to-become-poppo-host'
-    | '/academy/pk-battle-guide'
-    | '/academy/poppo-daily-tasks'
-    | '/academy/poppo-live-earning-india'
-    | '/academy/poppo-withdrawal-guide'
-    | '/academy/vone-app-india'
-    | '/academy/what-is-poppo-live'
-    | '/admin/brand-manager'
-    | '/admin/content'
-    | '/admin/costs'
-    | '/admin/creator-leads'
-    | '/admin/homepage'
-    | '/admin/hosts'
-    | '/admin/leads'
-    | '/admin/login'
-    | '/admin/marketing'
-    | '/admin/orders'
-    | '/admin/payouts'
-    | '/admin/policies'
-    | '/admin/posts'
-    | '/admin/scout'
-    | '/admin/scraper'
-    | '/admin/settings'
-    | '/admin/social-leads'
-    | '/admin/unmatched'
-    | '/admin/whatsapp'
-    | '/blog/$slug'
-    | '/blog/how-to-earn-money-on-poppo-live-india'
-    | '/join/wobb'
-    | '/academy/'
-    | '/admin/'
-    | '/api/public/chat'
-    | '/api/public/cron-content'
-    | '/api/public/cron-igmoj'
-    | '/api/public/cron-moj'
-    | '/api/public/cron-scrape'
-    | '/api/public/cron-social'
-    | '/api/public/cron-whatsapp'
-    | '/api/public/generate-ad-creative'
-    | '/api/public/interakt-action'
-    | '/api/public/order-action'
-    | '/api/public/telegram-bot'
-    | '/api/public/upi-webhook'
-    | '/api/public/whatsapp-bot-status'
-    | '/api/public/whatsapp-webhook'
-  fileRoutesByTo: FileRoutesByTo
+    | "/"
+    | "/academy"
+    | "/admin"
+    | "/blog"
+    | "/coins"
+    | "/contact"
+    | "/creator-reward-policy"
+    | "/earnings"
+    | "/go"
+    | "/join"
+    | "/privacy-policy"
+    | "/proof"
+    | "/recharge-policy"
+    | "/robots.txt"
+    | "/sitemap.xml"
+    | "/terms-and-conditions"
+    | "/test-ai"
+    | "/track"
+    | "/track-application"
+    | "/verify"
+    | "/academy/coins-points-gifts-explained"
+    | "/academy/how-to-become-poppo-host"
+    | "/academy/pk-battle-guide"
+    | "/academy/poppo-daily-tasks"
+    | "/academy/poppo-live-earning-india"
+    | "/academy/poppo-withdrawal-guide"
+    | "/academy/vone-app-india"
+    | "/academy/what-is-poppo-live"
+    | "/admin/brand-manager"
+    | "/admin/content"
+    | "/admin/costs"
+    | "/admin/creator-leads"
+    | "/admin/homepage"
+    | "/admin/hosts"
+    | "/admin/leads"
+    | "/admin/login"
+    | "/admin/marketing"
+    | "/admin/orders"
+    | "/admin/payouts"
+    | "/admin/policies"
+    | "/admin/posts"
+    | "/admin/scout"
+    | "/admin/scraper"
+    | "/admin/settings"
+    | "/admin/social-leads"
+    | "/admin/unmatched"
+    | "/admin/whatsapp"
+    | "/blog/$slug"
+    | "/blog/how-to-earn-money-on-poppo-live-india"
+    | "/join/wobb"
+    | "/academy/"
+    | "/admin/"
+    | "/api/public/chat"
+    | "/api/public/cron-content"
+    | "/api/public/cron-igmoj"
+    | "/api/public/cron-moj"
+    | "/api/public/cron-scrape"
+    | "/api/public/cron-social"
+    | "/api/public/cron-whatsapp"
+    | "/api/public/generate-ad-creative"
+    | "/api/public/interakt-action"
+    | "/api/public/order-action"
+    | "/api/public/telegram-bot"
+    | "/api/public/upi-webhook"
+    | "/api/public/whatsapp-bot-status"
+    | "/api/public/whatsapp-sync-name"
+    | "/api/public/whatsapp-webhook";
+  fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/'
-    | '/blog'
-    | '/coins'
-    | '/contact'
-    | '/creator-reward-policy'
-    | '/earnings'
-    | '/go'
-    | '/join'
-    | '/privacy-policy'
-    | '/proof'
-    | '/recharge-policy'
-    | '/robots.txt'
-    | '/sitemap.xml'
-    | '/terms-and-conditions'
-    | '/test-ai'
-    | '/track'
-    | '/track-application'
-    | '/verify'
-    | '/academy/coins-points-gifts-explained'
-    | '/academy/how-to-become-poppo-host'
-    | '/academy/pk-battle-guide'
-    | '/academy/poppo-daily-tasks'
-    | '/academy/poppo-live-earning-india'
-    | '/academy/poppo-withdrawal-guide'
-    | '/academy/vone-app-india'
-    | '/academy/what-is-poppo-live'
-    | '/admin/brand-manager'
-    | '/admin/content'
-    | '/admin/costs'
-    | '/admin/creator-leads'
-    | '/admin/homepage'
-    | '/admin/hosts'
-    | '/admin/leads'
-    | '/admin/login'
-    | '/admin/marketing'
-    | '/admin/orders'
-    | '/admin/payouts'
-    | '/admin/policies'
-    | '/admin/posts'
-    | '/admin/scout'
-    | '/admin/scraper'
-    | '/admin/settings'
-    | '/admin/social-leads'
-    | '/admin/unmatched'
-    | '/admin/whatsapp'
-    | '/blog/$slug'
-    | '/blog/how-to-earn-money-on-poppo-live-india'
-    | '/join/wobb'
-    | '/academy'
-    | '/admin'
-    | '/api/public/chat'
-    | '/api/public/cron-content'
-    | '/api/public/cron-igmoj'
-    | '/api/public/cron-moj'
-    | '/api/public/cron-scrape'
-    | '/api/public/cron-social'
-    | '/api/public/cron-whatsapp'
-    | '/api/public/generate-ad-creative'
-    | '/api/public/interakt-action'
-    | '/api/public/order-action'
-    | '/api/public/telegram-bot'
-    | '/api/public/upi-webhook'
-    | '/api/public/whatsapp-bot-status'
-    | '/api/public/whatsapp-webhook'
+    | "/"
+    | "/blog"
+    | "/coins"
+    | "/contact"
+    | "/creator-reward-policy"
+    | "/earnings"
+    | "/go"
+    | "/join"
+    | "/privacy-policy"
+    | "/proof"
+    | "/recharge-policy"
+    | "/robots.txt"
+    | "/sitemap.xml"
+    | "/terms-and-conditions"
+    | "/test-ai"
+    | "/track"
+    | "/track-application"
+    | "/verify"
+    | "/academy/coins-points-gifts-explained"
+    | "/academy/how-to-become-poppo-host"
+    | "/academy/pk-battle-guide"
+    | "/academy/poppo-daily-tasks"
+    | "/academy/poppo-live-earning-india"
+    | "/academy/poppo-withdrawal-guide"
+    | "/academy/vone-app-india"
+    | "/academy/what-is-poppo-live"
+    | "/admin/brand-manager"
+    | "/admin/content"
+    | "/admin/costs"
+    | "/admin/creator-leads"
+    | "/admin/homepage"
+    | "/admin/hosts"
+    | "/admin/leads"
+    | "/admin/login"
+    | "/admin/marketing"
+    | "/admin/orders"
+    | "/admin/payouts"
+    | "/admin/policies"
+    | "/admin/posts"
+    | "/admin/scout"
+    | "/admin/scraper"
+    | "/admin/settings"
+    | "/admin/social-leads"
+    | "/admin/unmatched"
+    | "/admin/whatsapp"
+    | "/blog/$slug"
+    | "/blog/how-to-earn-money-on-poppo-live-india"
+    | "/join/wobb"
+    | "/academy"
+    | "/admin"
+    | "/api/public/chat"
+    | "/api/public/cron-content"
+    | "/api/public/cron-igmoj"
+    | "/api/public/cron-moj"
+    | "/api/public/cron-scrape"
+    | "/api/public/cron-social"
+    | "/api/public/cron-whatsapp"
+    | "/api/public/generate-ad-creative"
+    | "/api/public/interakt-action"
+    | "/api/public/order-action"
+    | "/api/public/telegram-bot"
+    | "/api/public/upi-webhook"
+    | "/api/public/whatsapp-bot-status"
+    | "/api/public/whatsapp-sync-name"
+    | "/api/public/whatsapp-webhook";
   id:
-    | '__root__'
-    | '/'
-    | '/academy'
-    | '/admin'
-    | '/blog'
-    | '/coins'
-    | '/contact'
-    | '/creator-reward-policy'
-    | '/earnings'
-    | '/go'
-    | '/join'
-    | '/privacy-policy'
-    | '/proof'
-    | '/recharge-policy'
-    | '/robots.txt'
-    | '/sitemap.xml'
-    | '/terms-and-conditions'
-    | '/test-ai'
-    | '/track'
-    | '/track-application'
-    | '/verify'
-    | '/academy/coins-points-gifts-explained'
-    | '/academy/how-to-become-poppo-host'
-    | '/academy/pk-battle-guide'
-    | '/academy/poppo-daily-tasks'
-    | '/academy/poppo-live-earning-india'
-    | '/academy/poppo-withdrawal-guide'
-    | '/academy/vone-app-india'
-    | '/academy/what-is-poppo-live'
-    | '/admin/brand-manager'
-    | '/admin/content'
-    | '/admin/costs'
-    | '/admin/creator-leads'
-    | '/admin/homepage'
-    | '/admin/hosts'
-    | '/admin/leads'
-    | '/admin/login'
-    | '/admin/marketing'
-    | '/admin/orders'
-    | '/admin/payouts'
-    | '/admin/policies'
-    | '/admin/posts'
-    | '/admin/scout'
-    | '/admin/scraper'
-    | '/admin/settings'
-    | '/admin/social-leads'
-    | '/admin/unmatched'
-    | '/admin/whatsapp'
-    | '/blog/$slug'
-    | '/blog/how-to-earn-money-on-poppo-live-india'
-    | '/join/wobb'
-    | '/academy/'
-    | '/admin/'
-    | '/api/public/chat'
-    | '/api/public/cron-content'
-    | '/api/public/cron-igmoj'
-    | '/api/public/cron-moj'
-    | '/api/public/cron-scrape'
-    | '/api/public/cron-social'
-    | '/api/public/cron-whatsapp'
-    | '/api/public/generate-ad-creative'
-    | '/api/public/interakt-action'
-    | '/api/public/order-action'
-    | '/api/public/telegram-bot'
-    | '/api/public/upi-webhook'
-    | '/api/public/whatsapp-bot-status'
-    | '/api/public/whatsapp-webhook'
-  fileRoutesById: FileRoutesById
+    | "__root__"
+    | "/"
+    | "/academy"
+    | "/admin"
+    | "/blog"
+    | "/coins"
+    | "/contact"
+    | "/creator-reward-policy"
+    | "/earnings"
+    | "/go"
+    | "/join"
+    | "/privacy-policy"
+    | "/proof"
+    | "/recharge-policy"
+    | "/robots.txt"
+    | "/sitemap.xml"
+    | "/terms-and-conditions"
+    | "/test-ai"
+    | "/track"
+    | "/track-application"
+    | "/verify"
+    | "/academy/coins-points-gifts-explained"
+    | "/academy/how-to-become-poppo-host"
+    | "/academy/pk-battle-guide"
+    | "/academy/poppo-daily-tasks"
+    | "/academy/poppo-live-earning-india"
+    | "/academy/poppo-withdrawal-guide"
+    | "/academy/vone-app-india"
+    | "/academy/what-is-poppo-live"
+    | "/admin/brand-manager"
+    | "/admin/content"
+    | "/admin/costs"
+    | "/admin/creator-leads"
+    | "/admin/homepage"
+    | "/admin/hosts"
+    | "/admin/leads"
+    | "/admin/login"
+    | "/admin/marketing"
+    | "/admin/orders"
+    | "/admin/payouts"
+    | "/admin/policies"
+    | "/admin/posts"
+    | "/admin/scout"
+    | "/admin/scraper"
+    | "/admin/settings"
+    | "/admin/social-leads"
+    | "/admin/unmatched"
+    | "/admin/whatsapp"
+    | "/blog/$slug"
+    | "/blog/how-to-earn-money-on-poppo-live-india"
+    | "/join/wobb"
+    | "/academy/"
+    | "/admin/"
+    | "/api/public/chat"
+    | "/api/public/cron-content"
+    | "/api/public/cron-igmoj"
+    | "/api/public/cron-moj"
+    | "/api/public/cron-scrape"
+    | "/api/public/cron-social"
+    | "/api/public/cron-whatsapp"
+    | "/api/public/generate-ad-creative"
+    | "/api/public/interakt-action"
+    | "/api/public/order-action"
+    | "/api/public/telegram-bot"
+    | "/api/public/upi-webhook"
+    | "/api/public/whatsapp-bot-status"
+    | "/api/public/whatsapp-sync-name"
+    | "/api/public/whatsapp-webhook";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AcademyRoute: typeof AcademyRouteWithChildren
-  AdminRoute: typeof AdminRouteWithChildren
-  BlogRoute: typeof BlogRouteWithChildren
-  CoinsRoute: typeof CoinsRoute
-  ContactRoute: typeof ContactRoute
-  CreatorRewardPolicyRoute: typeof CreatorRewardPolicyRoute
-  EarningsRoute: typeof EarningsRoute
-  GoRoute: typeof GoRoute
-  JoinRoute: typeof JoinRouteWithChildren
-  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
-  ProofRoute: typeof ProofRoute
-  RechargePolicyRoute: typeof RechargePolicyRoute
-  RobotsDottxtRoute: typeof RobotsDottxtRoute
-  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  TermsAndConditionsRoute: typeof TermsAndConditionsRoute
-  TestAiRoute: typeof TestAiRoute
-  TrackRoute: typeof TrackRoute
-  TrackApplicationRoute: typeof TrackApplicationRoute
-  VerifyRoute: typeof VerifyRoute
-  ApiPublicChatRoute: typeof ApiPublicChatRoute
-  ApiPublicCronContentRoute: typeof ApiPublicCronContentRoute
-  ApiPublicCronIgmojRoute: typeof ApiPublicCronIgmojRoute
-  ApiPublicCronMojRoute: typeof ApiPublicCronMojRoute
-  ApiPublicCronScrapeRoute: typeof ApiPublicCronScrapeRoute
-  ApiPublicCronSocialRoute: typeof ApiPublicCronSocialRoute
-  ApiPublicCronWhatsappRoute: typeof ApiPublicCronWhatsappRoute
-  ApiPublicGenerateAdCreativeRoute: typeof ApiPublicGenerateAdCreativeRoute
-  ApiPublicInteraktActionRoute: typeof ApiPublicInteraktActionRoute
-  ApiPublicOrderActionRoute: typeof ApiPublicOrderActionRoute
-  ApiPublicTelegramBotRoute: typeof ApiPublicTelegramBotRoute
-  ApiPublicUpiWebhookRoute: typeof ApiPublicUpiWebhookRoute
-  ApiPublicWhatsappBotStatusRoute: typeof ApiPublicWhatsappBotStatusRoute
-  ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
+  IndexRoute: typeof IndexRoute;
+  AcademyRoute: typeof AcademyRouteWithChildren;
+  AdminRoute: typeof AdminRouteWithChildren;
+  BlogRoute: typeof BlogRouteWithChildren;
+  CoinsRoute: typeof CoinsRoute;
+  ContactRoute: typeof ContactRoute;
+  CreatorRewardPolicyRoute: typeof CreatorRewardPolicyRoute;
+  EarningsRoute: typeof EarningsRoute;
+  GoRoute: typeof GoRoute;
+  JoinRoute: typeof JoinRouteWithChildren;
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute;
+  ProofRoute: typeof ProofRoute;
+  RechargePolicyRoute: typeof RechargePolicyRoute;
+  RobotsDottxtRoute: typeof RobotsDottxtRoute;
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute;
+  TermsAndConditionsRoute: typeof TermsAndConditionsRoute;
+  TestAiRoute: typeof TestAiRoute;
+  TrackRoute: typeof TrackRoute;
+  TrackApplicationRoute: typeof TrackApplicationRoute;
+  VerifyRoute: typeof VerifyRoute;
+  ApiPublicChatRoute: typeof ApiPublicChatRoute;
+  ApiPublicCronContentRoute: typeof ApiPublicCronContentRoute;
+  ApiPublicCronIgmojRoute: typeof ApiPublicCronIgmojRoute;
+  ApiPublicCronMojRoute: typeof ApiPublicCronMojRoute;
+  ApiPublicCronScrapeRoute: typeof ApiPublicCronScrapeRoute;
+  ApiPublicCronSocialRoute: typeof ApiPublicCronSocialRoute;
+  ApiPublicCronWhatsappRoute: typeof ApiPublicCronWhatsappRoute;
+  ApiPublicGenerateAdCreativeRoute: typeof ApiPublicGenerateAdCreativeRoute;
+  ApiPublicInteraktActionRoute: typeof ApiPublicInteraktActionRoute;
+  ApiPublicOrderActionRoute: typeof ApiPublicOrderActionRoute;
+  ApiPublicTelegramBotRoute: typeof ApiPublicTelegramBotRoute;
+  ApiPublicUpiWebhookRoute: typeof ApiPublicUpiWebhookRoute;
+  ApiPublicWhatsappBotStatusRoute: typeof ApiPublicWhatsappBotStatusRoute;
+  ApiPublicWhatsappSyncNameRoute: typeof ApiPublicWhatsappSyncNameRoute;
+  ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute;
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/verify': {
-      id: '/verify'
-      path: '/verify'
-      fullPath: '/verify'
-      preLoaderRoute: typeof VerifyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/track-application': {
-      id: '/track-application'
-      path: '/track-application'
-      fullPath: '/track-application'
-      preLoaderRoute: typeof TrackApplicationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/track': {
-      id: '/track'
-      path: '/track'
-      fullPath: '/track'
-      preLoaderRoute: typeof TrackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/test-ai': {
-      id: '/test-ai'
-      path: '/test-ai'
-      fullPath: '/test-ai'
-      preLoaderRoute: typeof TestAiRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms-and-conditions': {
-      id: '/terms-and-conditions'
-      path: '/terms-and-conditions'
-      fullPath: '/terms-and-conditions'
-      preLoaderRoute: typeof TermsAndConditionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/robots.txt': {
-      id: '/robots.txt'
-      path: '/robots.txt'
-      fullPath: '/robots.txt'
-      preLoaderRoute: typeof RobotsDottxtRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/recharge-policy': {
-      id: '/recharge-policy'
-      path: '/recharge-policy'
-      fullPath: '/recharge-policy'
-      preLoaderRoute: typeof RechargePolicyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/proof': {
-      id: '/proof'
-      path: '/proof'
-      fullPath: '/proof'
-      preLoaderRoute: typeof ProofRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy-policy': {
-      id: '/privacy-policy'
-      path: '/privacy-policy'
-      fullPath: '/privacy-policy'
-      preLoaderRoute: typeof PrivacyPolicyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/join': {
-      id: '/join'
-      path: '/join'
-      fullPath: '/join'
-      preLoaderRoute: typeof JoinRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/go': {
-      id: '/go'
-      path: '/go'
-      fullPath: '/go'
-      preLoaderRoute: typeof GoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/earnings': {
-      id: '/earnings'
-      path: '/earnings'
-      fullPath: '/earnings'
-      preLoaderRoute: typeof EarningsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/creator-reward-policy': {
-      id: '/creator-reward-policy'
-      path: '/creator-reward-policy'
-      fullPath: '/creator-reward-policy'
-      preLoaderRoute: typeof CreatorRewardPolicyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/coins': {
-      id: '/coins'
-      path: '/coins'
-      fullPath: '/coins'
-      preLoaderRoute: typeof CoinsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/blog': {
-      id: '/blog'
-      path: '/blog'
-      fullPath: '/blog'
-      preLoaderRoute: typeof BlogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/academy': {
-      id: '/academy'
-      path: '/academy'
-      fullPath: '/academy'
-      preLoaderRoute: typeof AcademyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/': {
-      id: '/admin/'
-      path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/academy/': {
-      id: '/academy/'
-      path: '/'
-      fullPath: '/academy/'
-      preLoaderRoute: typeof AcademyIndexRouteImport
-      parentRoute: typeof AcademyRoute
-    }
-    '/join/wobb': {
-      id: '/join/wobb'
-      path: '/wobb'
-      fullPath: '/join/wobb'
-      preLoaderRoute: typeof JoinWobbRouteImport
-      parentRoute: typeof JoinRoute
-    }
-    '/blog/how-to-earn-money-on-poppo-live-india': {
-      id: '/blog/how-to-earn-money-on-poppo-live-india'
-      path: '/how-to-earn-money-on-poppo-live-india'
-      fullPath: '/blog/how-to-earn-money-on-poppo-live-india'
-      preLoaderRoute: typeof BlogHowToEarnMoneyOnPoppoLiveIndiaRouteImport
-      parentRoute: typeof BlogRoute
-    }
-    '/blog/$slug': {
-      id: '/blog/$slug'
-      path: '/$slug'
-      fullPath: '/blog/$slug'
-      preLoaderRoute: typeof BlogSlugRouteImport
-      parentRoute: typeof BlogRoute
-    }
-    '/admin/whatsapp': {
-      id: '/admin/whatsapp'
-      path: '/whatsapp'
-      fullPath: '/admin/whatsapp'
-      preLoaderRoute: typeof AdminWhatsappRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/unmatched': {
-      id: '/admin/unmatched'
-      path: '/unmatched'
-      fullPath: '/admin/unmatched'
-      preLoaderRoute: typeof AdminUnmatchedRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/social-leads': {
-      id: '/admin/social-leads'
-      path: '/social-leads'
-      fullPath: '/admin/social-leads'
-      preLoaderRoute: typeof AdminSocialLeadsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/settings': {
-      id: '/admin/settings'
-      path: '/settings'
-      fullPath: '/admin/settings'
-      preLoaderRoute: typeof AdminSettingsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/scraper': {
-      id: '/admin/scraper'
-      path: '/scraper'
-      fullPath: '/admin/scraper'
-      preLoaderRoute: typeof AdminScraperRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/scout': {
-      id: '/admin/scout'
-      path: '/scout'
-      fullPath: '/admin/scout'
-      preLoaderRoute: typeof AdminScoutRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/posts': {
-      id: '/admin/posts'
-      path: '/posts'
-      fullPath: '/admin/posts'
-      preLoaderRoute: typeof AdminPostsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/policies': {
-      id: '/admin/policies'
-      path: '/policies'
-      fullPath: '/admin/policies'
-      preLoaderRoute: typeof AdminPoliciesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/payouts': {
-      id: '/admin/payouts'
-      path: '/payouts'
-      fullPath: '/admin/payouts'
-      preLoaderRoute: typeof AdminPayoutsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/orders': {
-      id: '/admin/orders'
-      path: '/orders'
-      fullPath: '/admin/orders'
-      preLoaderRoute: typeof AdminOrdersRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/marketing': {
-      id: '/admin/marketing'
-      path: '/marketing'
-      fullPath: '/admin/marketing'
-      preLoaderRoute: typeof AdminMarketingRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/login': {
-      id: '/admin/login'
-      path: '/login'
-      fullPath: '/admin/login'
-      preLoaderRoute: typeof AdminLoginRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/leads': {
-      id: '/admin/leads'
-      path: '/leads'
-      fullPath: '/admin/leads'
-      preLoaderRoute: typeof AdminLeadsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/hosts': {
-      id: '/admin/hosts'
-      path: '/hosts'
-      fullPath: '/admin/hosts'
-      preLoaderRoute: typeof AdminHostsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/homepage': {
-      id: '/admin/homepage'
-      path: '/homepage'
-      fullPath: '/admin/homepage'
-      preLoaderRoute: typeof AdminHomepageRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/creator-leads': {
-      id: '/admin/creator-leads'
-      path: '/creator-leads'
-      fullPath: '/admin/creator-leads'
-      preLoaderRoute: typeof AdminCreatorLeadsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/costs': {
-      id: '/admin/costs'
-      path: '/costs'
-      fullPath: '/admin/costs'
-      preLoaderRoute: typeof AdminCostsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/content': {
-      id: '/admin/content'
-      path: '/content'
-      fullPath: '/admin/content'
-      preLoaderRoute: typeof AdminContentRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/brand-manager': {
-      id: '/admin/brand-manager'
-      path: '/brand-manager'
-      fullPath: '/admin/brand-manager'
-      preLoaderRoute: typeof AdminBrandManagerRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/academy/what-is-poppo-live': {
-      id: '/academy/what-is-poppo-live'
-      path: '/what-is-poppo-live'
-      fullPath: '/academy/what-is-poppo-live'
-      preLoaderRoute: typeof AcademyWhatIsPoppoLiveRouteImport
-      parentRoute: typeof AcademyRoute
-    }
-    '/academy/vone-app-india': {
-      id: '/academy/vone-app-india'
-      path: '/vone-app-india'
-      fullPath: '/academy/vone-app-india'
-      preLoaderRoute: typeof AcademyVoneAppIndiaRouteImport
-      parentRoute: typeof AcademyRoute
-    }
-    '/academy/poppo-withdrawal-guide': {
-      id: '/academy/poppo-withdrawal-guide'
-      path: '/poppo-withdrawal-guide'
-      fullPath: '/academy/poppo-withdrawal-guide'
-      preLoaderRoute: typeof AcademyPoppoWithdrawalGuideRouteImport
-      parentRoute: typeof AcademyRoute
-    }
-    '/academy/poppo-live-earning-india': {
-      id: '/academy/poppo-live-earning-india'
-      path: '/poppo-live-earning-india'
-      fullPath: '/academy/poppo-live-earning-india'
-      preLoaderRoute: typeof AcademyPoppoLiveEarningIndiaRouteImport
-      parentRoute: typeof AcademyRoute
-    }
-    '/academy/poppo-daily-tasks': {
-      id: '/academy/poppo-daily-tasks'
-      path: '/poppo-daily-tasks'
-      fullPath: '/academy/poppo-daily-tasks'
-      preLoaderRoute: typeof AcademyPoppoDailyTasksRouteImport
-      parentRoute: typeof AcademyRoute
-    }
-    '/academy/pk-battle-guide': {
-      id: '/academy/pk-battle-guide'
-      path: '/pk-battle-guide'
-      fullPath: '/academy/pk-battle-guide'
-      preLoaderRoute: typeof AcademyPkBattleGuideRouteImport
-      parentRoute: typeof AcademyRoute
-    }
-    '/academy/how-to-become-poppo-host': {
-      id: '/academy/how-to-become-poppo-host'
-      path: '/how-to-become-poppo-host'
-      fullPath: '/academy/how-to-become-poppo-host'
-      preLoaderRoute: typeof AcademyHowToBecomePoppoHostRouteImport
-      parentRoute: typeof AcademyRoute
-    }
-    '/academy/coins-points-gifts-explained': {
-      id: '/academy/coins-points-gifts-explained'
-      path: '/coins-points-gifts-explained'
-      fullPath: '/academy/coins-points-gifts-explained'
-      preLoaderRoute: typeof AcademyCoinsPointsGiftsExplainedRouteImport
-      parentRoute: typeof AcademyRoute
-    }
-    '/api/public/whatsapp-webhook': {
-      id: '/api/public/whatsapp-webhook'
-      path: '/api/public/whatsapp-webhook'
-      fullPath: '/api/public/whatsapp-webhook'
-      preLoaderRoute: typeof ApiPublicWhatsappWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/whatsapp-bot-status': {
-      id: '/api/public/whatsapp-bot-status'
-      path: '/api/public/whatsapp-bot-status'
-      fullPath: '/api/public/whatsapp-bot-status'
-      preLoaderRoute: typeof ApiPublicWhatsappBotStatusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/upi-webhook': {
-      id: '/api/public/upi-webhook'
-      path: '/api/public/upi-webhook'
-      fullPath: '/api/public/upi-webhook'
-      preLoaderRoute: typeof ApiPublicUpiWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/telegram-bot': {
-      id: '/api/public/telegram-bot'
-      path: '/api/public/telegram-bot'
-      fullPath: '/api/public/telegram-bot'
-      preLoaderRoute: typeof ApiPublicTelegramBotRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/order-action': {
-      id: '/api/public/order-action'
-      path: '/api/public/order-action'
-      fullPath: '/api/public/order-action'
-      preLoaderRoute: typeof ApiPublicOrderActionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/interakt-action': {
-      id: '/api/public/interakt-action'
-      path: '/api/public/interakt-action'
-      fullPath: '/api/public/interakt-action'
-      preLoaderRoute: typeof ApiPublicInteraktActionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/generate-ad-creative': {
-      id: '/api/public/generate-ad-creative'
-      path: '/api/public/generate-ad-creative'
-      fullPath: '/api/public/generate-ad-creative'
-      preLoaderRoute: typeof ApiPublicGenerateAdCreativeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cron-whatsapp': {
-      id: '/api/public/cron-whatsapp'
-      path: '/api/public/cron-whatsapp'
-      fullPath: '/api/public/cron-whatsapp'
-      preLoaderRoute: typeof ApiPublicCronWhatsappRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cron-social': {
-      id: '/api/public/cron-social'
-      path: '/api/public/cron-social'
-      fullPath: '/api/public/cron-social'
-      preLoaderRoute: typeof ApiPublicCronSocialRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cron-scrape': {
-      id: '/api/public/cron-scrape'
-      path: '/api/public/cron-scrape'
-      fullPath: '/api/public/cron-scrape'
-      preLoaderRoute: typeof ApiPublicCronScrapeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cron-moj': {
-      id: '/api/public/cron-moj'
-      path: '/api/public/cron-moj'
-      fullPath: '/api/public/cron-moj'
-      preLoaderRoute: typeof ApiPublicCronMojRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cron-igmoj': {
-      id: '/api/public/cron-igmoj'
-      path: '/api/public/cron-igmoj'
-      fullPath: '/api/public/cron-igmoj'
-      preLoaderRoute: typeof ApiPublicCronIgmojRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cron-content': {
-      id: '/api/public/cron-content'
-      path: '/api/public/cron-content'
-      fullPath: '/api/public/cron-content'
-      preLoaderRoute: typeof ApiPublicCronContentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/chat': {
-      id: '/api/public/chat'
-      path: '/api/public/chat'
-      fullPath: '/api/public/chat'
-      preLoaderRoute: typeof ApiPublicChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/academy": {
+      id: "/academy";
+      path: "/academy";
+      fullPath: "/academy";
+      preLoaderRoute: typeof AcademyRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/admin": {
+      id: "/admin";
+      path: "/admin";
+      fullPath: "/admin";
+      preLoaderRoute: typeof AdminRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/blog": {
+      id: "/blog";
+      path: "/blog";
+      fullPath: "/blog";
+      preLoaderRoute: typeof BlogRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/coins": {
+      id: "/coins";
+      path: "/coins";
+      fullPath: "/coins";
+      preLoaderRoute: typeof CoinsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/contact": {
+      id: "/contact";
+      path: "/contact";
+      fullPath: "/contact";
+      preLoaderRoute: typeof ContactRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/creator-reward-policy": {
+      id: "/creator-reward-policy";
+      path: "/creator-reward-policy";
+      fullPath: "/creator-reward-policy";
+      preLoaderRoute: typeof CreatorRewardPolicyRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/earnings": {
+      id: "/earnings";
+      path: "/earnings";
+      fullPath: "/earnings";
+      preLoaderRoute: typeof EarningsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/go": {
+      id: "/go";
+      path: "/go";
+      fullPath: "/go";
+      preLoaderRoute: typeof GoRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/join": {
+      id: "/join";
+      path: "/join";
+      fullPath: "/join";
+      preLoaderRoute: typeof JoinRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/privacy-policy": {
+      id: "/privacy-policy";
+      path: "/privacy-policy";
+      fullPath: "/privacy-policy";
+      preLoaderRoute: typeof PrivacyPolicyRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/proof": {
+      id: "/proof";
+      path: "/proof";
+      fullPath: "/proof";
+      preLoaderRoute: typeof ProofRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/recharge-policy": {
+      id: "/recharge-policy";
+      path: "/recharge-policy";
+      fullPath: "/recharge-policy";
+      preLoaderRoute: typeof RechargePolicyRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/robots.txt": {
+      id: "/robots.txt";
+      path: "/robots.txt";
+      fullPath: "/robots.txt";
+      preLoaderRoute: typeof RobotsDottxtRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/sitemap.xml": {
+      id: "/sitemap.xml";
+      path: "/sitemap.xml";
+      fullPath: "/sitemap.xml";
+      preLoaderRoute: typeof SitemapDotxmlRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/terms-and-conditions": {
+      id: "/terms-and-conditions";
+      path: "/terms-and-conditions";
+      fullPath: "/terms-and-conditions";
+      preLoaderRoute: typeof TermsAndConditionsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/test-ai": {
+      id: "/test-ai";
+      path: "/test-ai";
+      fullPath: "/test-ai";
+      preLoaderRoute: typeof TestAiRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/track": {
+      id: "/track";
+      path: "/track";
+      fullPath: "/track";
+      preLoaderRoute: typeof TrackRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/track-application": {
+      id: "/track-application";
+      path: "/track-application";
+      fullPath: "/track-application";
+      preLoaderRoute: typeof TrackApplicationRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/verify": {
+      id: "/verify";
+      path: "/verify";
+      fullPath: "/verify";
+      preLoaderRoute: typeof VerifyRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/academy/": {
+      id: "/academy/";
+      path: "/";
+      fullPath: "/academy/";
+      preLoaderRoute: typeof AcademyIndexRouteImport;
+      parentRoute: typeof AcademyRoute;
+    };
+    "/academy/coins-points-gifts-explained": {
+      id: "/academy/coins-points-gifts-explained";
+      path: "/coins-points-gifts-explained";
+      fullPath: "/academy/coins-points-gifts-explained";
+      preLoaderRoute: typeof AcademyCoinsPointsGiftsExplainedRouteImport;
+      parentRoute: typeof AcademyRoute;
+    };
+    "/academy/how-to-become-poppo-host": {
+      id: "/academy/how-to-become-poppo-host";
+      path: "/how-to-become-poppo-host";
+      fullPath: "/academy/how-to-become-poppo-host";
+      preLoaderRoute: typeof AcademyHowToBecomePoppoHostRouteImport;
+      parentRoute: typeof AcademyRoute;
+    };
+    "/academy/pk-battle-guide": {
+      id: "/academy/pk-battle-guide";
+      path: "/pk-battle-guide";
+      fullPath: "/academy/pk-battle-guide";
+      preLoaderRoute: typeof AcademyPkBattleGuideRouteImport;
+      parentRoute: typeof AcademyRoute;
+    };
+    "/academy/poppo-daily-tasks": {
+      id: "/academy/poppo-daily-tasks";
+      path: "/poppo-daily-tasks";
+      fullPath: "/academy/poppo-daily-tasks";
+      preLoaderRoute: typeof AcademyPoppoDailyTasksRouteImport;
+      parentRoute: typeof AcademyRoute;
+    };
+    "/academy/poppo-live-earning-india": {
+      id: "/academy/poppo-live-earning-india";
+      path: "/poppo-live-earning-india";
+      fullPath: "/academy/poppo-live-earning-india";
+      preLoaderRoute: typeof AcademyPoppoLiveEarningIndiaRouteImport;
+      parentRoute: typeof AcademyRoute;
+    };
+    "/academy/poppo-withdrawal-guide": {
+      id: "/academy/poppo-withdrawal-guide";
+      path: "/poppo-withdrawal-guide";
+      fullPath: "/academy/poppo-withdrawal-guide";
+      preLoaderRoute: typeof AcademyPoppoWithdrawalGuideRouteImport;
+      parentRoute: typeof AcademyRoute;
+    };
+    "/academy/vone-app-india": {
+      id: "/academy/vone-app-india";
+      path: "/vone-app-india";
+      fullPath: "/academy/vone-app-india";
+      preLoaderRoute: typeof AcademyVoneAppIndiaRouteImport;
+      parentRoute: typeof AcademyRoute;
+    };
+    "/academy/what-is-poppo-live": {
+      id: "/academy/what-is-poppo-live";
+      path: "/what-is-poppo-live";
+      fullPath: "/academy/what-is-poppo-live";
+      preLoaderRoute: typeof AcademyWhatIsPoppoLiveRouteImport;
+      parentRoute: typeof AcademyRoute;
+    };
+    "/admin/": {
+      id: "/admin/";
+      path: "/";
+      fullPath: "/admin/";
+      preLoaderRoute: typeof AdminIndexRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/brand-manager": {
+      id: "/admin/brand-manager";
+      path: "/brand-manager";
+      fullPath: "/admin/brand-manager";
+      preLoaderRoute: typeof AdminBrandManagerRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/content": {
+      id: "/admin/content";
+      path: "/content";
+      fullPath: "/admin/content";
+      preLoaderRoute: typeof AdminContentRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/costs": {
+      id: "/admin/costs";
+      path: "/costs";
+      fullPath: "/admin/costs";
+      preLoaderRoute: typeof AdminCostsRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/creator-leads": {
+      id: "/admin/creator-leads";
+      path: "/creator-leads";
+      fullPath: "/admin/creator-leads";
+      preLoaderRoute: typeof AdminCreatorLeadsRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/homepage": {
+      id: "/admin/homepage";
+      path: "/homepage";
+      fullPath: "/admin/homepage";
+      preLoaderRoute: typeof AdminHomepageRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/hosts": {
+      id: "/admin/hosts";
+      path: "/hosts";
+      fullPath: "/admin/hosts";
+      preLoaderRoute: typeof AdminHostsRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/leads": {
+      id: "/admin/leads";
+      path: "/leads";
+      fullPath: "/admin/leads";
+      preLoaderRoute: typeof AdminLeadsRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/login": {
+      id: "/admin/login";
+      path: "/login";
+      fullPath: "/admin/login";
+      preLoaderRoute: typeof AdminLoginRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/marketing": {
+      id: "/admin/marketing";
+      path: "/marketing";
+      fullPath: "/admin/marketing";
+      preLoaderRoute: typeof AdminMarketingRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/orders": {
+      id: "/admin/orders";
+      path: "/orders";
+      fullPath: "/admin/orders";
+      preLoaderRoute: typeof AdminOrdersRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/payouts": {
+      id: "/admin/payouts";
+      path: "/payouts";
+      fullPath: "/admin/payouts";
+      preLoaderRoute: typeof AdminPayoutsRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/policies": {
+      id: "/admin/policies";
+      path: "/policies";
+      fullPath: "/admin/policies";
+      preLoaderRoute: typeof AdminPoliciesRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/posts": {
+      id: "/admin/posts";
+      path: "/posts";
+      fullPath: "/admin/posts";
+      preLoaderRoute: typeof AdminPostsRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/scout": {
+      id: "/admin/scout";
+      path: "/scout";
+      fullPath: "/admin/scout";
+      preLoaderRoute: typeof AdminScoutRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/scraper": {
+      id: "/admin/scraper";
+      path: "/scraper";
+      fullPath: "/admin/scraper";
+      preLoaderRoute: typeof AdminScraperRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/settings": {
+      id: "/admin/settings";
+      path: "/settings";
+      fullPath: "/admin/settings";
+      preLoaderRoute: typeof AdminSettingsRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/social-leads": {
+      id: "/admin/social-leads";
+      path: "/social-leads";
+      fullPath: "/admin/social-leads";
+      preLoaderRoute: typeof AdminSocialLeadsRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/unmatched": {
+      id: "/admin/unmatched";
+      path: "/unmatched";
+      fullPath: "/admin/unmatched";
+      preLoaderRoute: typeof AdminUnmatchedRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/admin/whatsapp": {
+      id: "/admin/whatsapp";
+      path: "/whatsapp";
+      fullPath: "/admin/whatsapp";
+      preLoaderRoute: typeof AdminWhatsappRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    "/blog/$slug": {
+      id: "/blog/$slug";
+      path: "/$slug";
+      fullPath: "/blog/$slug";
+      preLoaderRoute: typeof BlogSlugRouteImport;
+      parentRoute: typeof BlogRoute;
+    };
+    "/blog/how-to-earn-money-on-poppo-live-india": {
+      id: "/blog/how-to-earn-money-on-poppo-live-india";
+      path: "/how-to-earn-money-on-poppo-live-india";
+      fullPath: "/blog/how-to-earn-money-on-poppo-live-india";
+      preLoaderRoute: typeof BlogHowToEarnMoneyOnPoppoLiveIndiaRouteImport;
+      parentRoute: typeof BlogRoute;
+    };
+    "/join/wobb": {
+      id: "/join/wobb";
+      path: "/wobb";
+      fullPath: "/join/wobb";
+      preLoaderRoute: typeof JoinWobbRouteImport;
+      parentRoute: typeof JoinRoute;
+    };
+    "/api/public/chat": {
+      id: "/api/public/chat";
+      path: "/api/public/chat";
+      fullPath: "/api/public/chat";
+      preLoaderRoute: typeof ApiPublicChatRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/public/cron-content": {
+      id: "/api/public/cron-content";
+      path: "/api/public/cron-content";
+      fullPath: "/api/public/cron-content";
+      preLoaderRoute: typeof ApiPublicCronContentRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/public/cron-igmoj": {
+      id: "/api/public/cron-igmoj";
+      path: "/api/public/cron-igmoj";
+      fullPath: "/api/public/cron-igmoj";
+      preLoaderRoute: typeof ApiPublicCronIgmojRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/public/cron-moj": {
+      id: "/api/public/cron-moj";
+      path: "/api/public/cron-moj";
+      fullPath: "/api/public/cron-moj";
+      preLoaderRoute: typeof ApiPublicCronMojRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/public/cron-scrape": {
+      id: "/api/public/cron-scrape";
+      path: "/api/public/cron-scrape";
+      fullPath: "/api/public/cron-scrape";
+      preLoaderRoute: typeof ApiPublicCronScrapeRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/public/cron-social": {
+      id: "/api/public/cron-social";
+      path: "/api/public/cron-social";
+      fullPath: "/api/public/cron-social";
+      preLoaderRoute: typeof ApiPublicCronSocialRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/public/cron-whatsapp": {
+      id: "/api/public/cron-whatsapp";
+      path: "/api/public/cron-whatsapp";
+      fullPath: "/api/public/cron-whatsapp";
+      preLoaderRoute: typeof ApiPublicCronWhatsappRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/public/generate-ad-creative": {
+      id: "/api/public/generate-ad-creative";
+      path: "/api/public/generate-ad-creative";
+      fullPath: "/api/public/generate-ad-creative";
+      preLoaderRoute: typeof ApiPublicGenerateAdCreativeRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/public/interakt-action": {
+      id: "/api/public/interakt-action";
+      path: "/api/public/interakt-action";
+      fullPath: "/api/public/interakt-action";
+      preLoaderRoute: typeof ApiPublicInteraktActionRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/public/order-action": {
+      id: "/api/public/order-action";
+      path: "/api/public/order-action";
+      fullPath: "/api/public/order-action";
+      preLoaderRoute: typeof ApiPublicOrderActionRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/public/telegram-bot": {
+      id: "/api/public/telegram-bot";
+      path: "/api/public/telegram-bot";
+      fullPath: "/api/public/telegram-bot";
+      preLoaderRoute: typeof ApiPublicTelegramBotRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/public/upi-webhook": {
+      id: "/api/public/upi-webhook";
+      path: "/api/public/upi-webhook";
+      fullPath: "/api/public/upi-webhook";
+      preLoaderRoute: typeof ApiPublicUpiWebhookRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/public/whatsapp-bot-status": {
+      id: "/api/public/whatsapp-bot-status";
+      path: "/api/public/whatsapp-bot-status";
+      fullPath: "/api/public/whatsapp-bot-status";
+      preLoaderRoute: typeof ApiPublicWhatsappBotStatusRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/public/whatsapp-sync-name": {
+      id: "/api/public/whatsapp-sync-name";
+      path: "/api/public/whatsapp-sync-name";
+      fullPath: "/api/public/whatsapp-sync-name";
+      preLoaderRoute: typeof ApiPublicWhatsappSyncNameRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/public/whatsapp-webhook": {
+      id: "/api/public/whatsapp-webhook";
+      path: "/api/public/whatsapp-webhook";
+      fullPath: "/api/public/whatsapp-webhook";
+      preLoaderRoute: typeof ApiPublicWhatsappWebhookRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
 interface AcademyRouteChildren {
-  AcademyCoinsPointsGiftsExplainedRoute: typeof AcademyCoinsPointsGiftsExplainedRoute
-  AcademyHowToBecomePoppoHostRoute: typeof AcademyHowToBecomePoppoHostRoute
-  AcademyPkBattleGuideRoute: typeof AcademyPkBattleGuideRoute
-  AcademyPoppoDailyTasksRoute: typeof AcademyPoppoDailyTasksRoute
-  AcademyPoppoLiveEarningIndiaRoute: typeof AcademyPoppoLiveEarningIndiaRoute
-  AcademyPoppoWithdrawalGuideRoute: typeof AcademyPoppoWithdrawalGuideRoute
-  AcademyVoneAppIndiaRoute: typeof AcademyVoneAppIndiaRoute
-  AcademyWhatIsPoppoLiveRoute: typeof AcademyWhatIsPoppoLiveRoute
-  AcademyIndexRoute: typeof AcademyIndexRoute
+  AcademyCoinsPointsGiftsExplainedRoute: typeof AcademyCoinsPointsGiftsExplainedRoute;
+  AcademyHowToBecomePoppoHostRoute: typeof AcademyHowToBecomePoppoHostRoute;
+  AcademyPkBattleGuideRoute: typeof AcademyPkBattleGuideRoute;
+  AcademyPoppoDailyTasksRoute: typeof AcademyPoppoDailyTasksRoute;
+  AcademyPoppoLiveEarningIndiaRoute: typeof AcademyPoppoLiveEarningIndiaRoute;
+  AcademyPoppoWithdrawalGuideRoute: typeof AcademyPoppoWithdrawalGuideRoute;
+  AcademyVoneAppIndiaRoute: typeof AcademyVoneAppIndiaRoute;
+  AcademyWhatIsPoppoLiveRoute: typeof AcademyWhatIsPoppoLiveRoute;
+  AcademyIndexRoute: typeof AcademyIndexRoute;
 }
 
 const AcademyRouteChildren: AcademyRouteChildren = {
@@ -1349,32 +1370,32 @@ const AcademyRouteChildren: AcademyRouteChildren = {
   AcademyVoneAppIndiaRoute: AcademyVoneAppIndiaRoute,
   AcademyWhatIsPoppoLiveRoute: AcademyWhatIsPoppoLiveRoute,
   AcademyIndexRoute: AcademyIndexRoute,
-}
+};
 
 const AcademyRouteWithChildren =
-  AcademyRoute._addFileChildren(AcademyRouteChildren)
+  AcademyRoute._addFileChildren(AcademyRouteChildren);
 
 interface AdminRouteChildren {
-  AdminBrandManagerRoute: typeof AdminBrandManagerRoute
-  AdminContentRoute: typeof AdminContentRoute
-  AdminCostsRoute: typeof AdminCostsRoute
-  AdminCreatorLeadsRoute: typeof AdminCreatorLeadsRoute
-  AdminHomepageRoute: typeof AdminHomepageRoute
-  AdminHostsRoute: typeof AdminHostsRoute
-  AdminLeadsRoute: typeof AdminLeadsRoute
-  AdminLoginRoute: typeof AdminLoginRoute
-  AdminMarketingRoute: typeof AdminMarketingRoute
-  AdminOrdersRoute: typeof AdminOrdersRoute
-  AdminPayoutsRoute: typeof AdminPayoutsRoute
-  AdminPoliciesRoute: typeof AdminPoliciesRoute
-  AdminPostsRoute: typeof AdminPostsRoute
-  AdminScoutRoute: typeof AdminScoutRoute
-  AdminScraperRoute: typeof AdminScraperRoute
-  AdminSettingsRoute: typeof AdminSettingsRoute
-  AdminSocialLeadsRoute: typeof AdminSocialLeadsRoute
-  AdminUnmatchedRoute: typeof AdminUnmatchedRoute
-  AdminWhatsappRoute: typeof AdminWhatsappRoute
-  AdminIndexRoute: typeof AdminIndexRoute
+  AdminBrandManagerRoute: typeof AdminBrandManagerRoute;
+  AdminContentRoute: typeof AdminContentRoute;
+  AdminCostsRoute: typeof AdminCostsRoute;
+  AdminCreatorLeadsRoute: typeof AdminCreatorLeadsRoute;
+  AdminHomepageRoute: typeof AdminHomepageRoute;
+  AdminHostsRoute: typeof AdminHostsRoute;
+  AdminLeadsRoute: typeof AdminLeadsRoute;
+  AdminLoginRoute: typeof AdminLoginRoute;
+  AdminMarketingRoute: typeof AdminMarketingRoute;
+  AdminOrdersRoute: typeof AdminOrdersRoute;
+  AdminPayoutsRoute: typeof AdminPayoutsRoute;
+  AdminPoliciesRoute: typeof AdminPoliciesRoute;
+  AdminPostsRoute: typeof AdminPostsRoute;
+  AdminScoutRoute: typeof AdminScoutRoute;
+  AdminScraperRoute: typeof AdminScraperRoute;
+  AdminSettingsRoute: typeof AdminSettingsRoute;
+  AdminSocialLeadsRoute: typeof AdminSocialLeadsRoute;
+  AdminUnmatchedRoute: typeof AdminUnmatchedRoute;
+  AdminWhatsappRoute: typeof AdminWhatsappRoute;
+  AdminIndexRoute: typeof AdminIndexRoute;
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -1398,32 +1419,32 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminUnmatchedRoute: AdminUnmatchedRoute,
   AdminWhatsappRoute: AdminWhatsappRoute,
   AdminIndexRoute: AdminIndexRoute,
-}
+};
 
-const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren);
 
 interface BlogRouteChildren {
-  BlogSlugRoute: typeof BlogSlugRoute
-  BlogHowToEarnMoneyOnPoppoLiveIndiaRoute: typeof BlogHowToEarnMoneyOnPoppoLiveIndiaRoute
+  BlogSlugRoute: typeof BlogSlugRoute;
+  BlogHowToEarnMoneyOnPoppoLiveIndiaRoute: typeof BlogHowToEarnMoneyOnPoppoLiveIndiaRoute;
 }
 
 const BlogRouteChildren: BlogRouteChildren = {
   BlogSlugRoute: BlogSlugRoute,
   BlogHowToEarnMoneyOnPoppoLiveIndiaRoute:
     BlogHowToEarnMoneyOnPoppoLiveIndiaRoute,
-}
+};
 
-const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
+const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren);
 
 interface JoinRouteChildren {
-  JoinWobbRoute: typeof JoinWobbRoute
+  JoinWobbRoute: typeof JoinWobbRoute;
 }
 
 const JoinRouteChildren: JoinRouteChildren = {
   JoinWobbRoute: JoinWobbRoute,
-}
+};
 
-const JoinRouteWithChildren = JoinRoute._addFileChildren(JoinRouteChildren)
+const JoinRouteWithChildren = JoinRoute._addFileChildren(JoinRouteChildren);
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -1459,8 +1480,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicTelegramBotRoute: ApiPublicTelegramBotRoute,
   ApiPublicUpiWebhookRoute: ApiPublicUpiWebhookRoute,
   ApiPublicWhatsappBotStatusRoute: ApiPublicWhatsappBotStatusRoute,
+  ApiPublicWhatsappSyncNameRoute: ApiPublicWhatsappSyncNameRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
-}
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();

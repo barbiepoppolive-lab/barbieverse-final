@@ -422,11 +422,23 @@ client.on("message", async (msg: any) => {
     // and keep the raw id as the stable key.
     const key = from.replace(/@(c\.us|lid)$/, "");
     let phone = key;
+    let contactName = "";
     try {
       const contact = await msg.getContact();
       const resolved = contact?.number || contact?.id?.user;
       if (resolved && /^\d{8,15}$/.test(String(resolved)))
         phone = String(resolved);
+      // Sync contact name back to the database
+      contactName = contact?.pushname || contact?.name || "";
+      if (contactName && phone) {
+        const syncUrl =
+          process.env.VERCEL_SYNC_URL || "https://barbieverse.org";
+        fetch(`${syncUrl}/api/public/whatsapp-sync-name`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone, name: contactName }),
+        }).catch(() => {}); // fire and forget
+      }
     } catch {
       /* keep the key */
     }
@@ -616,6 +628,44 @@ async function runCampaign(phones: string[], overrideMessage?: string) {
   await tg(`✅ Campaign complete: ${campaignSent}/${campaignTotal} sent`);
 }
 
+/**
+ * Broadcast a message to multiple hosts. Slower than campaign (2-5s between
+ * sends) since these are existing contacts, not cold outreach.
+ */
+async function runBroadcast(phones: string[], message: string) {
+  console.log(`[wa] broadcast started — ${phones.length} hosts`);
+  let sent = 0;
+
+  for (let i = 0; i < phones.length; i++) {
+    const phone = phones[i].replace(/[^\d]/g, "");
+    try {
+      // Human delay between sends (2-5s)
+      if (i > 0) await sleep(2000 + Math.random() * 3000);
+
+      const chat = await client.getNumberId(phone);
+      if (!chat) {
+        console.log(`[wa] broadcast: +${phone} not on WhatsApp, skipping`);
+        continue;
+      }
+      await client.sendMessage(chat, message);
+      sent++;
+      console.log(`[wa] broadcast -> +${phone} (${sent}/${phones.length})`);
+    } catch (e: any) {
+      console.error(`[wa] broadcast failed +${phone}:`, e?.message);
+      if (e?.message?.includes("rate") || e?.message?.includes("limit")) {
+        console.log("[wa] broadcast rate-limited — stopping");
+        await tg(
+          `⛔ Broadcast STOPPED — WhatsApp rate limit at ${sent}/${phones.length}`,
+        );
+        break;
+      }
+    }
+  }
+
+  console.log(`[wa] broadcast done — sent ${sent}/${phones.length}`);
+  await tg(`📢 Broadcast complete: ${sent}/${phones.length} sent`);
+}
+
 // ── tiny HTTP server, purely to hand Barbie the QR ─────────────────────────
 //
 // The QR is a live credential: anyone who scans it links a device to her
@@ -738,6 +788,43 @@ http
           res.writeHead(400, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ error: "invalid json" }));
         }
+      }
+    }
+
+    // ── broadcast: send a message to multiple hosts ──
+    // POST body: { phones: ["919876543210", ...], message: "hello" }
+    if (url.pathname === "/broadcast") {
+      if (!keyOk) {
+        res.writeHead(403);
+        return res.end("forbidden");
+      }
+      if (req.method !== "POST") {
+        res.writeHead(405);
+        return res.end("method not allowed");
+      }
+      let body = "";
+      for await (const chunk of req) body += chunk;
+      try {
+        const data = JSON.parse(body);
+        const phones: string[] = data.phones || [];
+        const message: string = data.message || "";
+        if (!phones.length || !message) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          return res.end(
+            JSON.stringify({ error: "phones and message required" }),
+          );
+        }
+        // Send in background
+        runBroadcast(phones, message).catch((e) =>
+          console.error("[wa] broadcast error:", e),
+        );
+        res.writeHead(202, { "Content-Type": "application/json" });
+        return res.end(
+          JSON.stringify({ accepted: true, total: phones.length }),
+        );
+      } catch {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "invalid json" }));
       }
     }
 
