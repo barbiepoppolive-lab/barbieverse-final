@@ -1146,13 +1146,14 @@ http
                 // Insert message — skip duplicates by lead + body + timestamp window
                 await pg.query(
                   `INSERT INTO wa_messages (lead_id, direction, body, created_at)
-                   SELECT $1, $2, $3, $4
+                   SELECT $1, $2, $3, $4::timestamptz
                    WHERE NOT EXISTS (
                      SELECT 1 FROM wa_messages
                      WHERE lead_id = $1 AND body = $3
-                       AND created_at BETWEEN $4 - interval '5 seconds' AND $4 + interval '5 seconds'
+                       AND created_at >= ($4::timestamptz - interval '5 seconds')
+                       AND created_at <= ($4::timestamptz + interval '5 seconds')
                    )`,
-                  [leadId, direction, text, ts],
+                  [leadId, direction, text, ts.toISOString()],
                 );
               }
               exported++;
@@ -1256,13 +1257,14 @@ http
                 const ts = new Date(msg.t);
                 await pg.query(
                   `INSERT INTO wa_messages (lead_id, direction, body, created_at)
-                   SELECT $1, $2, $3, $4
+                   SELECT $1, $2, $3, $4::timestamptz
                    WHERE NOT EXISTS (
                      SELECT 1 FROM wa_messages
                      WHERE lead_id = $1 AND body = $3
-                       AND created_at BETWEEN $4 - interval '5 seconds' AND $4 + interval '5 seconds'
+                       AND created_at >= ($4::timestamptz - interval '5 seconds')
+                       AND created_at <= ($4::timestamptz + interval '5 seconds')
                    )`,
-                  [leadId, direction, text, ts],
+                  [leadId, direction, text, ts.toISOString()],
                 );
                 msgCount++;
               }
