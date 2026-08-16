@@ -17,6 +17,8 @@ const NEXTCUE_SQL = `
   end
 `;
 
+const IS_STALE_SQL = `(l.last_inbound_at is not null and now() - l.last_inbound_at > interval '48 hours' and l.stage not in ('ACTIVE','NOT_INTERESTED'))`;
+
 export const LIST_LEADS_SQL = `
   select
     l.id,
@@ -41,9 +43,7 @@ export const LIST_LEADS_SQL = `
     coalesce(d.pending_drafts, 0)::int as pending_drafts,
     w.last_in as last_message_in,
     w.last_out as last_message_out,
-    (l.last_inbound_at is not null
-        and now() - l.last_inbound_at > interval '48 hours'
-        and l.stage not in ('ACTIVE','NOT_INTERESTED')) as is_stale
+    ${IS_STALE_SQL} as is_stale
   from wa_leads l
   left join (
     select lead_id,
@@ -70,7 +70,7 @@ export const listWhatsappLeads = createServerFn({ method: "GET" }).handler(
       `${LIST_LEADS_SQL} order by
          case when l.stage in ('ESCALATED') then 0
               when pending_drafts is not null and pending_drafts > 0 then 1
-              when l.escalated or is_stale then 2
+              when l.escalated or ${IS_STALE_SQL} then 2
               else 3 end,
          greatest(l.updated_at, l.created_at) desc`,
     );
