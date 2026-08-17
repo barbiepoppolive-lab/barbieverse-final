@@ -658,7 +658,7 @@ async function grokReply(
     });
   } else if (context?.transcript) {
     // Raw recent turns (last 10 to keep token count reasonable)
-    const recentTurns = context.transcript.split("\n").slice(-10).join("\n");
+    const recentTurns = context.transcript.split("\n").slice(-20).join("\n");
     messages.push({
       role: "user",
       content: `RECENT CONVERSATION:\n${recentTurns}`,
