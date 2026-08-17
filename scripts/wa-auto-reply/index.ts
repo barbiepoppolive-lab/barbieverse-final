@@ -31,6 +31,7 @@ import {
   needsEscalation,
   complianceCheck,
   ANSWERS,
+  Q0_VARIANTS,
 } from "./answer-bank";
 
 if (!process.env.RAILWAY_PROJECT_ID) {
@@ -404,11 +405,48 @@ DEATH SENTENCES (never do these):
       console.error("[wa] Groq threw:", e?.message || e);
     }
   } else {
-    console.error("[wa] GROQ_API_KEY unset, skipping straight to Gemini fallback");
+    console.error("[wa] GROQ_API_KEY unset, skipping to xAI/Grok fallback");
   }
 
-  // Groq failed, was unset, or returned a non-compliant reply — try Gemini
-  // before giving up and telling Barbie to answer by hand.
+  // Groq failed, was unset, or returned non-compliant — try xAI/Grok (Grok-3)
+  const xaiKey = process.env.XAI_API_KEY;
+  if (xaiKey) {
+    try {
+      console.log("[wa] trying xAI/Grok fallback...");
+      const res = await fetch("https://api.x.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${xaiKey}`,
+        },
+        body: JSON.stringify({
+          model: "grok-3-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...(contextBlock ? [{ role: "user", content: contextBlock }] : []),
+            { role: "user", content: text },
+          ],
+          max_tokens: 200,
+          temperature: 0.7,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        console.error(`[wa] xAI API error ${res.status}:`, JSON.stringify(data).slice(0, 200));
+      } else {
+        const reply = data.choices?.[0]?.message?.content?.trim();
+        if (!reply) {
+          console.error("[wa] xAI returned no content:", JSON.stringify(data).slice(0, 200));
+        } else if (complianceCheck(reply).ok) {
+          return reply;
+        }
+      }
+    } catch (e: any) {
+      console.error("[wa] xAI threw:", e?.message || e);
+    }
+  }
+
+  // Both Groq and xAI failed — try Gemini before giving up
   console.log("[wa] falling back to Gemini for reply generation");
   return callGemini(systemPrompt, contextBlock, text);
 }
@@ -473,6 +511,98 @@ Rules:
   } catch (e: any) {
     console.error("[wa] Gemini vision failed:", e?.message);
     return null;
+  }
+}
+
+// ── Gemini Vision — structured host performance extraction ───────────────────
+// Second Gemini call alongside the conversational analysis. Extracts structured
+// data (earnings, rank, hours) from screenshots sent by converted hosts and
+// writes to host_performance. Only runs for leads at AGENCY_LINKED+ stages.
+async function extractHostPerformance(
+  base64Data: string,
+  mimeType: string,
+  leadId: string | null,
+  stage: string,
+): Promise<void> {
+  const convertedStages = ["AGENCY_LINKED", "FACE_VERIFIED", "FIRST_LIVE", "ACTIVE"];
+  if (!leadId || !convertedStages.includes(stage)) return;
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return;
+
+  const prompt = `Extract structured data from this screenshot. It's from a live streaming host's dashboard or earnings page.
+
+Return ONLY a JSON object (no markdown, no explanation) with these fields:
+{
+  "earnings": number or null (rupee amount visible),
+  "rank": string or null (host rank/tier if visible),
+  "hours_streamed": number or null (hours if visible),
+  "period_start": "YYYY-MM-DD" or null (start of earning period),
+  "period_end": "YYYY-MM-DD" or null (end of earning period),
+  "gifts_value": number or null (gift/coin value if visible),
+  "confidence": "high" if most fields are clearly visible, "low" if partially readable
+}
+
+If the screenshot doesn't contain any host performance data (e.g. it's a chat screenshot, error message, or unrelated), return {"confidence":"none"}.
+Do NOT hallucinate values. Only extract numbers you can actually read in the image.`;
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: prompt },
+                { inline_data: { mime_type: mimeType, data: base64Data } },
+              ],
+            },
+          ],
+          generationConfig: {
+            maxOutputTokens: 300,
+            temperature: 0.1,
+            responseMimeType: "application/json",
+          },
+        }),
+      },
+    );
+    const data = await res.json();
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!raw) return;
+
+    const extracted = JSON.parse(raw);
+    if (extracted.confidence === "none" || !extracted.confidence) {
+      console.log("[wa] vision extraction: no host performance data in screenshot");
+      return;
+    }
+
+    // Write to host_performance
+    const dbUrl = process.env.SUPABASE_DB_URL;
+    if (!dbUrl) return;
+    const { Client } = await import("pg");
+    const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    await pg.connect();
+    await pg.query(
+      `INSERT INTO host_performance (lead_id, period_start, period_end, hours_streamed, gifts_value, rank, earnings_estimate, source, confidence)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'vision_extracted', $8)`,
+      [
+        leadId,
+        extracted.period_start || null,
+        extracted.period_end || null,
+        extracted.hours_streamed || null,
+        extracted.gifts_value || null,
+        extracted.rank || null,
+        extracted.earnings || null,
+        extracted.confidence || "low",
+      ],
+    );
+    await pg.end();
+    console.log(`[wa] host performance extracted: lead=${leadId}, earnings=${extracted.earnings}, rank=${extracted.rank}`);
+  } catch (e: any) {
+    console.error("[wa] host performance extraction failed:", e?.message);
   }
 }
 
@@ -832,6 +962,17 @@ client.on("message", async (msg: any) => {
             console.log(
               `[wa] +${normPhone} is ${res.rows[0].stage} — skipping auto-reply`,
             );
+            // But still extract host performance data from screenshots
+            if (msg.hasMedia && (msg.type === "image" || msg.type === "sticker") && !(msg.body || "").trim()) {
+              try {
+                const media = await msg.downloadMedia();
+                if (media) {
+                  await saveMessage(leadId, "in", `[${msg.type}]`);
+                  extractHostPerformance(media.data, media.mimetype, leadId, res.rows[0].stage)
+                    .catch(() => {}); // fire-and-forget
+                }
+              } catch {}
+            }
             return;
           }
         }
@@ -921,11 +1062,34 @@ client.on("message", async (msg: any) => {
       return;
     }
 
-    const answer = matchAnswer(text);
+    const matchResult = matchAnswer(text);
+    const answer = matchResult?.answer ?? null;
     const topics = leadTopics.get(key) || [];
     if (answer && !topics.includes(answer.id)) {
       topics.push(answer.id);
       leadTopics.set(key, topics);
+    }
+
+    // Capture which ad prefill variant brought this lead in (Q0 = first contact).
+    // Only writes once — the first time Q0 fires for this lead.
+    if (matchResult && answer?.id === "Q0" && leadId) {
+      const variant = Q0_VARIANTS[matchResult.matchIndex] || `q0-${matchResult.matchIndex}`;
+      try {
+        const dbUrl = process.env.SUPABASE_DB_URL;
+        if (dbUrl) {
+          const { Client } = await import("pg");
+          const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+          await pg.connect();
+          await pg.query(
+            "UPDATE wa_leads SET prefill_variant = $1 WHERE id = $2 AND prefill_variant IS NULL",
+            [variant, leadId],
+          );
+          await pg.end();
+          console.log(`[wa] prefill_variant set: +${phone} -> ${variant}`);
+        }
+      } catch (e: any) {
+        console.error("[wa] prefill_variant write failed:", e?.message);
+      }
     }
 
     // Pull full lead context from DB for the LLM (transcript, stage, topics)

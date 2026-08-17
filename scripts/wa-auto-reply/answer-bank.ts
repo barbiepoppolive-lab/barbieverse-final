@@ -304,14 +304,35 @@ export const ESCALATE_PATTERNS: { re: RegExp; reason: string }[] = [
   },
 ];
 
-export function matchAnswer(text: string): Answer | null {
+export interface MatchResult {
+  answer: Answer;
+  matchIndex: number; // which regex in the answer's match[] array fired
+}
+
+export function matchAnswer(text: string): MatchResult | null {
   const t = (text || "").toLowerCase();
   if (!t) return null;
   for (const a of ANSWERS) {
-    if (a.match.some((re) => re.test(t))) return a;
+    for (let i = 0; i < a.match.length; i++) {
+      if (a.match[i].test(t)) return { answer: a, matchIndex: i };
+    }
   }
   return null;
 }
+
+// Q0 variant IDs — maps regex index to a stable prefill variant string.
+// MUST stay in sync with Q0's match[] array above.
+export const Q0_VARIANTS: Record<number, string> = {
+  0: "en-more-info",
+  1: "en-more-info-2",
+  2: "en-join",
+  3: "hi-aur-pata",
+  4: "hi-is-baare",
+  5: "hi-namaste",
+  6: "bn-arothyo",
+  7: "bn-hello",
+  8: "generic-greeting",
+};
 
 export function needsEscalation(text: string): string | null {
   for (const { re, reason } of ESCALATE_PATTERNS) {

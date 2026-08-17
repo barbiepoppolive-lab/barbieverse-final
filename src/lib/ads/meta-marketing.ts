@@ -213,3 +213,143 @@ export async function createAdFromCreative(opts: {
     return { ok: false, error: e?.message || "unknown error" };
   }
 }
+
+// ── READ PATH: Insights sync ────────────────────────────────────────────────
+
+export interface AdInsight {
+  date: string;
+  campaign_id: string;
+  ad_id: string;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  cpm: number;
+  cpc: number;
+  results: number;
+  cost_per_result: number;
+}
+
+/**
+ * Fetch daily ad insights from Meta's Insights API. Uses level=ad to get all
+ * ads in one call. Only requires ads_read permission (smaller App Review ask
+ * than the write-path's ads_management).
+ *
+ * @param datePreset - Meta date preset string: "yesterday", "last_7d", "last_30d", etc.
+ * @returns Array of raw insight objects from the Graph API.
+ */
+export async function fetchAdInsights(
+  datePreset: string = "yesterday",
+): Promise<MetaApiResult<any[]>> {
+  const config = getConfig();
+  if (!config) return { ok: false, error: "Meta Marketing not configured" };
+
+  try {
+    const params = new URLSearchParams({
+      level: "ad",
+      fields: "campaign_id,ad_id,spend,impressions,clicks,ctr,cpm,cpc,actions,cost_per_action_type",
+      date_preset: datePreset,
+      access_token: config.accessToken,
+    });
+
+    const res = await fetch(`${GRAPH_BASE}/act_${config.adAccountId}/insights?${params}`);
+    const data = await res.json();
+    if (!res.ok) return { ok: false, error: data?.error?.message || `HTTP ${res.status}` };
+
+    return { ok: true, data: data.data || [] };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || "unknown error" };
+  }
+}
+
+/**
+ * Sync a single day's insights into meta_ad_insights_daily.
+ * Parses the raw Meta response, extracts the "leads" action count,
+ * and upserts into Supabase.
+ */
+export async function syncInsightsToDb(
+  insights: any[],
+  dbUrl: string,
+): Promise<{ upserted: number; errors: string[] }> {
+  const errors: string[] = [];
+  let upserted = 0;
+
+  const { Client } = await import("pg");
+  const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+  await pg.connect();
+
+  for (const row of insights) {
+    try {
+      // Extract "leads" count from actions array
+      const leadAction = row.actions?.find((a: any) => a.action_type === "offsite_conversionessaging_flow_step_trigger");
+      const results = leadAction ? parseInt(leadAction.value, 10) || 0 : 0;
+      const spend = parseFloat(row.spend) || 0;
+
+      await pg.query(
+        `INSERT INTO meta_ad_insights_daily (date, campaign_id, ad_id, spend, impressions, clicks, ctr, cpm, cpc, results, cost_per_result)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         ON CONFLICT (date, ad_id) DO UPDATE SET
+           spend = EXCLUDED.spend, impressions = EXCLUDED.impressions,
+           clicks = EXCLUDED.clicks, ctr = EXCLUDED.ctr, cpm = EXCLUDED.cpm,
+           cpc = EXCLUDED.cpc, results = EXCLUDED.results, cost_per_result = EXCLUDED.cost_per_result`,
+        [
+          row.date_start,
+          row.campaign_id,
+          row.ad_id,
+          spend,
+          parseInt(row.impressions, 10) || 0,
+          parseInt(row.clicks, 10) || 0,
+          parseFloat(row.ctr) || 0,
+          parseFloat(row.cpm) || 0,
+          parseFloat(row.cpc) || 0,
+          results,
+          results > 0 ? spend / results : 0,
+        ],
+      );
+      upserted++;
+    } catch (e: any) {
+      errors.push(`${row.ad_id}: ${e?.message}`);
+    }
+  }
+
+  await pg.end();
+  return { upserted, errors };
+}
+
+/**
+ * Upsert a campaign or ad creative into the metadata tables.
+ * Called before syncing insights so the FK references are valid.
+ */
+export async function upsertCampaign(
+  id: string, name: string, objective: string | null, status: string | null,
+  dbUrl: string,
+): Promise<void> {
+  const { Client } = await import("pg");
+  const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+  await pg.connect();
+  await pg.query(
+    `INSERT INTO meta_ad_campaigns (id, name, objective, status) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, objective = EXCLUDED.objective, status = EXCLUDED.status`,
+    [id, name, objective, status],
+  );
+  await pg.end();
+}
+
+export async function upsertCreative(
+  id: string, campaignId: string, prefillVariant: string,
+  prefillText: string | null, language: string | null, headline: string | null,
+  dbUrl: string,
+): Promise<void> {
+  const { Client } = await import("pg");
+  const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+  await pg.connect();
+  await pg.query(
+    `INSERT INTO meta_ad_creatives (id, campaign_id, prefill_variant, prefill_text, language, headline)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT (id) DO UPDATE SET
+       campaign_id = EXCLUDED.campaign_id, prefill_variant = EXCLUDED.prefill_variant,
+       prefill_text = EXCLUDED.prefill_text, language = EXCLUDED.language, headline = EXCLUDED.headline`,
+    [id, campaignId, prefillVariant, prefillText, language, headline],
+  );
+  await pg.end();
+}

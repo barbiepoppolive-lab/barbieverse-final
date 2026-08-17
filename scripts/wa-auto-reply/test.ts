@@ -27,13 +27,13 @@ const testMessages = [
 
 console.log("1. Answer Matching Tests:\n");
 for (const msg of testMessages) {
-  const answer = matchAnswer(msg);
+  const result = matchAnswer(msg);
   const escalation = needsEscalation(msg);
   
   if (escalation) {
     console.log(`  ❌ "${msg}" → ESCALATE: ${escalation}`);
-  } else if (answer) {
-    console.log(`  ✅ "${msg}" → ${answer.id} (${answer.label})`);
+  } else if (result) {
+    console.log(`  ✅ "${msg}" → ${result.answer.id} (${result.answer.label}) [matchIndex=${result.matchIndex}]`);
   } else {
     console.log(`  ⚠️ "${msg}" → NO MATCH (needs LLM)`);
   }
