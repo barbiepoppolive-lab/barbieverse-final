@@ -118,6 +118,13 @@ function saveJson(file: string, data: unknown) {
 }
 
 const optOuts = new Set<string>(loadJson<string[]>(OPTOUT_FILE, []));
+
+// ── Blocklist: never reply to these numbers ──────────────────────────────────
+// These are existing team members / internal numbers. Bot must never interact.
+const BLOCKED_PHONES = new Set<string>([
+  "214168695263324", // Gayatri Devi Bolla
+]);
+// Also check at message handler level — merge with optOuts for outbound protection
 // message ids already handled — prevents double-replies after a restart
 const seenIds = new Set<string>(loadJson<string[]>(SEEN_FILE, []).slice(-2000));
 const leadTopics = new Map<string, string[]>();
@@ -1142,6 +1149,107 @@ Do NOT hallucinate values. Only extract numbers you can actually read in the ima
   }
 }
 
+// ── Detect agency joining screenshots from ANY lead ──────────────────────────
+// When a NEW or early-stage lead sends a screenshot that looks like an agency
+// joining confirmation (Poppo/Vone agency panel, agency ID display, host added
+// confirmation), auto-promote them to AGENCY_LINKED and populate host page.
+async function detectAgencyJoining(
+  base64Data: string,
+  mimeType: string,
+  leadId: string | null,
+  phone: string,
+  currentStage: string,
+): Promise<boolean> {
+  // Skip if already converted
+  const convertedStages = ["AGENCY_LINKED", "FACE_VERIFIED", "FIRST_LIVE", "ACTIVE"];
+  if (convertedStages.includes(currentStage)) return false;
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || !leadId) return false;
+
+  const prompt = `Analyze this screenshot. Is it an agency joining confirmation or agency panel from a live streaming app (Poppo, Vone, Bigo, Tango, etc.)?
+
+Look for:
+- Agency ID or agency name displayed
+- "Host added" or "agency joined" confirmation
+- Agency panel/dashboard showing the host is linked
+- Agency earnings or agency management screen
+- Any screen showing an agency relationship
+
+Return ONLY a JSON object:
+{
+  "is_agency_joining": true/false,
+  "agency_name": "string or null (agency name if visible)",
+  "platform": "string or null (app name if visible)",
+  "host_name": "string or null (host name if visible)",
+  "confidence": "high"/"low"/"none"
+}
+
+If this is just a chat screenshot, error message, or unrelated image, return {"is_agency_joining": false, "confidence": "none"}.`;
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data: base64Data } }] }],
+          generationConfig: { maxOutputTokens: 200, temperature: 0.1, responseMimeType: "application/json" },
+        }),
+      },
+    );
+    const data = await res.json();
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!raw) return false;
+
+    const result = JSON.parse(raw);
+    if (!result.is_agency_joining || result.confidence === "none") return false;
+
+    console.log(`[wa] AGENCY JOINING DETECTED! phone=${phone} platform=${result.platform} agency=${result.agency_name}`);
+
+    // Promote lead to AGENCY_LINKED
+    const dbUrl = process.env.SUPABASE_DB_URL;
+    if (!dbUrl) return false;
+    const { Client } = await import("pg");
+    const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    await pg.connect();
+
+    await pg.query(
+      `UPDATE wa_leads SET
+        stage = 'AGENCY_LINKED',
+        agency_verified_at = NOW(),
+        conversation_stage = 'JOINED',
+        human_takeover = false,
+        display_name = COALESCE(display_name, $1),
+        updated_at = NOW()
+       WHERE id = $2`,
+      [result.host_name || null, leadId],
+    );
+
+    // Create host_performance entry
+    await pg.query(
+      `INSERT INTO host_performance (lead_id, period_start, period_end, source, confidence)
+       VALUES ($1, CURRENT_DATE, CURRENT_DATE, 'agency_joining_screenshot', $2)
+       ON CONFLICT DO NOTHING`,
+      [leadId, result.confidence || "low"],
+    );
+
+    await pg.end();
+
+    // Notify Barbie via Telegram
+    const platform = result.platform || "unknown platform";
+    const agency = result.agency_name || "unknown agency";
+    const hostName = result.host_name || "unknown";
+    await tg(`🎉 <b>NEW HOST JOINED!</b>\n+${phone}\nName: ${hostName}\nPlatform: ${platform}\nAgency: ${agency}\nStage: AGENCY_LINKED\n\nAuto-promoted from agency joining screenshot.`);
+
+    return true;
+  } catch (e: any) {
+    console.error("[wa] agency joining detection failed:", e?.message);
+    return false;
+  }
+}
+
 // Persist one turn of the live conversation. Without this the bot could talk
 // but the admin dashboard (barbieverse.org/admin/whatsapp) and every future
 // LLM call would never see it — getLeadContext only ever showed the Aug 15
@@ -1450,6 +1558,11 @@ client.on("message", async (msg: any) => {
     const normPhone = digits.length === 10 ? `91${digits}` : digits;
     const bare91 = normPhone.startsWith("91") ? normPhone.slice(2) : normPhone;
 
+    if (BLOCKED_PHONES.has(normPhone) || BLOCKED_PHONES.has(bare91)) {
+      console.log(`[wa] +${normPhone} is on blocklist — skipping`);
+      return;
+    }
+
     console.log(
       `[wa] resolve from=${from} key=${key} phone=${phone} normalized=${normPhone}`,
     );
@@ -1544,6 +1657,17 @@ client.on("message", async (msg: any) => {
       if (media && (mediaType === "image" || mediaType === "sticker")) {
         console.log(`[wa] analyzing screenshot from +${phone} with Gemini Vision...`);
         const leadCtx = await getLeadContext(phone);
+
+        // Run agency joining detection in parallel (fire-and-forget)
+        const currentStage = leadCtx?.stage || "NEW";
+        detectAgencyJoining(media.data, media.mimetype, leadId, phone, currentStage)
+          .then(async (joined) => {
+            if (joined) {
+              console.log(`[wa] +${phone} auto-promoted to AGENCY_LINKED from screenshot`);
+            }
+          })
+          .catch(() => {});
+
         const visionReply = await analyzeScreenshot(media.data, media.mimetype, leadCtx);
         if (visionReply) {
           console.log(`[wa] vision reply: ${visionReply.slice(0, 60)}`);
@@ -1825,6 +1949,10 @@ async function runCampaign(phones: string[], overrideMessage?: string) {
       console.log(`[wa] campaign: +${phone} opted out, skipping`);
       continue;
     }
+    if (BLOCKED_PHONES.has(phone) || BLOCKED_PHONES.has(bare)) {
+      console.log(`[wa] campaign: +${phone} is on blocklist, skipping`);
+      continue;
+    }
 
     // Pick stage-specific message or use override or rotate generic
     let msg: string;
@@ -1914,6 +2042,10 @@ async function runBroadcast(phones: string[], message: string) {
     const bare = phone.startsWith("91") ? phone.slice(2) : phone;
     if (optOuts.has(phone) || optOuts.has(bare)) {
       console.log(`[wa] broadcast: +${phone} opted out, skipping`);
+      continue;
+    }
+    if (BLOCKED_PHONES.has(phone) || BLOCKED_PHONES.has(bare)) {
+      console.log(`[wa] broadcast: +${phone} is on blocklist, skipping`);
       continue;
     }
     try {
