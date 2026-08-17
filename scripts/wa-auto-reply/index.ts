@@ -1413,14 +1413,29 @@ client.on("ready", async () => {
   );
   // Give the session a couple minutes to settle before touching old leads.
   setTimeout(() => maybeRunDailyReengagement(), 2 * 60_000);
+  // This used to be a one-shot timer — it fired once, 2 minutes after the
+  // first `ready` of each process lifetime, and never again unless the bot
+  // happened to restart. Since the whole point is 24/7 uptime, that meant
+  // "daily" re-engagement often ran exactly once total. Actually recur: check
+  // hourly: the date-guard inside maybeRunDailyReengagement (LAST_CAMPAIGN_FILE)
+  // already ensures it only ever actually sends once per calendar day, so this
+  // just makes sure that day-boundary check keeps happening.
+  setInterval(() => maybeRunDailyReengagement(), 60 * 60_000);
 });
 
 // ── daily auto re-engagement of old leads ──────────────────────────────────
 // Barbie asked the bot to start working the existing database, not just
-// reply inbound. Runs once per calendar day (persisted so a crash-loop or
-// redeploy can't fire it twice), pulls leads who haven't converted, haven't
-// been messaged in 3+ days, and aren't mid-conversation right now, and sends
-// them through the same paced/quiet-hours campaign logic as a manual run.
+// reply inbound — prioritized, rate-limited, self-continuing, and without
+// touching already-converted hosts or contacts that were never actually a
+// recruiting lead. Runs once per calendar day (persisted so a crash-loop or
+// redeploy can't fire it twice — see the setInterval at the `ready` handler
+// that keeps re-checking that day boundary), pulls up to AUTO_CAMPAIGN_BATCH
+// leads who: haven't converted, haven't been messaged in 3+ days, aren't
+// mid-conversation right now, have a real resolvable WhatsApp number (not an
+// unresolved @lid placeholder), and are actually in the recruiting funnel
+// (stage progressed past first contact) — then sends them through the same
+// paced/quiet-hours campaign logic as a manual run, closest-to-converting
+// first (LINK_SENT > INSTALLED > ASKED).
 const LAST_CAMPAIGN_FILE = path.join(SESSION_DIR, "last-auto-campaign.json");
 const AUTO_CAMPAIGN_BATCH = Number(process.env.WA_AUTO_CAMPAIGN_BATCH || 40);
 
@@ -1439,12 +1454,32 @@ async function maybeRunDailyReengagement() {
     await pg.connect();
     const res = await pg.query(
       `select phone from wa_leads
+       -- Already-converted hosts never get cold re-engagement.
        where stage not in ('AGENCY_LINKED','FACE_VERIFIED','FIRST_LIVE','ACTIVE','NOT_INTERESTED')
          and coalesce(escalated, false) = false
          and coalesce(human_takeover, false) = false
          and (last_outbound_at is null or last_outbound_at < now() - interval '3 days')
          and (last_inbound_at is null or last_inbound_at < now() - interval '1 day')
-       order by coalesce(follow_up_due, created_at) asc
+         -- Real WhatsApp mobile numbers only. Contacts whose ID never resolved
+         -- past a raw LID (@lid) got auto-inserted with that pseudo-id as
+         -- "phone" — sending would just fail lookup, and it's not a real
+         -- number to safely message anyway. These all currently sit in NEW.
+         and phone ~ '^(91)?[6-9]\d{9}$'
+         -- Stage itself is the recruiting-relevance signal: a lead only
+         -- reaches ASKED/LINK_SENT/INSTALLED by way of the bot's own
+         -- recruiting-funnel logic (canned match or explicit progression).
+         -- NEW (first-contact, unconfirmed) is excluded above via the phone
+         -- check already, but this also guards against any future stage
+         -- that isn't part of the actual agency-join flow.
+         and stage in ('ASKED','LINK_SENT','INSTALLED')
+       order by
+         case stage
+           when 'LINK_SENT' then 1   -- closest to converting: link already sent
+           when 'INSTALLED' then 2
+           when 'ASKED' then 3
+           else 4
+         end,
+         coalesce(follow_up_due, created_at) asc
        limit $1`,
       [AUTO_CAMPAIGN_BATCH],
     );
