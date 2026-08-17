@@ -45,6 +45,9 @@ function HostsPage() {
   const [editingPhone, setEditingPhone] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [bulkEdit, setBulkEdit] = useState(false);
+  const [bulkNames, setBulkNames] = useState<Record<string, string>>({});
+  const [bulkSaving, setBulkSaving] = useState(false);
 
   const [showBroadcast, setShowBroadcast] = useState(false);
   const [broadcastMsg, setBroadcastMsg] = useState("");
@@ -55,6 +58,31 @@ function HostsPage() {
     setEditingPhone(phone);
     setEditName(currentName || "");
   };
+
+  const startBulkEdit = () => {
+    const names: Record<string, string> = {};
+    hosts.forEach((h: any) => {
+      names[h.phone] = h.display_name || "";
+    });
+    setBulkNames(names);
+    setBulkEdit(true);
+  };
+
+  const saveBulkNames = useCallback(async () => {
+    setBulkSaving(true);
+    try {
+      for (const [phone, name] of Object.entries(bulkNames)) {
+        const host = hosts.find((h: any) => h.phone === phone);
+        if (host && name !== (host.display_name || "")) {
+          await updateLeadName({ data: { phone, name } });
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ["admin", "hosts"] });
+      setBulkEdit(false);
+    } finally {
+      setBulkSaving(false);
+    }
+  }, [bulkNames, hosts, queryClient]);
 
   const saveName = useCallback(async () => {
     if (!editingPhone) return;
@@ -126,6 +154,26 @@ function HostsPage() {
         </div>
         <div className="flex gap-2">
           <button
+            onClick={() => (bulkEdit ? saveBulkNames() : startBulkEdit())}
+            disabled={bulkSaving}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-3 text-xs font-semibold text-primary hover:bg-primary/20"
+          >
+            {bulkSaving ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Pencil className="h-3.5 w-3.5" />
+            )}
+            {bulkEdit ? "Save All Names" : "Edit All Names"}
+          </button>
+          {bulkEdit && (
+            <button
+              onClick={() => setBulkEdit(false)}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-secondary"
+            >
+              Cancel
+            </button>
+          )}
+          <button
             onClick={() => setShowBroadcast(true)}
             className="inline-flex h-9 items-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-3 text-xs font-semibold text-primary hover:bg-primary/20"
           >
@@ -181,7 +229,25 @@ function HostsPage() {
             {hosts.map((h: any) => (
               <tr key={h.id} className="border-t border-border/40">
                 <td className="px-4 py-3">
-                  {editingPhone === h.phone ? (
+                  {bulkEdit ? (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={bulkNames[h.phone] || ""}
+                        onChange={(e) =>
+                          setBulkNames((prev) => ({
+                            ...prev,
+                            [h.phone]: e.target.value,
+                          }))
+                        }
+                        placeholder={`+${h.phone}`}
+                        className="h-7 w-48 rounded border border-border bg-background px-2 text-sm"
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        +{h.phone}
+                      </span>
+                    </div>
+                  ) : editingPhone === h.phone ? (
                     <div className="flex items-center gap-1.5">
                       <input
                         type="text"

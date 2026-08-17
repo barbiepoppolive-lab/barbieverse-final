@@ -1255,6 +1255,48 @@ If this is just a chat screenshot, error message, or unrelated image, return {"i
   }
 }
 
+// Extract host name from any screenshot using Gemini Vision
+async function extractNameFromScreenshot(
+  base64Data: string,
+  mimeType: string,
+): Promise<string | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: "Look at this screenshot from a live streaming app agency panel (Poppo, Vone, Bigo, Tango, etc.). Extract the HOST NAME or USERNAME shown on screen — the name of the host/girl being managed. Return ONLY a JSON object: {\"host_name\": \"the name shown\"} or {\"host_name\": null} if no name is visible.",
+                },
+                { inline_data: { mime_type: mimeType, data: base64Data } },
+              ],
+            },
+          ],
+          generationConfig: {
+            maxOutputTokens: 100,
+            temperature: 0.1,
+            responseMimeType: "application/json",
+          },
+        }),
+      },
+    );
+    const data = await res.json();
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed.host_name || null;
+  } catch {
+    return null;
+  }
+}
+
 // Persist one turn of the live conversation. Without this the bot could talk
 // but the admin dashboard (barbieverse.org/admin/whatsapp) and every future
 // LLM call would never see it — getLeadContext only ever showed the Aug 15
@@ -2672,6 +2714,70 @@ async function tick(){
 tick();
 </script>
 </body>`);
+    }
+
+    // ── /sync-names: re-download screenshots from chats, extract host names via Gemini Vision ──
+    if (url.pathname === "/sync-names") {
+      if (!keyOk) {
+        res.writeHead(403, { "Content-Type": "text/plain" });
+        return res.end("forbidden");
+      }
+      if (!isReady) {
+        res.writeHead(503, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "bot not ready" }));
+      }
+      // Run async, return immediately
+      (async () => {
+        try {
+          const dbUrl = process.env.SUPABASE_DB_URL;
+          if (!dbUrl) return;
+          const { Client: PgClient } = await import("pg");
+          const pg = new PgClient({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+          await pg.connect();
+          const res2 = await pg.query(
+            `SELECT id, phone, display_name FROM wa_leads
+             WHERE stage IN ('AGENCY_LINKED','FACE_VERIFIED','FIRST_LIVE','ACTIVE')
+             ORDER BY display_name NULLS FIRST`
+          );
+          const hosts = res2.rows;
+          console.log(`[sync-names] checking ${hosts.length} converted hosts`);
+          let synced = 0;
+          for (const host of hosts) {
+            try {
+              const chatId = `${host.phone}@c.us`;
+              const chat = await client.getChatById(chatId);
+              const messages = await chat.fetchMessages({ limit: 50 });
+              for (const msg of messages) {
+                if (!msg.hasMedia) continue;
+                let media;
+                try { media = await msg.downloadMedia(); } catch { continue; }
+                if (!media || !media.mimetype?.startsWith("image/")) continue;
+                const name = await extractNameFromScreenshot(media.data, media.mimetype);
+                if (name && name.length >= 2) {
+                  console.log(`[sync-names] +${host.phone} → ${name}`);
+                  await pg.query(
+                    `UPDATE wa_leads SET display_name = $1, updated_at = NOW() WHERE id = $2 AND (display_name IS NULL OR display_name = '')`,
+                    [name, host.id],
+                  );
+                  synced++;
+                  break;
+                }
+              }
+            } catch (e) {
+              console.error(`[sync-names] +${host.phone} failed:`, e?.message);
+            }
+            await new Promise((r) => setTimeout(r, 300));
+          }
+          console.log(`[sync-names] done — ${synced} names updated`);
+          await pg.end();
+          await tg(`✅ Screenshot name sync done — ${synced} names extracted from agency joining screenshots`);
+        } catch (e) {
+          console.error("[sync-names] fatal:", e?.message);
+          await tg(`❌ Screenshot name sync failed: ${e?.message}`);
+        }
+      })();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ ok: true, started: true }));
     }
 
     res.writeHead(200, { "Content-Type": "application/json" });
