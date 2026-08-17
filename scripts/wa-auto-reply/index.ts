@@ -130,6 +130,10 @@ const BLOCKED_PHONES = new Set<string>([
 const seenIds = new Set<string>(loadJson<string[]>(SEEN_FILE, []).slice(-2000));
 const leadTopics = new Map<string, string[]>();
 const contactCounts = new Map<string, { day: string; n: number }>();
+// When did we last send a bare "😊" acknowledgement-nudge to this contact?
+// Used to break out of total silence on a trailing "ok"/"okk" without
+// risking an "ok" <-> "😊" ping-pong loop (see ACKNOWLEDGEMENT_RE handling).
+const lastAckReplyAt = new Map<string, number>();
 let hourStamp = new Date().getUTCHours();
 let repliesThisHour = 0;
 
@@ -1596,10 +1600,24 @@ async function processTurn(
       // Last bot message ended with a question — nudge gently
       replyText = "😊";
       source = "ack-nudge";
+      lastAckReplyAt.set(key, Date.now());
     } else {
-      // Otherwise stay silent — don't reply to "ok" with "ok"
-      console.log(`[wa] acknowledgement from +${phone}, staying silent`);
-      return;
+      // Total silence here used to mean: a lead's last message in the whole
+      // conversation could just sit there unanswered forever whenever it
+      // happened to land after a non-question bot line — which reads as
+      // "the bot died" even though nothing broke. Send one soft close-out
+      // instead, but only if we haven't already sent one to this contact
+      // in the last 10 minutes — that guard is what stops "ok" -> "😊" ->
+      // "ok" -> "😊" turning into its own loop.
+      const lastAck = lastAckReplyAt.get(key) || 0;
+      if (Date.now() - lastAck > 10 * 60_000) {
+        replyText = "😊";
+        source = "ack-nudge-close";
+        lastAckReplyAt.set(key, Date.now());
+      } else {
+        console.log(`[wa] acknowledgement from +${phone}, already nudged recently — staying silent`);
+        return;
+      }
     }
   } else if (APPROVE_MODE === "all-auto") {
     console.log(`[wa] no canned match for +${phone}, calling Grok...`);
