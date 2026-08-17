@@ -227,6 +227,7 @@ async function tgPhoto(pngBuffer: Buffer, caption: string) {
 interface LeadContext {
   id: string;
   phone: string;
+  displayName: string | null;
   stage: string;
   topicsCovered: string[];
   nextStep: string;
@@ -241,6 +242,8 @@ interface LeadContext {
   conversationSummary: string | null;
   nextBestAction: string | null;
   grokCompactionBlob: string | null;
+  createdAt: string | null;
+  lastInboundAt: string | null;
 }
 
 async function getLeadContext(phone: string): Promise<LeadContext | null> {
@@ -252,10 +255,10 @@ async function getLeadContext(phone: string): Promise<LeadContext | null> {
     await pg.connect();
 
     const leadRes = await pg.query(
-      `SELECT id, phone, stage, topics_asked, conversation_stage, lead_score,
+      `SELECT id, phone, display_name, stage, topics_asked, conversation_stage, lead_score,
               streaming_experience, current_platform, trust_level,
               objection_count, conversation_summary, next_best_action,
-              grok_compaction_blob
+              grok_compaction_blob, created_at, last_inbound_at
        FROM wa_leads WHERE phone = $1`,
       [phone],
     );
@@ -278,6 +281,7 @@ async function getLeadContext(phone: string): Promise<LeadContext | null> {
     return {
       id: lead.id,
       phone: lead.phone,
+      displayName: lead.display_name,
       stage: lead.stage,
       topicsCovered: lead.topics_asked || [],
       nextStep: "",
@@ -291,6 +295,8 @@ async function getLeadContext(phone: string): Promise<LeadContext | null> {
       conversationSummary: lead.conversation_summary,
       nextBestAction: lead.next_best_action,
       grokCompactionBlob: lead.grok_compaction_blob,
+      createdAt: lead.created_at,
+      lastInboundAt: lead.last_inbound_at,
     };
   } catch {
     return null;
@@ -421,30 +427,51 @@ function buildSystemPrompt(topicsAsked: string[]): string {
 
   return `You are Barbie, replying on her own WhatsApp to a lead who wants to become a live-streaming host. You are not "an AI assistant" — you are a specific person continuing a specific conversation. A generic, polite, assistant-sounding reply is a FAILED reply here, even if it's factually correct.
 
-STEP 1 — READ FIRST: read the LEAD STATE and RECENT CONVERSATION below before writing a single word. Find the one thing she most recently said that actually needs a response — her specific doubt, her specific question. Your reply answers THAT.
+━━━ STEP 1 — DEEP ANALYSIS (do this BEFORE every reply) ━━━
+Read EVERY message in the RECENT CONVERSATION and LEAD STATE. Do not just look at the last message. Understand:
+- What is she feeling right now? (scared, excited, confused, skeptical, bored, angry?)
+- What did she JUST say specifically? What is the ONE thing she needs answered?
+- What is her journey so far? (new lead? returning? stuck at a stage?)
+- What has she NOT told you yet that you need to know?
+- What is her emotional state — match her energy, don't override it
 
-VOICE (from analysing 3,278 of Barbie's real messages):
+Your reply must address HER specific thing, not a generic next step.
+
+━━━ VOICE (from analysing 3,278 of Barbie's real messages) ━━━
 - Median message is 23 chars. 31% of her replies are 1-15 chars ("Ji", "Okay", "Nhi")
 - "kr" not "kar", "skte" not "sakte", "mei" not "mein"
 - "sister" or "aap" — NEVER "tum", NEVER "mam"
 - Barbie is FEMALE: "deti hoon", "kar dungi", NEVER "deta hoon", "karta hoon"
 - 1-3 short messages, never a paragraph, never a bulleted list
 - Emoji in ~9% of messages, mostly 😊 — most messages have none
+- NEVER say "mei abhi live aati hoon" or "live aane wali hoon" — Barbie is the AGENCY OWNER, she doesn't go live herself. She sends OTHER girls to go live.
+- NEVER promise when she'll be available, online, or call back
+- NEVER say "call me" or "I'll call you" or "wait, I'm coming"
 
-FIRST CONTACT vs MID-CONVERSATION:
+━━━ FIRST CONTACT vs MID-CONVERSATION ━━━
 - If conversation_stage is "NEW" and there is no prior conversation history, it's fine to open with "Haan, batati hoon 😊"
 - If there IS prior conversation (any other stage), do NOT open with a greeting or restart the pitch — continue the actual thread
+- If she's returning after silence, acknowledge she's back — don't restart from zero
 
-QUESTIONS MUST BE REAL:
+━━━ CONVERSATION FLOW — THINK LIKE A HUMAN, NOT A FUNNEL ━━━
+- Don't pitch in the first 1-2 messages. Just TALK to her like a friend.
+- If she says "hi" → say "hi" back, ask how she is, wait for HER to bring up streaming
+- If she's scared → don't jump to facts. Reassure her first. "dar mat, sab normal hai"
+- If she's confused → clarify gently, don't dump info
+- If she's excited → match her energy, then guide naturally
+- If she asks about money → answer her specific question, don't add extra pitch
+- The conversation should FEEL like texting a friend who happens to know about streaming, not like a sales call
+
+━━━ QUESTIONS MUST BE REAL ━━━
 - Every question must map to an actual next step: "install ho gaya?" (after link sent), "agency ID daal diya?" (after install), "screenshot bhej do" (after agency linked)
 - Never ask a vague rapport question — "kya aapko pta hai aapko kya karna hai" is a failure
 - NEVER ask about husband/family/permission unless SHE brought it up
 - Don't ask what you can already answer from the conversation history
 
-MONEY FACTS (locked, never invent different numbers):
+━━━ MONEY FACTS (locked, never invent different numbers) ━━━
 ${facts || "(topic already covered — give a fresh angle, keep numbers identical)"}
 
-NEVER DO:
+━━━ NEVER DO ━━━
 - Send 3+ messages without a question in the last one
 - Info-dump paragraphs
 - Offer voice/video calls
@@ -453,8 +480,12 @@ NEVER DO:
 - Invent rupee figures
 - Send media without a question after it
 - Sound like customer support
+- Say "mei live aati hoon" or "live aane wali hoon" — you are the AGENCY, not a host
+- Promise to call back or be available at a specific time
+- Send the same template reply to different leads — every reply must be specific to THIS conversation
+- Use formal/business language — this is WhatsApp, not email
 
-TOOL USE — YOU MUST CALL THESE TOOLS EVERY TURN:
+━━━ TOOL USE — YOU MUST CALL THESE TOOLS EVERY TURN ━━━
 After reading the conversation and before writing your reply, decide if any of these apply. If yes, call the tool(s) WITH REAL DATA from the conversation. Do NOT call tools with empty args.
 
 REQUIRED tool calls (when applicable):
@@ -667,7 +698,7 @@ async function grokReply(
     });
   } else if (context?.transcript) {
     // Raw recent turns (last 10 to keep token count reasonable)
-    const recentTurns = context.transcript.split("\n").slice(-20).join("\n");
+    const recentTurns = context.transcript.split("\n").slice(-30).join("\n");
     messages.push({
       role: "user",
       content: `RECENT CONVERSATION:\n${recentTurns}`,
@@ -678,7 +709,7 @@ async function grokReply(
   if (context) {
     const stateParts = [
       `LEAD STATE:`,
-      `Phone: ${context.phone} | Stage: ${context.stage} | Conversation: ${context.conversationStage} | Score: ${context.leadScore}`,
+      `Phone: ${context.phone} | Name: ${context.displayName || "unknown"} | Stage: ${context.stage} | Conversation: ${context.conversationStage} | Score: ${context.leadScore}`,
     ];
     if (context.trustLevel) stateParts.push(`Trust: ${context.trustLevel}`);
     if (context.streamingExperience) stateParts.push(`Experience: ${context.streamingExperience}`);
@@ -686,6 +717,14 @@ async function grokReply(
     if (context.objectionCount > 0) stateParts.push(`Objections: ${context.objectionCount}`);
     if (context.conversationSummary) stateParts.push(`Summary: ${context.conversationSummary}`);
     if (context.nextBestAction) stateParts.push(`Next: ${context.nextBestAction}`);
+    if (context.createdAt) {
+      const daysSinceFirst = Math.floor((Date.now() - new Date(context.createdAt).getTime()) / 86400000);
+      stateParts.push(`First contact: ${daysSinceFirst}d ago`);
+    }
+    if (context.lastInboundAt) {
+      const minsSinceLast = Math.floor((Date.now() - new Date(context.lastInboundAt).getTime()) / 60000);
+      stateParts.push(`Last message from her: ${minsSinceLast}m ago`);
+    }
     messages.push({ role: "user", content: stateParts.join("\n") });
   }
 
