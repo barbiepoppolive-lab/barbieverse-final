@@ -60,7 +60,7 @@ const MAX_REPLIES_PER_HOUR = Number(
 const MAX_REPLIES_PER_CONTACT_PER_DAY = Number(
   process.env.WA_MAX_PER_CONTACT_DAY || 999,
 );
-const MIN_DELAY_MS = Number(process.env.WA_MIN_DELAY_MS || 3_000);
+const MIN_DELAY_MS = Number(process.env.WA_MIN_DELAY_MS || 10_000);
 const MAX_DELAY_MS = Number(process.env.WA_MAX_DELAY_MS || 12_000);
 
 // Pause toggle: WA_BOT_PAUSED=true shuts off all replies without killing the process.
@@ -1430,13 +1430,12 @@ client.on("ready", async () => {
 // touching already-converted hosts or contacts that were never actually a
 // recruiting lead. Runs once per calendar day (persisted so a crash-loop or
 // redeploy can't fire it twice — see the setInterval at the `ready` handler
-// that keeps re-checking that day boundary), pulls up to AUTO_CAMPAIGN_BATCH
-// leads who: haven't converted, haven't been messaged in 3+ days, aren't
+// that keeps re-checking that day boundary), pulls all eligible leads who:
+// haven't converted, haven't been messaged in 3+ days, aren't
 // mid-conversation right now, have a real resolvable WhatsApp number (not an
 // unresolved @lid placeholder), and are actually in the recruiting funnel
 // (stage progressed past first contact) — then sends them through the same
-// paced/quiet-hours campaign logic as a manual run, closest-to-converting
-// first (LINK_SENT > INSTALLED > ASKED).
+// paced campaign logic as a manual run, closest-to-converting first.
 const LAST_CAMPAIGN_FILE = path.join(SESSION_DIR, "last-auto-campaign.json");
 const AUTO_CAMPAIGN_BATCH = Number(process.env.WA_AUTO_CAMPAIGN_BATCH || 40);
 
@@ -1480,9 +1479,7 @@ async function maybeRunDailyReengagement() {
            when 'ASKED' then 3
            else 4
          end,
-         coalesce(follow_up_due, created_at) asc
-       limit $1`,
-      [AUTO_CAMPAIGN_BATCH],
+         coalesce(follow_up_due, created_at) asc`,
     );
     await pg.end();
     saveJson(LAST_CAMPAIGN_FILE, { date: today });
@@ -1995,22 +1992,13 @@ const STAGE_MESSAGES: Record<string, string[]> = {
 /**
  * Outbound re-engagement campaign. Sends stage-specific messages with human
  * timing. Rate-limited to max 4 per run with 20-45s gaps (cold outbound is
- * the #1 ban signal — we go slow). 9AM-11PM IST only.
+ * the #1 ban signal — we go slow).
  */
 async function runCampaign(phones: string[], overrideMessage?: string) {
   campaignActive = true;
   campaignSent = 0;
   campaignTotal = phones.length;
   console.log(`[wa] campaign started — ${phones.length} leads`);
-
-  // Check IST hour (UTC+5:30)
-  const istHour = (new Date().getUTCHours() + 5 + 30 / 60) % 24;
-  if (istHour < 9 || istHour >= 23) {
-    console.log(`[wa] campaign blocked — IST hour ${Math.floor(istHour)} is outside 9AM-11PM`);
-    await tg(`⛔ Campaign blocked — IST hour ${Math.floor(istHour)} is outside 9AM-11PM window`);
-    campaignActive = false;
-    return;
-  }
 
   // Pull lead stages from DB to send stage-specific messages
   let stageMap: Record<string, string> = {};

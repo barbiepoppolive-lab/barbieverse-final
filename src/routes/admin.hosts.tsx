@@ -213,8 +213,13 @@ function HostsPage() {
                     <div className="flex items-center gap-1.5">
                       <div>
                         <div className="font-semibold">
-                          {h.display_name || "—"}
+                          {h.display_name || `+${h.phone}`}
                         </div>
+                        {h.display_name && (
+                          <div className="text-xs text-muted-foreground">
+                            +{h.phone}
+                          </div>
+                        )}
                         {h.source && (
                           <div className="text-xs text-muted-foreground">
                             src: {h.source}
