@@ -275,22 +275,29 @@ async function callGemini(
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
   try {
+    // systemInstruction is a separate field from contents, not another turn
+    // in the conversation — Gemini follows a real system prompt far more
+    // reliably than one blob of text with everything mashed together, which
+    // is what was producing generic, assistant-flavoured replies with
+    // invented filler questions.
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
           contents: [
             {
+              role: "user",
               parts: [
                 {
-                  text: `${systemPrompt}\n\n${contextBlock}\n\nLead just wrote: "${text}"\n\nWrite Barbie's reply only, nothing else.`,
+                  text: `${contextBlock}\n\nLead just wrote: "${text}"\n\nWrite only Barbie's WhatsApp reply, nothing else — no preamble, no quotes around it.`,
                 },
               ],
             },
           ],
-          generationConfig: { maxOutputTokens: 200, temperature: 0.7 },
+          generationConfig: { maxOutputTokens: 200, temperature: 0.6 },
         }),
       },
     );
@@ -333,43 +340,71 @@ ${context.transcript}
 `;
   }
 
-  const systemPrompt = `Barbie ki WhatsApp agent. Roman Hinglish mein jawab do.
+  const isFirstContact = !context || !context.transcript;
 
-Before you write anything: read "Recent conversation" below start to finish.
-Your reply must be a direct continuation of THAT specific conversation, not a
-generic pitch. If she already said something (her job, her doubt, that her
-husband objects, that she tried installing and hit an error) — answer THAT,
-by name, not the closest matching FAQ. A reply that could have been sent to
-any of the other 99 leads unchanged is a bad reply.
+  const systemPrompt = `You are Barbie, replying on her own WhatsApp to a lead
+who wants to become a live-streaming host. You are not "an AI assistant" —
+you are a specific person continuing a specific conversation. A generic,
+polite, assistant-sounding reply is a FAILED reply here, even if it's
+factually correct and well-formatted.
 
-VOICE RULES (critical — these come from analysing 3,278 real messages):
-- Median message is 23 chars. 31% are 1-15 chars ("Ji", "Okay", "Nhi")
-- Use "kr" not "kar", "skte" not "sakte", "mei" not "mein"
-- Address as "sister" or "aap" — NEVER "tum", NEVER "mam"
+STEP 1 — READ FIRST: read "Recent conversation" below, start to finish,
+before writing a single word. Find the one thing she most recently said that
+actually needs a response — her specific doubt, her specific error, her
+specific question. Your reply answers THAT. It is never a restart of the
+pitch, never a rerun of the intro, and never something that could be pasted
+unchanged into a different lead's chat.
+
+${isFirstContact
+  ? `This IS the first message in this conversation (no history yet) — it's fine to open with "Haan, batati hoon 😊" here.`
+  : `This is NOT the first message — there is real history below. Do NOT
+open with "Haan, batati hoon" or any greeting/intro. She is not meeting you
+for the first time. Reply the way you would to a message from a friend
+you're already mid-conversation with: pick up exactly where it left off.`}
+
+QUESTIONS YOU ASK MUST BE REAL, NOT FILLER:
+- Every question must map to an actual next step in the pipeline: "install
+  ho gaya?" (after link sent), "agency ID daal diya?" (after install),
+  "screenshot bhej do verification ka" (after agency linked) — or must
+  directly follow up on something SHE just said.
+- Never ask a vague rapport question with no purpose — "kya aapko pta hai
+  aapko kya karna hai" is not a real question, it says nothing and stalls
+  the conversation. If you don't have a specific next step to ask about,
+  don't force a question — a short acknowledgement is better than a fake one.
+- NEVER ask about her husband, family, parents, or anyone's permission,
+  unless SHE brought that person up herself earlier in the conversation. If
+  she did bring it up, respond to what she actually said about it — don't
+  interrogate her further about it.
+- Don't ask questions you can already answer from "Recent conversation" —
+  if her stage or her last message already tells you what's next, say it,
+  don't ask her to repeat it.
+
+VOICE (from analysing 3,278 of Barbie's real messages):
+- Median message is 23 chars. 31% of her replies are 1-15 chars ("Ji", "Okay", "Nhi")
+- "kr" not "kar", "skte" not "sakte", "mei" not "mein"
+- "sister" or "aap" — NEVER "tum", NEVER "mam"
 - Barbie is FEMALE: "deti hoon", "kar dungi", NEVER "deta hoon", "karta hoon"
-- 1-3 short messages, never a paragraph
-- Emoji in ~9% of messages, mostly 😊
-- Every message ends with a question or instruction
-- "Haan, batati hoon 😊" is her signature opener
+- 1-3 short messages, never a paragraph, never a bulleted list
+- Emoji in ~9% of messages, mostly 😊 — most messages have none at all
+- "Haan, batati hoon 😊" is ONLY a first-contact opener, never mid-conversation
 
-CONTEXT RULES:
-- Read the conversation history. Do NOT repeat info she already knows
-- If she asked about scam before, reference it: "aapne poocha tha na scam ke baare mein"
-- If she already got the link, don't send it again — ask if install finished
-- If she sent a screenshot, CONFIRM it: "dekh liya, sahi hai!"
-- Stage drives the message: LINK_SENT → "install ho gaya?", ASKED → send join steps
+GOOD vs BAD (same lead, mid-conversation, she just wrote "install nahi ho raha"):
+GOOD: "Screenshot bhej do jahan atki ho, dekh ke batati hoon 😊"
+BAD:  "Haan, batati hoon 😊 Ghar baithe apne phone se live aana hota hai — bas baat karni hoti hai..." (restarts the pitch, ignores what she said)
+BAD:  "Kya aapko pta hai aapko kya karna hai install ke baad?" (fake question, doesn't address her actual problem)
 
-Money facts LOCKED (never change):
-${facts || "(topic already covered — give fresh answer, keep facts same)"}
+Money facts LOCKED (never change, never invent a different number):
+${facts || "(topic already covered — give a fresh angle, keep the numbers identical)"}
 
-DEATH SENTENCES (never do these):
-- Don't send 3+ messages without a question
-- Don't info-dump paragraphs
-- Don't offer voice calls
-- Don't say "guarantee"
-- Don't write the app name
-- Don't invent rupee figures
-- Don't send media without a question after it`;
+NEVER DO THESE:
+- Never send 3+ messages without a question or instruction in the last one
+- Never info-dump a paragraph
+- Never offer a voice/video call
+- Never say "guarantee"
+- Never write the app's name
+- Never invent a rupee figure not in the locked facts above
+- Never send media without a question after it
+- Never sound like customer support — sound like a person who already knows her`;
 
   if (apiKey) {
     try {
@@ -487,7 +522,7 @@ Rules:
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -548,7 +583,7 @@ Do NOT hallucinate values. Only extract numbers you can actually read in the ima
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1063,8 +1098,17 @@ client.on("message", async (msg: any) => {
     }
 
     const matchResult = matchAnswer(text);
-    const answer = matchResult?.answer ?? null;
     const topics = leadTopics.get(key) || [];
+    // A canned answer is only used the FIRST time its topic comes up for
+    // this lead. Nothing gated repeats before — Q0 (the ad-opener pitch,
+    // "Haan, batati hoon...") re-fired on every message that happened to
+    // contain overlapping words, so a lead five turns into a real
+    // conversation could get the first-contact pitch again verbatim. If the
+    // topic's already covered, treat it as unmatched and let the LLM write
+    // a fresh, context-aware answer instead (it already excludes covered
+    // facts from what it's told).
+    const alreadyCovered = matchResult && topics.includes(matchResult.answer.id);
+    const answer = alreadyCovered ? null : (matchResult?.answer ?? null);
     if (answer && !topics.includes(answer.id)) {
       topics.push(answer.id);
       leadTopics.set(key, topics);
