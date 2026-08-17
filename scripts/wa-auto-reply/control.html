@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Bot Control</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui; background: #0f0f0f; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .card { background: #1a1a2e; border-radius: 16px; padding: 40px; text-align: center; max-width: 400px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; }
+    .status { font-size: 0.9rem; color: #888; margin-bottom: 32px; }
+    .status .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+    .status .dot.green { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+    .status .dot.red { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+    .btn { display: block; width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; margin-bottom: 12px; transition: all 0.2s; }
+    .btn:hover { transform: scale(1.02); }
+    .btn:active { transform: scale(0.98); }
+    .btn-start { background: #22c55e; color: #fff; }
+    .btn-stop { background: #ef4444; color: #fff; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .log { margin-top: 20px; font-size: 0.8rem; color: #666; min-height: 20px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>WhatsApp Bot</h1>
+    <div class="status"><span class="dot green" id="dot"></span><span id="label">checking...</span></div>
+    <button class="btn btn-start" id="startBtn" onclick="toggle('resume')">Start</button>
+    <button class="btn btn-stop" id="stopBtn" onclick="toggle('pause')">Stop</button>
+    <div class="log" id="log"></div>
+  </div>
+  <script>
+    const KEY = new URLSearchParams(window.location.search).get('k') || '';
+    const BASE = window.location.origin;
+
+    async function check() {
+      try {
+        const r = await fetch(`${BASE}/status`);
+        const d = await r.json();
+        document.getElementById('dot').className = 'dot ' + (d.paused ? 'red' : 'green');
+        document.getElementById('label').textContent = d.paused ? 'Paused' : 'Running';
+        document.getElementById('startBtn').disabled = !d.paused;
+        document.getElementById('stopBtn').disabled = d.paused;
+      } catch { document.getElementById('label').textContent = 'offline'; }
+    }
+
+    async function toggle(action) {
+      document.getElementById('log').textContent = `${action}...`;
+      try {
+        const r = await fetch(`${BASE}/pause?action=${action}&k=${KEY}`);
+        const d = await r.json();
+        document.getElementById('log').textContent = d.paused ? 'Paused' : 'Running';
+        check();
+      } catch(e) { document.getElementById('log').textContent = 'error: ' + e.message; }
+    }
+
+    check();
+    setInterval(check, 5000);
+  </script>
+</body>
+</html>

@@ -1427,6 +1427,19 @@ http
 
     const keyOk = QR_SECRET && url.searchParams.get("k") === QR_SECRET;
 
+    // ── control panel (no auth required — key is passed in the page itself) ──
+    if (url.pathname === "/control") {
+      const html = fs.readFileSync(path.join(import.meta.dirname, "control.html"), "utf8");
+      res.writeHead(200, { "Content-Type": "text/html" });
+      return res.end(html);
+    }
+
+    // ── status (no auth — read-only) ──
+    if (url.pathname === "/status") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ paused: botPaused, ready: isReady }));
+    }
+
     // ── reset: wipe session and restart so fresh QR can be scanned ──
     if (url.pathname === "/reset-session") {
       // Was completely unauthenticated: any POST to the public URL unlinked
