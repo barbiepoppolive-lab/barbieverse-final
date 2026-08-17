@@ -183,6 +183,37 @@ export const updateLeadName = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Kill a conversation immediately — blocks the number from all future messaging. */
+export const killConversation = createServerFn({ method: "POST" })
+  .validator((data: { phone: string }) => data)
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("../admin-session.server");
+    await requireAdmin();
+    const { q } = await import("../db.server");
+
+    const phone = data.phone.replace(/[^\d]/g, "");
+    if (!phone) return { ok: false, error: "phone required" };
+
+    // Mark lead as opted out in DB
+    await q(
+      `update wa_leads set opted_out = true, updated_at = now() where phone = $1`,
+      [phone],
+    );
+
+    // Tell the Railway bot to add to its in-memory blocklist
+    const botUrl = process.env.WA_BOT_URL || "https://wa-auto-reply-production-d682.up.railway.app";
+    const botKey = process.env.WA_QR_SECRET || "d03875f5258462c890c0fcea9626e3c8";
+    try {
+      await fetch(`${botUrl}/block-phone?k=${botKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+    } catch {}
+
+    return { ok: true, phone };
+  });
+
 /** Broadcast a message to all hosts via the Railway bot. */
 export const broadcastToHosts = createServerFn({ method: "POST" })
   .validator((data: { message: string }) => data)

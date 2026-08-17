@@ -8,6 +8,7 @@ import { useState, useCallback } from "react";
 import {
   listHosts,
   updateLeadName,
+  killConversation,
   broadcastToHosts,
 } from "@/lib/api/whatsapp.functions";
 import {
@@ -18,6 +19,7 @@ import {
   Send,
   Loader2,
   X,
+  Skull,
 } from "lucide-react";
 
 const hostsQO = queryOptions({
@@ -48,6 +50,7 @@ function HostsPage() {
   const [bulkEdit, setBulkEdit] = useState(false);
   const [bulkNames, setBulkNames] = useState<Record<string, string>>({});
   const [bulkSaving, setBulkSaving] = useState(false);
+  const [killing, setKilling] = useState<string | null>(null);
 
   const [showBroadcast, setShowBroadcast] = useState(false);
   const [broadcastMsg, setBroadcastMsg] = useState("");
@@ -83,6 +86,21 @@ function HostsPage() {
       setBulkSaving(false);
     }
   }, [bulkNames, hosts, queryClient]);
+
+  const handleKill = useCallback(
+    async (phone: string, name: string) => {
+      if (!confirm(`Kill conversation with ${name || phone}? This blocks them permanently.`))
+        return;
+      setKilling(phone);
+      try {
+        await killConversation({ data: { phone } });
+        queryClient.invalidateQueries({ queryKey: ["admin", "hosts"] });
+      } finally {
+        setKilling(null);
+      }
+    },
+    [queryClient],
+  );
 
   const saveName = useCallback(async () => {
     if (!editingPhone) return;
@@ -332,14 +350,29 @@ function HostsPage() {
                   {new Date(h.created_at).toLocaleDateString("en-IN")}
                 </td>
                 <td className="px-4 py-3">
-                  <a
-                    href={`https://wa.me/${String(h.phone).replace(/[^\d]/g, "")}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-primary/40 px-2.5 text-xs font-semibold text-primary hover:bg-primary/10"
-                  >
-                    <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-                  </a>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`https://wa.me/${String(h.phone).replace(/[^\d]/g, "")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-md border border-primary/40 px-2.5 text-xs font-semibold text-primary hover:bg-primary/10"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                    </a>
+                    <button
+                      onClick={() => handleKill(h.phone, h.display_name)}
+                      disabled={killing === h.phone}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-md border border-red-500/40 px-2.5 text-xs font-semibold text-red-400 hover:bg-red-500/10 disabled:opacity-50"
+                      title="Kill conversation — blocks permanently"
+                    >
+                      {killing === h.phone ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Skull className="h-3.5 w-3.5" />
+                      )}
+                      Kill
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -12,6 +12,7 @@ import {
   getGrokCosts,
   getAdROI,
   importAdSpend,
+  killConversation,
 } from "@/lib/api/whatsapp.functions";
 import {
   MessageCircle,
@@ -26,6 +27,7 @@ import {
   AlertTriangle,
   TrendingUp,
   Upload,
+  Skull,
 } from "lucide-react";
 
 const STAGE_ORDER = [
@@ -526,15 +528,28 @@ function WhatsappPage() {
                   {new Date(l.created_at).toLocaleDateString("en-IN")}
                 </td>
                 <td className="px-4 py-3">
-                  <a
-                    href={`https://wa.me/${String(l.phone).replace(/[^\d]/g, "")}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border hover:border-primary"
-                    title="Open WhatsApp"
-                  >
-                    <MessageCircle className="h-3.5 w-3.5" />
-                  </a>
+                  <div className="flex items-center gap-1">
+                    <a
+                      href={`https://wa.me/${String(l.phone).replace(/[^\d]/g, "")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border hover:border-primary"
+                      title="Open WhatsApp"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" />
+                    </a>
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Kill conversation with ${l.display_name || l.phone}?`)) return;
+                        await killConversation({ data: { phone: String(l.phone) } });
+                        queryClient.invalidateQueries({ queryKey: ["admin", "whatsapp-pipeline"] });
+                      }}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-red-500/30 text-red-400 hover:bg-red-500/10"
+                      title="Kill conversation — blocks permanently"
+                    >
+                      <Skull className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </td>
               </tr>
               {expandedLead === String(l.phone) && (

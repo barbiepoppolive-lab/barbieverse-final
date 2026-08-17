@@ -124,6 +124,7 @@ const optOuts = new Set<string>(loadJson<string[]>(OPTOUT_FILE, []));
 const BLOCKED_PHONES = new Set<string>([
   "214168695263324", // Gayatri Devi Bolla
   "919967980700", // Barbie's own contact ("sir") — not a recruiting lead, bot pitched him anyway
+  "91807674259", // Riya — converted lead, no longer texting
 ]);
 // Also check at message handler level — merge with optOuts for outbound protection
 // message ids already handled — prevents double-replies after a restart
@@ -2666,6 +2667,39 @@ http
         }
       })();
       return;
+    }
+
+    // ── /block-phone: immediately block a number (kill conversation) ──
+    if (url.pathname === "/block-phone" && req.method === "POST") {
+      if (!keyOk) {
+        res.writeHead(403, { "Content-Type": "text/plain" });
+        return res.end("forbidden");
+      }
+      let body: any;
+      try {
+        const chunks: Buffer[] = [];
+        for await (const chunk of req) chunks.push(chunk);
+        body = JSON.parse(Buffer.concat(chunks).toString());
+      } catch {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "bad json" }));
+      }
+      const phone = String(body.phone || "").replace(/\D/g, "");
+      if (!phone) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "phone required" }));
+      }
+      // Add to in-memory optOuts + BLOCKED_PHONES + persist to disk
+      const bare91 = phone.startsWith("91") && phone.length > 12 ? phone.slice(2) : phone;
+      optOuts.add(phone);
+      optOuts.add(bare91);
+      BLOCKED_PHONES.add(phone);
+      BLOCKED_PHONES.add(bare91);
+      saveJson(OPTOUT_FILE, [...optOuts]);
+      console.log(`[block] +${phone} added to blocklist`);
+      await tg(`🚫 <b>Number blocked:</b> +${phone}`);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ ok: true, phone }));
     }
 
     if (url.pathname === "/qr") {
