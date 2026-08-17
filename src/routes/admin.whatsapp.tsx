@@ -10,6 +10,8 @@ import {
   listWhatsappLeads,
   getLeadChatHistory,
   getGrokCosts,
+  getAdROI,
+  importAdSpend,
 } from "@/lib/api/whatsapp.functions";
 import {
   MessageCircle,
@@ -22,6 +24,8 @@ import {
   Zap,
   Clock,
   AlertTriangle,
+  TrendingUp,
+  Upload,
 } from "lucide-react";
 
 const STAGE_ORDER = [
@@ -81,6 +85,11 @@ const grokCostsQO = queryOptions({
   queryFn: () => getGrokCosts(),
 });
 
+const adROIQO = queryOptions({
+  queryKey: ["admin", "ad-roi"],
+  queryFn: () => getAdROI(),
+});
+
 export const Route = createFileRoute("/admin/whatsapp")({
   loader: ({ context }) => context.queryClient.ensureQueryData(qo),
   component: WhatsappPage,
@@ -91,6 +100,7 @@ function WhatsappPage() {
   const { data } = useSuspenseQuery(qo);
   const leadData = useSuspenseQuery(leadsQO);
   const grokData = useSuspenseQuery(grokCostsQO);
+  const adROI = useSuspenseQuery(adROIQO);
   const leads = leadData.data.leads || [];
   const stageMap = new Map(
     (data.byStage || []).map((r: any) => [r.stage, r.count]),
@@ -201,6 +211,11 @@ function WhatsappPage() {
       {/* Grok cost monitor */}
       {grokData.data && (
         <CostMonitor data={grokData.data} />
+      )}
+
+      {/* Ad ROI dashboard */}
+      {adROI.data && (
+        <AdROI data={adROI.data} />
       )}
 
       {/* bot controls */}
@@ -775,6 +790,184 @@ function CostMonitor({ data }: { data: any }) {
       <div className="rounded-xl border border-border/40 bg-background/40 px-4 py-2 text-[11px] text-muted-foreground">
         Pricing: grok-4.20-0309-non-reasoning · $1.25/M input · $0.20/M cached · $2.50/M output · Cache hit rate directly reduces cost
       </div>
+    </div>
+  );
+}
+
+function AdROI({ data }: { data: any }) {
+  const { spendByCampaign, totalSpend, leadsByVariant, conversions, costPerLead, costPerConversion, conversionRate } = data;
+
+  const [showImport, setShowImport] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const handleImport = useCallback(async () => {
+    setImporting(true);
+    setImportResult(null);
+    try {
+      // Parse CSV: date,campaign_name,ad_name,spend,impressions,clicks,results,ctr,cpm,cpc
+      const lines = importText.trim().split("\n");
+      const header = lines[0]?.toLowerCase() || "";
+      const dataLines = lines.slice(header.includes("date") ? 1 : 0);
+
+      const rows = dataLines
+        .filter((l) => l.trim())
+        .map((line) => {
+          const cols = line.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
+          return {
+            date: cols[0] || new Date().toISOString().slice(0, 10),
+            campaign_name: cols[1] || "Unknown",
+            ad_name: cols[2] || undefined,
+            spend: Number(cols[3]) || 0,
+            impressions: Number(cols[4]) || 0,
+            clicks: Number(cols[5]) || 0,
+            results: Number(cols[6]) || 0,
+            ctr: Number(cols[7]) || 0,
+            cpm: Number(cols[8]) || 0,
+            cpc: Number(cols[9]) || 0,
+          };
+        });
+
+      if (!rows.length) {
+        setImportResult("No valid rows found. Expected CSV with: date,campaign,ad,spend,impressions,clicks,results");
+        return;
+      }
+
+      const result = await importAdSpend({ data: { rows } });
+      setImportResult(`Imported ${result.imported} rows`);
+      setImportText("");
+      queryClient.invalidateQueries({ queryKey: ["admin", "ad-roi"] });
+    } catch (e: any) {
+      setImportResult(`Error: ${e?.message || "import failed"}`);
+    } finally {
+      setImporting(false);
+    }
+  }, [importText, queryClient]);
+
+  return (
+    <div className="mt-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-blue-400" />
+          <span className="text-sm font-semibold">Ad Spend ROI</span>
+        </div>
+        <button
+          onClick={() => setShowImport(!showImport)}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10"
+        >
+          <Upload className="h-3.5 w-3.5" /> Import CSV
+        </button>
+      </div>
+
+      {/* CSV import panel */}
+      {showImport && (
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
+          <div className="text-xs font-semibold text-muted-foreground mb-2">
+            Paste Meta Ads Manager CSV export
+          </div>
+          <div className="text-[11px] text-muted-foreground mb-2">
+            Format: date, campaign_name, ad_name, spend, impressions, clicks, results, ctr, cpm, cpc
+          </div>
+          <textarea
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            placeholder="2026-08-17,WhatsApp Leads Campaign,Ad1,150.00,5000,120,3,2.4,30.00,1.25&#10;2026-08-17,Retargeting,Ad2,75.00,3000,80,1,2.67,25.00,0.94"
+            className="w-full h-24 rounded-lg border border-border/40 bg-background/40 px-3 py-2 text-xs font-mono"
+          />
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              onClick={handleImport}
+              disabled={importing || !importText.trim()}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {importing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+              Import
+            </button>
+            {importResult && (
+              <span className="text-xs text-muted-foreground">{importResult}</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Top-line ROI stats */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
+          <div className="text-xs text-muted-foreground">Total spend</div>
+          <div className="mt-1 text-2xl font-bold">₹{totalSpend.toLocaleString()}</div>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
+          <div className="text-xs text-muted-foreground">Cost per lead</div>
+          <div className="mt-1 text-2xl font-bold">₹{costPerLead.toFixed(0)}</div>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
+          <div className="text-xs text-muted-foreground">Cost per host</div>
+          <div className="mt-1 text-2xl font-bold text-green-400">
+            {costPerConversion > 0 ? `₹${costPerConversion.toFixed(0)}` : "—"}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
+          <div className="text-xs text-muted-foreground">Conversion rate</div>
+          <div className="mt-1 text-2xl font-bold">{conversionRate.toFixed(1)}%</div>
+          <div className="text-[10px] text-muted-foreground">
+            {conversions.converted} / {conversions.total_leads} leads
+          </div>
+        </div>
+      </div>
+
+      {/* Campaign breakdown */}
+      {spendByCampaign.length > 0 && (
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
+          <div className="text-xs font-semibold text-muted-foreground">By campaign</div>
+          <div className="mt-2 space-y-2">
+            {spendByCampaign.map((c: any) => (
+              <div key={c.campaign_id} className="flex items-center justify-between text-xs">
+                <div className="flex-1 truncate font-medium">{c.campaign_name}</div>
+                <div className="flex items-center gap-3 text-muted-foreground shrink-0 ml-3">
+                  <span>₹{Number(c.total_spend).toLocaleString()}</span>
+                  <span>{c.total_impressions.toLocaleString()} imp</span>
+                  <span>{c.total_clicks} clicks</span>
+                  <span className="font-medium text-foreground">{c.total_leads} leads</span>
+                  <span>{c.days}d</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Attribution by prefill variant */}
+      {leadsByVariant.length > 0 && (
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
+          <div className="text-xs font-semibold text-muted-foreground">Attribution by ad variant (prefill text)</div>
+          <div className="mt-2 space-y-2">
+            {leadsByVariant.map((v: any) => (
+              <div key={v.prefill_variant} className="flex items-center justify-between text-xs">
+                <span className="font-medium">{v.prefill_variant}</span>
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <span>{v.count} leads</span>
+                  <span className="text-green-400">{v.converted} converted</span>
+                  <span>{v.count > 0 ? ((v.converted / v.count) * 100).toFixed(0) : 0}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {totalSpend === 0 && (
+        <div className="rounded-xl border border-border/40 bg-background/40 px-4 py-3 text-xs text-muted-foreground">
+          No ad spend data yet. Export your Meta Ads Manager report as CSV and click "Import CSV" above.
+          <br />
+          <span className="text-[11px]">
+            In Ads Manager: Reporting → set date range → Export → CSV → paste here.
+            <br />
+            Make sure columns are: date, campaign, ad, spend, impressions, clicks, results, ctr, cpm, cpc
+          </span>
+        </div>
+      )}
     </div>
   );
 }

@@ -354,3 +354,151 @@ export const getGrokCosts = createServerFn({ method: "GET" }).handler(
     };
   },
 );
+
+// ── Meta Ads: CSV spend import ───────────────────────────────────────────────
+// Accepts the CSV export from Meta Ads Manager (or a simplified JSON format)
+// and upserts into meta_ad_insights_daily. No developer account needed —
+// just export from business.facebook.com/adsmanager/ads/reporting
+export const importAdSpend = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      rows: Array<{
+        date: string;
+        campaign_name: string;
+        ad_name?: string;
+        spend: number;
+        impressions: number;
+        clicks: number;
+        results?: number;
+        ctr?: number;
+        cpm?: number;
+        cpc?: number;
+      }>;
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("../admin-session.server");
+    await requireAdmin();
+    const { q } = await import("../db.server");
+
+    let imported = 0;
+    for (const row of data.rows) {
+      const campaignName = row.campaign_name?.trim();
+      const spend = Number(row.spend) || 0;
+      if (!campaignName || spend <= 0) continue;
+
+      // Upsert campaign
+      const campaignSlug = campaignName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .slice(0, 60);
+      await q(
+        `INSERT INTO meta_ad_campaigns (id, name, status)
+         VALUES ($1, $2, 'active')
+         ON CONFLICT (id) DO UPDATE SET name = $2`,
+        [campaignSlug, campaignName],
+      );
+
+      // Upsert daily insight
+      await q(
+        `INSERT INTO meta_ad_insights_daily
+           (date, campaign_id, ad_id, spend, impressions, clicks, results, ctr, cpm, cpc)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         ON CONFLICT (date, campaign_id, ad_id) DO UPDATE SET
+           spend = $4, impressions = $5, clicks = $6, results = $7,
+           ctr = $8, cpm = $9, cpc = $10`,
+        [
+          row.date,
+          campaignSlug,
+          row.ad_name || "unknown",
+          spend,
+          Number(row.impressions) || 0,
+          Number(row.clicks) || 0,
+          Number(row.results) || 0,
+          Number(row.ctr) || 0,
+          Number(row.cpm) || 0,
+          Number(row.cpc) || 0,
+        ],
+      );
+      imported++;
+    }
+
+    return { ok: true, imported };
+  });
+
+// ── Meta Ads: ROI dashboard data ─────────────────────────────────────────────
+// Joins ad spend against lead conversions to calculate cost-per-host.
+export const getAdROI = createServerFn({ method: "GET" }).handler(async () => {
+  const { requireAdmin } = await import("../admin-session.server");
+  await requireAdmin();
+  const { q } = await import("../db.server");
+
+  // Total spend by campaign
+  const spendByCampaign = await q<{
+    campaign_id: string;
+    campaign_name: string;
+    total_spend: number;
+    total_impressions: number;
+    total_clicks: number;
+    total_leads: number;
+    days: number;
+  }>(
+    `SELECT
+       i.campaign_id,
+       c.name as campaign_name,
+       sum(i.spend)::numeric(10,2) as total_spend,
+       sum(i.impressions)::int as total_impressions,
+       sum(i.clicks)::int as total_clicks,
+       coalesce(sum(i.results), 0)::int as total_leads,
+       count(distinct i.date)::int as days
+     FROM meta_ad_insights_daily i
+     LEFT JOIN meta_ad_campaigns c ON c.id = i.campaign_id
+     GROUP BY i.campaign_id, c.name
+     ORDER BY sum(i.spend) DESC`,
+  );
+
+  // Total spend overall
+  const totalSpend = await q<{ total: number }>(
+    `SELECT coalesce(sum(spend), 0)::numeric(10,2) as total FROM meta_ad_insights_daily`,
+  );
+
+  // Leads per prefill_variant (attribution)
+  const leadsByVariant = await q<{
+    prefill_variant: string;
+    count: number;
+    converted: number;
+  }>(
+    `SELECT
+       coalesce(prefill_variant, 'unknown') as prefill_variant,
+       count(*)::int as count,
+       count(*) filter (where stage in ('AGENCY_LINKED','FACE_VERIFIED','FIRST_LIVE','ACTIVE'))::int as converted
+     FROM wa_leads
+     WHERE prefill_variant IS NOT NULL
+     GROUP BY prefill_variant
+     ORDER BY count DESC`,
+  );
+
+  // Overall conversion stats
+  const conversions = await q<{
+    total_leads: number;
+    converted: number;
+  }>(
+    `SELECT
+       count(*)::int as total_leads,
+       count(*) filter (where stage in ('AGENCY_LINKED','FACE_VERIFIED','FIRST_LIVE','ACTIVE'))::int as converted
+     FROM wa_leads`,
+  );
+
+  const conv = conversions[0] || { total_leads: 0, converted: 0 };
+  const spend = totalSpend[0]?.total || 0;
+
+  return {
+    spendByCampaign,
+    totalSpend: spend,
+    leadsByVariant,
+    conversions: conv,
+    costPerLead: conv.total_leads > 0 ? spend / conv.total_leads : 0,
+    costPerConversion: conv.converted > 0 ? spend / conv.converted : 0,
+    conversionRate: conv.total_leads > 0 ? (conv.converted / conv.total_leads) * 100 : 0,
+  };
+});
