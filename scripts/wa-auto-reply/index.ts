@@ -226,6 +226,7 @@ async function tgPhoto(pngBuffer: Buffer, caption: string) {
 // ── lead context from DB ───────────────────────────────────────────────────
 interface LeadContext {
   id: string;
+  phone: string;
   stage: string;
   topicsCovered: string[];
   nextStep: string;
@@ -251,7 +252,7 @@ async function getLeadContext(phone: string): Promise<LeadContext | null> {
     await pg.connect();
 
     const leadRes = await pg.query(
-      `SELECT id, stage, topics_asked, conversation_stage, lead_score,
+      `SELECT id, phone, stage, topics_asked, conversation_stage, lead_score,
               streaming_experience, current_platform, trust_level,
               objection_count, conversation_summary, next_best_action,
               grok_compaction_blob
@@ -276,6 +277,7 @@ async function getLeadContext(phone: string): Promise<LeadContext | null> {
 
     return {
       id: lead.id,
+      phone: lead.phone,
       stage: lead.stage,
       topicsCovered: lead.topics_asked || [],
       nextStep: "",
@@ -311,19 +313,18 @@ const GROK_TOOLS = [
     type: "function",
     function: {
       name: "update_lead_state",
-      description: "Record something durable learned about this lead. Only call when you've learned something new — not every turn.",
+      description: "Record something durable learned about this lead THIS TURN. You MUST pass at least one field with actual data from the conversation. Do NOT call with empty args.",
       parameters: {
         type: "object",
         properties: {
-          streaming_experience: { type: "string", description: "Free text, e.g. 'none' or 'streamed on Poppo for 3 months'" },
-          current_platform: { type: "string", description: "Competitor platform she's mentioned, if any" },
-          objection: { type: "string", description: "The specific objection raised, in her own terms" },
-          trust_level: { type: "string", enum: ["low", "medium", "high"] },
-          conversation_summary: { type: "string", description: "1-2 sentence rolling summary, replaces the previous one" },
-          next_best_action: { type: "string", description: "What should happen next with this lead" },
-          lead_score: { type: "number", description: "0-100 score based on engagement and intent signals" },
+          streaming_experience: { type: "string", description: "What she told you about her streaming background. E.g. 'none', 'streamed on Poppo for 3 months', 'does YouTube shorts'" },
+          current_platform: { type: "string", description: "Competitor app/platform she mentioned by name. E.g. 'Poppo', 'Tango', 'Bigo'. Only set if she explicitly named one." },
+          objection: { type: "string", description: "The specific objection she raised, in her own words. E.g. 'family won't allow', 'scam lagta hai', 'no experience'" },
+          trust_level: { type: "string", enum: ["low", "medium", "high"], description: "low=skeptical/afraid, medium=curious but cautious, high=engaged/wants to join" },
+          conversation_summary: { type: "string", description: "1-2 sentences summarizing what happened THIS TURN. E.g. 'Asked about earnings, explained per-minute model, she seems interested but worried about family approval'" },
+          next_best_action: { type: "string", description: "What Barbie should do next with this lead. E.g. 'Send joining link', 'Address her fear about face verification', 'Wait - she needs time'" },
+          lead_score: { type: "number", description: "0-100 score. 0=new/unread, 30=asked questions, 50=engaged 3+ turns, 70=addressed objections, 90=ready to join" },
         },
-        additionalProperties: false,
       },
     },
   },
@@ -331,19 +332,18 @@ const GROK_TOOLS = [
     type: "function",
     function: {
       name: "mark_conversation_stage",
-      description: "Transition the conversation to a new warmth stage. Call when the lead's engagement level genuinely changes.",
+      description: "Transition the conversation warmth stage. Call when her engagement level genuinely changes based on what she said this turn.",
       parameters: {
         type: "object",
         properties: {
           stage: {
             type: "string",
             enum: ["NEW", "CURIOUS", "QUALIFYING", "INTERESTED", "WARM", "HIGH_INTENT", "READY_TO_JOIN", "JOINING", "JOINED", "HUMAN_HANDOFF", "LOST", "FOLLOW_UP"],
-            description: "The new conversation stage",
+            description: "NEW=first contact, CURIOUS=asking questions, QUALIFYING=answering your questions, INTERESTED=positive signals, WARM=addressing objections, HIGH_INTENT=almost ready, READY_TO_JOIN=confirmed intent, JOINING=link sent, JOINED=verified",
           },
-          reason: { type: "string", description: "Why this transition happened" },
+          reason: { type: "string", description: "Why this transition happened, based on what she said. E.g. 'She asked how to join' or 'She raised an objection about payment'" },
         },
         required: ["stage"],
-        additionalProperties: false,
       },
     },
   },
@@ -351,7 +351,7 @@ const GROK_TOOLS = [
     type: "function",
     function: {
       name: "request_human_handoff",
-      description: "Stop autonomous replies on this thread and alert Barbie. Use for escalation triggers — do not attempt to handle these yourself.",
+      description: "STOP autonomous replies and alert Barbie. Use for: anger/abuse, payment issues, legal/safety, explicit human request, repeated misunderstanding, VIP leads.",
       parameters: {
         type: "object",
         properties: {
@@ -359,10 +359,9 @@ const GROK_TOOLS = [
             type: "string",
             enum: ["angry", "payment_issue", "legal_or_safety", "explicit_human_request", "uncertain", "vip_lead", "repeated_misunderstanding"],
           },
-          summary_for_barbie: { type: "string", description: "One or two sentences: what's happening and what you'd recommend" },
+          summary_for_barbie: { type: "string", description: "2 sentences: what's happening and what Barbie should do" },
         },
         required: ["reason", "summary_for_barbie"],
-        additionalProperties: false,
       },
     },
   },
@@ -370,14 +369,13 @@ const GROK_TOOLS = [
     type: "function",
     function: {
       name: "notify_admin",
-      description: "Low-frequency alert to Barbie about something noteworthy without a full handoff. Use sparingly.",
+      description: "Low-frequency alert to Barbie about something noteworthy. Use very sparingly — maybe 1 in 20 turns.",
       parameters: {
         type: "object",
         properties: {
-          message: { type: "string", description: "What Barbie should know" },
+          message: { type: "string", description: "What Barbie should know about this lead" },
         },
         required: ["message"],
-        additionalProperties: false,
       },
     },
   },
@@ -385,14 +383,13 @@ const GROK_TOOLS = [
     type: "function",
     function: {
       name: "send_joining_link",
-      description: "Send the BarbieVerse joining link to the lead. Only when she has confirmed real intent to join — never speculatively.",
+      description: "Send the BarbieVerse joining link. ONLY when she has explicitly confirmed she wants to join — e.g. 'haan bhejo', 'link do', 'I want to join'. Never speculatively.",
       parameters: {
         type: "object",
         properties: {
-          phone: { type: "string", description: "Lead's phone number" },
+          phone: { type: "string", description: "Lead's phone number (digits only, with country code)" },
         },
         required: ["phone"],
-        additionalProperties: false,
       },
     },
   },
@@ -400,14 +397,13 @@ const GROK_TOOLS = [
     type: "function",
     function: {
       name: "check_application_status",
-      description: "Check if a lead's agency application has been processed. Use when she asks 'did it work' or 'kya hua' after getting the link.",
+      description: "Check if her agency application was processed. Use when she asks 'did it work', 'kya hua', 'ab kya' after previously getting the joining link.",
       parameters: {
         type: "object",
         properties: {
           phone: { type: "string", description: "Lead's phone number" },
         },
         required: ["phone"],
-        additionalProperties: false,
       },
     },
   },
@@ -458,13 +454,26 @@ NEVER DO:
 - Send media without a question after it
 - Sound like customer support
 
-TOOL USE:
-- Call update_lead_state when you learn something durable (platform, objection, trust level, experience)
-- Call mark_conversation_stage when warmth genuinely changes
-- Call request_human_handoff for escalation triggers (anger, payment, legal, minor, human request, uncertain)
-- Call notify_admin for VIP leads or unusual patterns (use sparingly)
-- Call send_joining_link ONLY when she has confirmed intent to join
-- Always call update_lead_state before replying if you learned something new this turn`;
+TOOL USE — YOU MUST CALL THESE TOOLS EVERY TURN:
+After reading the conversation and before writing your reply, decide if any of these apply. If yes, call the tool(s) WITH REAL DATA from the conversation. Do NOT call tools with empty args.
+
+REQUIRED tool calls (when applicable):
+1. update_lead_state — ALWAYS call this. Pass at least one field with actual extracted data:
+   - She said "Poppo pe thi" → call with { current_platform: "Poppo" }
+   - She said "family allow nahi karega" → call with { objection: "family won't allow", trust_level: "low", next_best_action: "address family concern" }
+   - She asked "kitna milega?" → call with { lead_score: 50, conversation_summary: "Asked about earnings, explained per-minute model" }
+   - She said "link bhejo" → call with { lead_score: 90, next_best_action: "send joining link" }
+2. mark_conversation_stage — call when warmth changes:
+   - First message from her → call with { stage: "CURIOUS", reason: "First contact, asking questions" }
+   - She raised an objection → call with { stage: "WARM", reason: "Addressing objection about family approval" }
+   - She confirmed intent → call with { stage: "READY_TO_JOIN", reason: "Explicitly asked for link" }
+
+EXAMPLES of correct tool usage:
+- If she says "mujhe bhi karna hai" → update_lead_state({ lead_score: 70, trust_level: "medium", conversation_summary: "Expressed interest in joining" }) + mark_conversation_stage({ stage: "INTERESTED", reason: "Wants to join" })
+- If she says "Poppo pe karti thi" → update_lead_state({ streaming_experience: "used Poppo", current_platform: "Poppo" })
+- If she says "dar lagta hai" → update_lead_state({ objection: "afraid/scared", trust_level: "low" }) + mark_conversation_stage({ stage: "WARM", reason: "Expressed fear" })
+- If she says "bhejo link" → update_lead_state({ lead_score: 90 }) + send_joining_link({ phone: leadPhone })
+- EVERY reply should include at least an update_lead_state call with conversation_summary updated to what happened this turn`;
 }
 
 // ── Execute a Grok tool call ────────────────────────────────────────────────
@@ -669,7 +678,7 @@ async function grokReply(
   if (context) {
     const stateParts = [
       `LEAD STATE:`,
-      `Stage: ${context.stage} | Conversation: ${context.conversationStage} | Score: ${context.leadScore}`,
+      `Phone: ${context.phone} | Stage: ${context.stage} | Conversation: ${context.conversationStage} | Score: ${context.leadScore}`,
     ];
     if (context.trustLevel) stateParts.push(`Trust: ${context.trustLevel}`);
     if (context.streamingExperience) stateParts.push(`Experience: ${context.streamingExperience}`);
@@ -689,6 +698,13 @@ async function grokReply(
   let outputTokens = 0;
   let reasoningTokens = 0;
 
+  // Debug: log what we're sending to Grok
+  console.log(`[wa] grokRequest phone=${context?.phone || "unknown"} stage=${context?.conversationStage || "NEW"} msgs=${messages.length} tools=${GROK_TOOLS.length}`);
+  messages.forEach((m, i) => {
+    const preview = typeof m.content === "string" ? m.content.slice(0, 120).replace(/\n/g, " ") : "(tool_calls)";
+    console.log(`[wa]   msg[${i}] role=${m.role}: ${preview}`);
+  });
+
   try {
     const res = await fetch("https://api.x.ai/v1/chat/completions", {
       method: "POST",
@@ -704,7 +720,7 @@ async function grokReply(
           ...messages,
         ],
         tools: GROK_TOOLS,
-        max_tokens: 150,
+        max_tokens: 400,
         temperature: 0.7,
       }),
     });
@@ -735,18 +751,22 @@ async function grokReply(
     const choice = data.choices?.[0];
     const message = choice?.message;
 
+    // Debug: log what Grok returned
+    console.log(`[wa] grokResponse model=${data.model} text="${(message?.content || "").slice(0, 100)}" tools=${message?.tool_calls?.length || 0}`);
+
     // Handle tool calls
     if (message?.tool_calls?.length) {
       const dbUrl = process.env.SUPABASE_DB_URL;
       for (const tc of message.tool_calls) {
         const fnName = tc.function?.name;
-        const fnArgs = tc.function?.args ? JSON.parse(tc.function.args) : {};
+        const fnArgs = tc.function?.arguments ? JSON.parse(tc.function.arguments) : {};
         toolCalls.push({ name: fnName, args: fnArgs });
+        console.log(`[wa] toolCall: ${fnName}(${JSON.stringify(fnArgs).slice(0, 200)})`);
 
         if (fnName === "request_human_handoff") humanHandoff = true;
 
         // Execute the tool
-        const result = await executeToolCall(fnName, fnArgs, context?.id || "", "");
+        const result = await executeToolCall(fnName, fnArgs, context?.id || "", context?.phone || "");
         toolCalls[toolCalls.length - 1].result = JSON.parse(result);
       }
 
@@ -764,11 +784,12 @@ async function grokReply(
 
       // Re-call with tool results for the final text reply
       messages.push({ role: "assistant", tool_calls: message.tool_calls });
-      for (const tc of toolCalls) {
+      for (let i = 0; i < message.tool_calls.length; i++) {
+        const tc = message.tool_calls[i];
         messages.push({
           role: "tool",
-          tool_call_id: tc.name,
-          content: JSON.stringify(tc.result || { ok: true }),
+          tool_call_id: tc.id,
+          content: JSON.stringify(toolCalls[i]?.result || { ok: true }),
         });
       }
 
