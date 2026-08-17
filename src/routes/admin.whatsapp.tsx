@@ -9,6 +9,7 @@ import {
   listWhatsappPipeline,
   listWhatsappLeads,
   getLeadChatHistory,
+  getGrokCosts,
 } from "@/lib/api/whatsapp.functions";
 import {
   MessageCircle,
@@ -17,6 +18,10 @@ import {
   Play,
   Send,
   Loader2,
+  DollarSign,
+  Zap,
+  Clock,
+  AlertTriangle,
 } from "lucide-react";
 
 const STAGE_ORDER = [
@@ -71,6 +76,11 @@ const leadsQO = queryOptions({
   queryFn: () => listWhatsappLeads(),
 });
 
+const grokCostsQO = queryOptions({
+  queryKey: ["admin", "grok-costs"],
+  queryFn: () => getGrokCosts(),
+});
+
 export const Route = createFileRoute("/admin/whatsapp")({
   loader: ({ context }) => context.queryClient.ensureQueryData(qo),
   component: WhatsappPage,
@@ -80,6 +90,7 @@ export const Route = createFileRoute("/admin/whatsapp")({
 function WhatsappPage() {
   const { data } = useSuspenseQuery(qo);
   const leadData = useSuspenseQuery(leadsQO);
+  const grokData = useSuspenseQuery(grokCostsQO);
   const leads = leadData.data.leads || [];
   const stageMap = new Map(
     (data.byStage || []).map((r: any) => [r.stage, r.count]),
@@ -186,6 +197,11 @@ function WhatsappPage() {
           accent={s.pending > 0}
         />
       </div>
+
+      {/* Grok cost monitor */}
+      {grokData.data && (
+        <CostMonitor data={grokData.data} />
+      )}
 
       {/* bot controls */}
       <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -647,4 +663,118 @@ function DecisionBadge({
   if (decision === "takeover")
     return <span className="text-xs text-purple-400">takeover</span>;
   return <span className="text-xs">{decision}</span>;
+}
+
+function CostMonitor({ data }: { data: any }) {
+  const { totals, byModel, today, toolUsage, costEstimate } = data;
+  if (!totals || totals.total_calls === 0) return null;
+
+  const cacheHitRate = totals.total_input_tokens
+    ? ((totals.total_cached_tokens / totals.total_input_tokens) * 100).toFixed(1)
+    : "0";
+  const errorRate = totals.total_calls
+    ? ((totals.total_errors / totals.total_calls) * 100).toFixed(1)
+    : "0";
+  const todayCacheRate = today?.input_tokens
+    ? ((today.cached_tokens / today.input_tokens) * 100).toFixed(1)
+    : "0";
+
+  return (
+    <div className="mt-6 space-y-4">
+      <div className="flex items-center gap-2">
+        <DollarSign className="h-4 w-4 text-green-400" />
+        <span className="text-sm font-semibold">Grok Agent — Cost Monitor</span>
+      </div>
+
+      {/* Top-line stats */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <DollarSign className="h-3 w-3" /> Total cost
+          </div>
+          <div className="mt-1 text-2xl font-bold text-green-400">
+            ${costEstimate.total.toFixed(4)}
+          </div>
+          <div className="mt-0.5 text-[10px] text-muted-foreground">
+            input ${(costEstimate.input + costEstimate.cached).toFixed(4)} · output ${costEstimate.output.toFixed(4)}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Zap className="h-3 w-3" /> Total calls
+          </div>
+          <div className="mt-1 text-2xl font-bold">{totals.total_calls}</div>
+          <div className="mt-0.5 text-[10px] text-muted-foreground">
+            {totals.total_errors} errors ({errorRate}%)
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Clock className="h-3 w-3" /> Avg latency
+          </div>
+          <div className="mt-1 text-2xl font-bold">{totals.avg_latency_ms}ms</div>
+          <div className="mt-0.5 text-[10px] text-muted-foreground">
+            cache hit {cacheHitRate}%
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            Today
+          </div>
+          <div className="mt-1 text-2xl font-bold">{today?.calls || 0}</div>
+          <div className="mt-0.5 text-[10px] text-muted-foreground">
+            {today?.input_tokens || 0} in · {today?.output_tokens || 0} out · cache {todayCacheRate}%
+          </div>
+        </div>
+      </div>
+
+      {/* Per-model + tool usage */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        {/* Per-model */}
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
+          <div className="text-xs font-semibold text-muted-foreground">By model</div>
+          <div className="mt-2 space-y-2">
+            {byModel.map((m: any) => (
+              <div key={m.model} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{m.model}</span>
+                  {m.errors > 0 && (
+                    <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] text-red-300">
+                      {m.errors} err
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <span>{m.calls} calls</span>
+                  <span>{m.avg_latency_ms}ms</span>
+                  <span>{m.input_tokens.toLocaleString()} tok</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Tool usage */}
+        <div className="rounded-2xl border border-border/60 bg-card/40 p-4">
+          <div className="text-xs font-semibold text-muted-foreground">Tool usage</div>
+          <div className="mt-2 space-y-2">
+            {toolUsage.length === 0 && (
+              <div className="text-xs text-muted-foreground">No tool calls yet</div>
+            )}
+            {toolUsage.map((t: any) => (
+              <div key={t.tool_name} className="flex items-center justify-between text-xs">
+                <span className="font-medium">{t.tool_name}</span>
+                <span className="text-muted-foreground">{t.calls}×</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Cost breakdown note */}
+      <div className="rounded-xl border border-border/40 bg-background/40 px-4 py-2 text-[11px] text-muted-foreground">
+        Pricing: grok-4.20-0309-non-reasoning · $1.25/M input · $0.20/M cached · $2.50/M output · Cache hit rate directly reduces cost
+      </div>
+    </div>
+  );
 }

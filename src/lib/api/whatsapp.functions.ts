@@ -246,3 +246,111 @@ export const getLeadChatHistory = createServerFn({ method: "GET" })
 
     return { messages: rows };
   });
+
+/** Grok cost monitor — aggregates grok_interactions for the dashboard. */
+export const getGrokCosts = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const { requireAdmin } = await import("../admin-session.server");
+    await requireAdmin();
+    const { q } = await import("../db.server");
+
+    // Overall totals
+    const totals = await q<{
+      total_calls: number;
+      total_input_tokens: number;
+      total_cached_tokens: number;
+      total_output_tokens: number;
+      total_errors: number;
+      avg_latency_ms: number;
+    }>(
+      `SELECT
+         count(*)::int AS total_calls,
+         coalesce(sum(input_tokens), 0)::int AS total_input_tokens,
+         coalesce(sum(cached_tokens), 0)::int AS total_cached_tokens,
+         coalesce(sum(output_tokens), 0)::int AS total_output_tokens,
+         sum(case when error is not null then 1 else 0 end)::int AS total_errors,
+         coalesce(avg(latency_ms), 0)::int AS avg_latency_ms
+       FROM grok_interactions`,
+    );
+
+    // Per-model breakdown
+    const byModel = await q<{
+      model: string;
+      calls: number;
+      input_tokens: number;
+      cached_tokens: number;
+      output_tokens: number;
+      avg_latency_ms: number;
+      errors: number;
+    }>(
+      `SELECT
+         model,
+         count(*)::int AS calls,
+         coalesce(sum(input_tokens), 0)::int AS input_tokens,
+         coalesce(sum(cached_tokens), 0)::int AS cached_tokens,
+         coalesce(sum(output_tokens), 0)::int AS output_tokens,
+         coalesce(avg(latency_ms), 0)::int AS avg_latency_ms,
+         sum(case when error is not null then 1 else 0 end)::int AS errors
+       FROM grok_interactions
+       GROUP BY model ORDER BY calls DESC`,
+    );
+
+    // Today's stats
+    const today = await q<{
+      calls: number;
+      input_tokens: number;
+      cached_tokens: number;
+      output_tokens: number;
+      errors: number;
+    }>(
+      `SELECT
+         count(*)::int AS calls,
+         coalesce(sum(input_tokens), 0)::int AS input_tokens,
+         coalesce(sum(cached_tokens), 0)::int AS cached_tokens,
+         coalesce(sum(output_tokens), 0)::int AS output_tokens,
+         sum(case when error is not null then 1 else 0 end)::int AS errors
+       FROM grok_interactions
+       WHERE created_at >= CURRENT_DATE`,
+    );
+
+    // Tool usage stats
+    const toolUsage = await q<{
+      tool_name: string;
+      calls: number;
+    }>(
+      `SELECT
+         tc->>'name' AS tool_name,
+         count(*)::int AS calls
+       FROM grok_interactions,
+            jsonb_array_elements(tool_calls) AS tc
+       WHERE tc->>'name' IS NOT NULL
+       GROUP BY tc->>'name'
+       ORDER BY calls DESC`,
+    );
+
+    // Cost estimate (grok-4.20-0309-non-reasoning pricing)
+    const t = totals[0] || {};
+    const totalInput = t.total_input_tokens || 0;
+    const totalCached = t.total_cached_tokens || 0;
+    const totalOutput = t.total_output_tokens || 0;
+    const nonCachedInput = totalInput - totalCached;
+    // $1.25/M input, $0.20/M cached input, $2.50/M output
+    const costInput = (nonCachedInput / 1_000_000) * 1.25;
+    const costCached = (totalCached / 1_000_000) * 0.2;
+    const costOutput = (totalOutput / 1_000_000) * 2.5;
+    const totalCost = costInput + costCached + costOutput;
+
+    return {
+      totals: t,
+      byModel,
+      today: today[0] || {},
+      toolUsage,
+      costEstimate: {
+        input: costInput,
+        cached: costCached,
+        output: costOutput,
+        total: totalCost,
+      },
+    };
+  },
+);
