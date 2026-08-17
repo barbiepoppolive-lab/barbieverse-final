@@ -1426,7 +1426,48 @@ client.on("ready", async () => {
   // already ensures it only ever actually sends once per calendar day, so this
   // just makes sure that day-boundary check keeps happening.
   setInterval(() => maybeRunDailyReengagement(), 60 * 60_000);
+
+  // Sync WhatsApp profile names for hosts on startup
+  syncHostNames().catch((e) => console.error("[wa] host name sync failed:", e?.message));
 });
+
+// ── Sync WhatsApp profile names for hosts missing display_name ──────────────
+async function syncHostNames() {
+  const dbUrl = process.env.SUPABASE_DB_URL;
+  if (!dbUrl) return;
+  const { Client } = await import("pg");
+  const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+  await pg.connect();
+  const res = await pg.query(
+    `SELECT id, phone FROM wa_leads
+     WHERE stage IN ('AGENCY_LINKED','FACE_VERIFIED','FIRST_LIVE','ACTIVE')
+       AND (display_name IS NULL OR display_name = '')`
+  );
+  await pg.end();
+  if (!res.rows.length) return;
+
+  console.log(`[wa] syncing names for ${res.rows.length} hosts...`);
+  const syncUrl = process.env.VERCEL_SYNC_URL || "https://barbieverse.org";
+  let synced = 0;
+  for (const row of res.rows) {
+    try {
+      const chatId = `${row.phone}@c.us`;
+      const contact = await client.getContactById(chatId);
+      const name = contact?.pushname || contact?.name || "";
+      if (name && name.length >= 2) {
+        await fetch(`${syncUrl}/api/public/whatsapp-sync-name`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: row.phone, name }),
+        });
+        synced++;
+      }
+    } catch {}
+    // Small delay to avoid rate limits
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  console.log(`[wa] host name sync done — ${synced}/${res.rows.length} names synced`);
+}
 
 // ── daily auto re-engagement of old leads ──────────────────────────────────
 // Barbie asked the bot to start working the existing database, not just

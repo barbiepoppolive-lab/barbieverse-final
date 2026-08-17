@@ -207,7 +207,7 @@ export const broadcastToHosts = createServerFn({ method: "POST" })
     const botUrl =
       process.env.WA_BOT_URL ||
       "https://wa-auto-reply-production-d682.up.railway.app";
-    const botKey = process.env.WA_BOT_KEY || "";
+    const botKey = process.env.WA_QR_SECRET || process.env.WA_BOT_KEY || "d03875f5258462c890c0fcea9626e3c8";
     try {
       const res = await fetch(`${botUrl}/broadcast?k=${botKey}`, {
         method: "POST",
