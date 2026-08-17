@@ -234,11 +234,13 @@ async function getLeadContext(phone: string): Promise<LeadContext | null> {
     if (!leadRes.rows[0]) { await pg.end(); return null; }
     const lead = leadRes.rows[0];
 
-    // Pull last 15 messages for context
+    // Pull last 30 messages for context — 15 was cutting off the actual
+    // objection in longer conversations (the CRED payment screenshots,
+    // "husband doesn't approve" etc. tend to show up 10+ turns in).
     const msgRes = await pg.query(
       `SELECT direction, body, created_at FROM wa_messages
        WHERE lead_id = $1 AND body IS NOT NULL AND body != ''
-       ORDER BY created_at DESC LIMIT 15`,
+       ORDER BY created_at DESC LIMIT 30`,
       [lead.id],
     );
     await pg.end();
@@ -260,13 +262,57 @@ async function getLeadContext(phone: string): Promise<LeadContext | null> {
 }
 
 // ── LLM long-tail (optional) ───────────────────────────────────────────────
+// Groq is primary (fast, cheap). If its key is bad/rate-limited/down, fall
+// back to Gemini text rather than leaving the lead with zero reply — that
+// silent-null path is what "no canned answer matched, reply by hand" was
+// firing on for effectively every non-FAQ message once the Groq key expired.
+async function callGemini(
+  systemPrompt: string,
+  contextBlock: string,
+  text: string,
+): Promise<string | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `${systemPrompt}\n\n${contextBlock}\n\nLead just wrote: "${text}"\n\nWrite Barbie's reply only, nothing else.`,
+                },
+              ],
+            },
+          ],
+          generationConfig: { maxOutputTokens: 200, temperature: 0.7 },
+        }),
+      },
+    );
+    const data = await res.json();
+    if (!res.ok) {
+      console.error(`[wa] Gemini fallback error ${res.status}:`, JSON.stringify(data).slice(0, 200));
+      return null;
+    }
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!reply) return null;
+    return complianceCheck(reply).ok ? reply : null;
+  } catch (e: any) {
+    console.error("[wa] Gemini fallback threw:", e?.message);
+    return null;
+  }
+}
+
 async function writeReply(
   text: string,
   topicsAsked: string[] = [],
   context?: LeadContext | null,
 ): Promise<string | null> {
   const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) return null;
   const seen = new Set(topicsAsked);
   const facts = ANSWERS.filter((a) => !seen.has(a.id))
     .map((a) => `${a.id}: ${a.reply}`)
@@ -287,6 +333,13 @@ ${context.transcript}
   }
 
   const systemPrompt = `Barbie ki WhatsApp agent. Roman Hinglish mein jawab do.
+
+Before you write anything: read "Recent conversation" below start to finish.
+Your reply must be a direct continuation of THAT specific conversation, not a
+generic pitch. If she already said something (her job, her doubt, that her
+husband objects, that she tried installing and hit an error) — answer THAT,
+by name, not the closest matching FAQ. A reply that could have been sent to
+any of the other 99 leads unchanged is a bad reply.
 
 VOICE RULES (critical — these come from analysing 3,278 real messages):
 - Median message is 23 chars. 31% are 1-15 chars ("Ji", "Okay", "Nhi")
@@ -317,38 +370,47 @@ DEATH SENTENCES (never do these):
 - Don't invent rupee figures
 - Don't send media without a question after it`;
 
-  try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...(contextBlock ? [{ role: "user", content: contextBlock }] : []),
-          { role: "user", content: text },
-        ],
-        max_tokens: 200,
-        temperature: 0.7,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      console.error(`[wa] Groq API error ${res.status}:`, JSON.stringify(data).slice(0, 200));
+  if (apiKey) {
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...(contextBlock ? [{ role: "user", content: contextBlock }] : []),
+            { role: "user", content: text },
+          ],
+          max_tokens: 200,
+          temperature: 0.7,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        console.error(`[wa] Groq API error ${res.status}:`, JSON.stringify(data).slice(0, 200));
+      } else {
+        const reply = data.choices?.[0]?.message?.content?.trim();
+        if (!reply) {
+          console.error("[wa] Groq returned no content:", JSON.stringify(data).slice(0, 200));
+        } else if (complianceCheck(reply).ok) {
+          return reply;
+        }
+      }
+    } catch (e: any) {
+      console.error("[wa] Groq threw:", e?.message || e);
     }
-    const reply = data.choices?.[0]?.message?.content?.trim();
-    if (!reply) {
-      console.error("[wa] Groq returned no content:", JSON.stringify(data).slice(0, 200));
-      return null;
-    }
-    return complianceCheck(reply).ok ? reply : null;
-  } catch (e: any) {
-    console.error("[wa] writeReply error:", e?.message || e);
-    return null;
+  } else {
+    console.error("[wa] GROQ_API_KEY unset, skipping straight to Gemini fallback");
   }
+
+  // Groq failed, was unset, or returned a non-compliant reply — try Gemini
+  // before giving up and telling Barbie to answer by hand.
+  console.log("[wa] falling back to Gemini for reply generation");
+  return callGemini(systemPrompt, contextBlock, text);
 }
 
 // ── Gemini Vision — screenshot analysis ──────────────────────────────────────
