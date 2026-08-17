@@ -1786,7 +1786,64 @@ async function processTurn(
 client.on("message", async (msg: any) => {
   try {
     messagesSeen++;
-    if (msg.fromMe || msg.isStatus) return;
+
+    // ── CODeword: Barbie types in any chat to take over that conversation ──
+    // When Barbie sends "STOP" or "/stop" in a chat, the bot stops replying
+    // to that contact and marks human_takeover = true.
+    if (msg.fromMe && !msg.isStatus) {
+      const text = (msg.body || "").trim().toLowerCase();
+      if (text === "stop" || text === "/stop") {
+        // msg.to is the chat the message was sent TO — that's the lead
+        const leadPhone = String(msg.to || "").replace(/\D/g, "").replace(/@.*/, "");
+        if (leadPhone && /^\d{8,15}$/.test(leadPhone)) {
+          const dbUrl = process.env.SUPABASE_DB_URL;
+          if (dbUrl) {
+            try {
+              const { Client } = await import("pg");
+              const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+              await pg.connect();
+              await pg.query(
+                `UPDATE wa_leads SET human_takeover = true, updated_at = NOW() WHERE phone = $1`,
+                [leadPhone],
+              );
+              await pg.end();
+              console.log(`[wa] TAKEOVER: +${leadPhone} — bot stopped, Barbie taking over`);
+              await tg(`🙋 <b>TAKEOVER</b>\nBarbie took over +${leadPhone}\nBot will stop replying to this contact.`);
+            } catch (e: any) {
+              console.error("[wa] takeover DB error:", e?.message);
+            }
+          }
+        }
+        return; // don't process further
+      }
+      if (text === "resume" || text === "/resume") {
+        const leadPhone = String(msg.to || "").replace(/\D/g, "").replace(/@.*/, "");
+        if (leadPhone && /^\d{8,15}$/.test(leadPhone)) {
+          const dbUrl = process.env.SUPABASE_DB_URL;
+          if (dbUrl) {
+            try {
+              const { Client } = await import("pg");
+              const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+              await pg.connect();
+              await pg.query(
+                `UPDATE wa_leads SET human_takeover = false, updated_at = NOW() WHERE phone = $1`,
+                [leadPhone],
+              );
+              await pg.end();
+              console.log(`[wa] RESUME: +${leadPhone} — bot resumed`);
+              await tg(`🤖 <b>RESUMED</b>\nBot back on +${leadPhone}`);
+            } catch (e: any) {
+              console.error("[wa] resume DB error:", e?.message);
+            }
+          }
+        }
+        return;
+      }
+      // Skip all other outbound messages
+      return;
+    }
+
+    if (msg.isStatus) return;
 
     // Groups, broadcasts and status. Auto-replying in a group is the single
     // most visible "this is a bot" signal there is, and it annoys people who
@@ -1900,6 +1957,15 @@ client.on("message", async (msg: any) => {
           }
         } else {
           leadId = res.rows[0].id;
+
+          // Human takeover — Barbie typed "STOP" in this chat
+          if (res.rows[0].human_takeover) {
+            await pg.end();
+            console.log(`[wa] +${normPhone} is under human_takeover — skipping auto-reply`);
+            await saveMessage(leadId, "in", msg.body || "[media]");
+            return;
+          }
+
           const convertedStages = [
             "AGENCY_LINKED",
             "FACE_VERIFIED",
