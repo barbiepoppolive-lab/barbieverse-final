@@ -125,6 +125,17 @@ const contactCounts = new Map<string, { day: string; n: number }>();
 let hourStamp = new Date().getUTCHours();
 let repliesThisHour = 0;
 
+// ── Debounce buffer: concatenate rapid-fire messages per lead ────────────────
+// When a lead sends "Hi" / "details chahiye" / "earning kitni hai?" in quick
+// succession, debounce them into one logical turn → one Grok call instead of
+// three. 3-5s window, capped at 15s max wait.
+const DEBOUNCE_MS = 4000;
+const DEBOUNCE_MAX_MS = 15000;
+const pendingMessages = new Map<string, { texts: string[]; timer: ReturnType<typeof setTimeout>; firstAt: number; msg: any; leadId: string | null; phone: string; key: string }>();
+
+// ── Acknowledgement patterns: never reach the LLM ───────────────────────────
+const ACKNOWLEDGEMENT_RE = /^\s*(ok|okay|hmm?|haan|acha|theek|ji|yes|no|nahi|nah|y|n|👍|😊|🙏|okk?|thx|thanks|k|kk)\s*[!.…]?\s*$/i;
+
 function persistSeen() {
   saveJson(SEEN_FILE, [...seenIds].slice(-2000));
 }
@@ -214,10 +225,21 @@ async function tgPhoto(pngBuffer: Buffer, caption: string) {
 
 // ── lead context from DB ───────────────────────────────────────────────────
 interface LeadContext {
+  id: string;
   stage: string;
   topicsCovered: string[];
   nextStep: string;
-  transcript: string; // last N messages formatted for LLM
+  transcript: string;
+  // Grok agent state
+  conversationStage: string;
+  leadScore: number;
+  streamingExperience: string | null;
+  currentPlatform: string | null;
+  trustLevel: string | null;
+  objectionCount: number;
+  conversationSummary: string | null;
+  nextBestAction: string | null;
+  grokCompactionBlob: string | null;
 }
 
 async function getLeadContext(phone: string): Promise<LeadContext | null> {
@@ -229,15 +251,16 @@ async function getLeadContext(phone: string): Promise<LeadContext | null> {
     await pg.connect();
 
     const leadRes = await pg.query(
-      "SELECT id, stage, topics_asked FROM wa_leads WHERE phone = $1",
+      `SELECT id, stage, topics_asked, conversation_stage, lead_score,
+              streaming_experience, current_platform, trust_level,
+              objection_count, conversation_summary, next_best_action,
+              grok_compaction_blob
+       FROM wa_leads WHERE phone = $1`,
       [phone],
     );
     if (!leadRes.rows[0]) { await pg.end(); return null; }
     const lead = leadRes.rows[0];
 
-    // Pull last 30 messages for context — 15 was cutting off the actual
-    // objection in longer conversations (the CRED payment screenshots,
-    // "husband doesn't approve" etc. tend to show up 10+ turns in).
     const msgRes = await pg.query(
       `SELECT direction, body, created_at FROM wa_messages
        WHERE lead_id = $1 AND body IS NOT NULL AND body != ''
@@ -252,132 +275,157 @@ async function getLeadContext(phone: string): Promise<LeadContext | null> {
     }).join("\n");
 
     return {
+      id: lead.id,
       stage: lead.stage,
       topicsCovered: lead.topics_asked || [],
       nextStep: "",
       transcript: msgs,
+      conversationStage: lead.conversation_stage || "NEW",
+      leadScore: lead.lead_score || 0,
+      streamingExperience: lead.streaming_experience,
+      currentPlatform: lead.current_platform,
+      trustLevel: lead.trust_level,
+      objectionCount: lead.objection_count || 0,
+      conversationSummary: lead.conversation_summary,
+      nextBestAction: lead.next_best_action,
+      grokCompactionBlob: lead.grok_compaction_blob,
     };
   } catch {
     return null;
   }
 }
 
-// ── LLM long-tail (optional) ───────────────────────────────────────────────
-// Groq is primary (fast, cheap). If its key is bad/rate-limited/down, fall
-// back to Gemini text rather than leaving the lead with zero reply — that
-// silent-null path is what "no canned answer matched, reply by hand" was
-// firing on for effectively every non-FAQ message once the Groq key expired.
-async function callGemini(
-  systemPrompt: string,
-  contextBlock: string,
-  text: string,
-): Promise<string | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-  try {
-    // systemInstruction is a separate field from contents, not another turn
-    // in the conversation — Gemini follows a real system prompt far more
-    // reliably than one blob of text with everything mashed together, which
-    // is what was producing generic, assistant-flavoured replies with
-    // invented filler questions.
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [
-            {
-              role: "user",
-              parts: [
-                {
-                  text: `${contextBlock}\n\nLead just wrote: "${text}"\n\nWrite only Barbie's WhatsApp reply, nothing else — no preamble, no quotes around it.`,
-                },
-              ],
-            },
-          ],
-          generationConfig: { maxOutputTokens: 200, temperature: 0.6 },
-        }),
-      },
-    );
-    const data = await res.json();
-    if (!res.ok) {
-      console.error(`[wa] Gemini fallback error ${res.status}:`, JSON.stringify(data).slice(0, 200));
-      return null;
-    }
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    if (!reply) return null;
-    return complianceCheck(reply).ok ? reply : null;
-  } catch (e: any) {
-    console.error("[wa] Gemini fallback threw:", e?.message);
-    return null;
-  }
-}
+// ── Grok agent: reply generation, tools, compaction, observability ──────────
+//
+// Architecture: grok-4.20-0309-non-reasoning (Tier 1, no reasoning tokens,
+// $1.25/$0.20-cached/$2.50) as default. grok-4.6 with reasoning_effort: "low"
+// reserved for escalations. Fallback chain: Groq → Gemini.
+//
+// Static system prompt + tool definitions are byte-identical every call →
+// xAI auto-caches them (prefix-match). x-grok-conv-id header per lead
+// further improves hit rate.
 
-async function writeReply(
-  text: string,
-  topicsAsked: string[] = [],
-  context?: LeadContext | null,
-): Promise<string | null> {
-  const apiKey = process.env.GROQ_API_KEY;
+// ── Tool definitions for Grok ───────────────────────────────────────────────
+const GROK_TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "update_lead_state",
+      description: "Record something durable learned about this lead. Only call when you've learned something new — not every turn.",
+      parameters: {
+        type: "object",
+        properties: {
+          streaming_experience: { type: "string", description: "Free text, e.g. 'none' or 'streamed on Poppo for 3 months'" },
+          current_platform: { type: "string", description: "Competitor platform she's mentioned, if any" },
+          objection: { type: "string", description: "The specific objection raised, in her own terms" },
+          trust_level: { type: "string", enum: ["low", "medium", "high"] },
+          conversation_summary: { type: "string", description: "1-2 sentence rolling summary, replaces the previous one" },
+          next_best_action: { type: "string", description: "What should happen next with this lead" },
+          lead_score: { type: "number", description: "0-100 score based on engagement and intent signals" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "mark_conversation_stage",
+      description: "Transition the conversation to a new warmth stage. Call when the lead's engagement level genuinely changes.",
+      parameters: {
+        type: "object",
+        properties: {
+          stage: {
+            type: "string",
+            enum: ["NEW", "CURIOUS", "QUALIFYING", "INTERESTED", "WARM", "HIGH_INTENT", "READY_TO_JOIN", "JOINING", "JOINED", "HUMAN_HANDOFF", "LOST", "FOLLOW_UP"],
+            description: "The new conversation stage",
+          },
+          reason: { type: "string", description: "Why this transition happened" },
+        },
+        required: ["stage"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "request_human_handoff",
+      description: "Stop autonomous replies on this thread and alert Barbie. Use for escalation triggers — do not attempt to handle these yourself.",
+      parameters: {
+        type: "object",
+        properties: {
+          reason: {
+            type: "string",
+            enum: ["angry", "payment_issue", "legal_or_safety", "explicit_human_request", "uncertain", "vip_lead", "repeated_misunderstanding"],
+          },
+          summary_for_barbie: { type: "string", description: "One or two sentences: what's happening and what you'd recommend" },
+        },
+        required: ["reason", "summary_for_barbie"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "notify_admin",
+      description: "Low-frequency alert to Barbie about something noteworthy without a full handoff. Use sparingly.",
+      parameters: {
+        type: "object",
+        properties: {
+          message: { type: "string", description: "What Barbie should know" },
+        },
+        required: ["message"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_joining_link",
+      description: "Send the BarbieVerse joining link to the lead. Only when she has confirmed real intent to join — never speculatively.",
+      parameters: {
+        type: "object",
+        properties: {
+          phone: { type: "string", description: "Lead's phone number" },
+        },
+        required: ["phone"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "check_application_status",
+      description: "Check if a lead's agency application has been processed. Use when she asks 'did it work' or 'kya hua' after getting the link.",
+      parameters: {
+        type: "object",
+        properties: {
+          phone: { type: "string", description: "Lead's phone number" },
+        },
+        required: ["phone"],
+        additionalProperties: false,
+      },
+    },
+  },
+] as const;
+
+// ── Static system prompt (cached by xAI automatic prefix cache) ─────────────
+// Must be byte-identical every call for cache hits. Facts from ANSWERS bank
+// are included here as locked reference — single source of truth with the
+// canned answer-bank so the two paths can never drift apart.
+function buildSystemPrompt(topicsAsked: string[]): string {
   const seen = new Set(topicsAsked);
   const facts = ANSWERS.filter((a) => !seen.has(a.id))
     .map((a) => `${a.id}: ${a.reply}`)
     .join("\n\n");
 
-  // Build context block for the LLM
-  let contextBlock = "";
-  if (context) {
-    contextBlock = `
-LEAD CONTEXT:
-Stage: ${context.stage}
-Topics already covered: ${context.topicsCovered.join(", ") || "none"}
-Next step: ${context.nextStep || "none specified"}
+  return `You are Barbie, replying on her own WhatsApp to a lead who wants to become a live-streaming host. You are not "an AI assistant" — you are a specific person continuing a specific conversation. A generic, polite, assistant-sounding reply is a FAILED reply here, even if it's factually correct.
 
-Recent conversation (last ${context.transcript.split("\n").length} messages):
-${context.transcript}
-`;
-  }
-
-  const isFirstContact = !context || !context.transcript;
-
-  const systemPrompt = `You are Barbie, replying on her own WhatsApp to a lead
-who wants to become a live-streaming host. You are not "an AI assistant" —
-you are a specific person continuing a specific conversation. A generic,
-polite, assistant-sounding reply is a FAILED reply here, even if it's
-factually correct and well-formatted.
-
-STEP 1 — READ FIRST: read "Recent conversation" below, start to finish,
-before writing a single word. Find the one thing she most recently said that
-actually needs a response — her specific doubt, her specific error, her
-specific question. Your reply answers THAT. It is never a restart of the
-pitch, never a rerun of the intro, and never something that could be pasted
-unchanged into a different lead's chat.
-
-${isFirstContact
-  ? `This IS the first message in this conversation (no history yet) — it's fine to open with "Haan, batati hoon 😊" here.`
-  : `This is NOT the first message — there is real history below. Do NOT
-open with "Haan, batati hoon" or any greeting/intro. She is not meeting you
-for the first time. Reply the way you would to a message from a friend
-you're already mid-conversation with: pick up exactly where it left off.`}
-
-QUESTIONS YOU ASK MUST BE REAL, NOT FILLER:
-- Every question must map to an actual next step in the pipeline: "install
-  ho gaya?" (after link sent), "agency ID daal diya?" (after install),
-  "screenshot bhej do verification ka" (after agency linked) — or must
-  directly follow up on something SHE just said.
-- Never ask a vague rapport question with no purpose — "kya aapko pta hai
-  aapko kya karna hai" is not a real question, it says nothing and stalls
-  the conversation. If you don't have a specific next step to ask about,
-  don't force a question — a short acknowledgement is better than a fake one.
-- NEVER ask about her husband, family, parents, or anyone's permission,
-  unless SHE brought that person up herself earlier in the conversation. If
-  she did bring it up, respond to what she actually said about it — don't
-  interrogate her further about it.
-- Don't ask questions you can already answer from "Recent conversation" —
-  if her stage or her last message already tells you what's next, say it,
-  don't ask her to repeat it.
+STEP 1 — READ FIRST: read the LEAD STATE and RECENT CONVERSATION below before writing a single word. Find the one thing she most recently said that actually needs a response — her specific doubt, her specific question. Your reply answers THAT.
 
 VOICE (from analysing 3,278 of Barbie's real messages):
 - Median message is 23 chars. 31% of her replies are 1-15 chars ("Ji", "Okay", "Nhi")
@@ -385,105 +433,498 @@ VOICE (from analysing 3,278 of Barbie's real messages):
 - "sister" or "aap" — NEVER "tum", NEVER "mam"
 - Barbie is FEMALE: "deti hoon", "kar dungi", NEVER "deta hoon", "karta hoon"
 - 1-3 short messages, never a paragraph, never a bulleted list
-- Emoji in ~9% of messages, mostly 😊 — most messages have none at all
-- "Haan, batati hoon 😊" is ONLY a first-contact opener, never mid-conversation
+- Emoji in ~9% of messages, mostly 😊 — most messages have none
 
-GOOD vs BAD (same lead, mid-conversation, she just wrote "install nahi ho raha"):
-GOOD: "Screenshot bhej do jahan atki ho, dekh ke batati hoon 😊"
-BAD:  "Haan, batati hoon 😊 Ghar baithe apne phone se live aana hota hai — bas baat karni hoti hai..." (restarts the pitch, ignores what she said)
-BAD:  "Kya aapko pta hai aapko kya karna hai install ke baad?" (fake question, doesn't address her actual problem)
+FIRST CONTACT vs MID-CONVERSATION:
+- If conversation_stage is "NEW" and there is no prior conversation history, it's fine to open with "Haan, batati hoon 😊"
+- If there IS prior conversation (any other stage), do NOT open with a greeting or restart the pitch — continue the actual thread
 
-Money facts LOCKED (never change, never invent a different number):
-${facts || "(topic already covered — give a fresh angle, keep the numbers identical)"}
+QUESTIONS MUST BE REAL:
+- Every question must map to an actual next step: "install ho gaya?" (after link sent), "agency ID daal diya?" (after install), "screenshot bhej do" (after agency linked)
+- Never ask a vague rapport question — "kya aapko pta hai aapko kya karna hai" is a failure
+- NEVER ask about husband/family/permission unless SHE brought it up
+- Don't ask what you can already answer from the conversation history
 
-NEVER DO THESE:
-- Never send 3+ messages without a question or instruction in the last one
-- Never info-dump a paragraph
-- Never offer a voice/video call
-- Never say "guarantee"
-- Never write the app's name
-- Never invent a rupee figure not in the locked facts above
-- Never send media without a question after it
-- Never sound like customer support — sound like a person who already knows her`;
+MONEY FACTS (locked, never invent different numbers):
+${facts || "(topic already covered — give a fresh angle, keep numbers identical)"}
 
-  if (apiKey) {
-    try {
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-oss-120b",
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...(contextBlock ? [{ role: "user", content: contextBlock }] : []),
-            { role: "user", content: text },
-          ],
-          max_tokens: 200,
-          temperature: 0.7,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        console.error(`[wa] Groq API error ${res.status}:`, JSON.stringify(data).slice(0, 200));
-      } else {
-        const reply = data.choices?.[0]?.message?.content?.trim();
-        if (!reply) {
-          console.error("[wa] Groq returned no content:", JSON.stringify(data).slice(0, 200));
-        } else if (complianceCheck(reply).ok) {
-          return reply;
+NEVER DO:
+- Send 3+ messages without a question in the last one
+- Info-dump paragraphs
+- Offer voice/video calls
+- Say "guarantee"
+- Write the app name
+- Invent rupee figures
+- Send media without a question after it
+- Sound like customer support
+
+TOOL USE:
+- Call update_lead_state when you learn something durable (platform, objection, trust level, experience)
+- Call mark_conversation_stage when warmth genuinely changes
+- Call request_human_handoff for escalation triggers (anger, payment, legal, minor, human request, uncertain)
+- Call notify_admin for VIP leads or unusual patterns (use sparingly)
+- Call send_joining_link ONLY when she has confirmed intent to join
+- Always call update_lead_state before replying if you learned something new this turn`;
+}
+
+// ── Execute a Grok tool call ────────────────────────────────────────────────
+async function executeToolCall(
+  toolName: string,
+  args: any,
+  leadId: string,
+  phone: string,
+): Promise<string> {
+  const dbUrl = process.env.SUPABASE_DB_URL;
+  try {
+    const { Client } = await import("pg");
+    const pg = new Client({ connectionString: dbUrl!, ssl: { rejectUnauthorized: false } });
+    await pg.connect();
+
+    switch (toolName) {
+      case "update_lead_state": {
+        const sets: string[] = [];
+        const vals: any[] = [];
+        let idx = 1;
+        if (args.streaming_experience !== undefined) { sets.push(`streaming_experience = $${idx++}`); vals.push(args.streaming_experience); }
+        if (args.current_platform !== undefined) { sets.push(`current_platform = $${idx++}`); vals.push(args.current_platform); }
+        if (args.objection !== undefined) { sets.push(`objection_count = objection_count + 1`); }
+        if (args.trust_level !== undefined) { sets.push(`trust_level = $${idx++}`); vals.push(args.trust_level); }
+        if (args.conversation_summary !== undefined) { sets.push(`conversation_summary = $${idx++}`); vals.push(args.conversation_summary); }
+        if (args.next_best_action !== undefined) { sets.push(`next_best_action = $${idx++}`); vals.push(args.next_best_action); }
+        if (args.lead_score !== undefined) { sets.push(`lead_score = $${idx++}`); vals.push(Math.min(100, Math.max(0, args.lead_score))); }
+        if (sets.length > 0) {
+          vals.push(leadId);
+          await pg.query(`UPDATE wa_leads SET ${sets.join(", ")} WHERE id = $${idx}`, vals);
         }
+        await pg.end();
+        return JSON.stringify({ ok: true });
       }
-    } catch (e: any) {
-      console.error("[wa] Groq threw:", e?.message || e);
+      case "mark_conversation_stage": {
+        await pg.query(
+          `UPDATE wa_leads SET conversation_stage = $1 WHERE id = $2`,
+          [args.stage, leadId],
+        );
+        await pg.end();
+        return JSON.stringify({ ok: true, stage: args.stage });
+      }
+      case "request_human_handoff": {
+        await pg.query(
+          `UPDATE wa_leads SET human_takeover = true, escalated = true, escalated_reason = $1, conversation_stage = 'HUMAN_HANDOFF' WHERE id = $2`,
+          [args.reason, leadId],
+        );
+        await pg.end();
+        await tg(
+          `🚨 <b>Handoff — ${args.reason}</b>\n+${phone}\nSummary: ${args.summary_for_barbie}\n\nBot stopped. This one is yours.`,
+        );
+        return JSON.stringify({ ok: true, handed_off: true });
+      }
+      case "notify_admin": {
+        await tg(`🔔 <b>+${phone}</b>: ${args.message}`);
+        await pg.end();
+        return JSON.stringify({ ok: true });
+      }
+      case "send_joining_link": {
+        // Mark stage and return — the actual link sending happens in the handler
+        await pg.query(
+          `UPDATE wa_leads SET stage = CASE WHEN stage = 'ASKED' THEN 'LINK_SENT' ELSE stage END WHERE id = $1`,
+          [leadId],
+        );
+        await pg.end();
+        return JSON.stringify({ ok: true, action: "link_queued" });
+      }
+      case "check_application_status": {
+        const res = await pg.query(
+          `SELECT stage FROM wa_leads WHERE id = $1`,
+          [leadId],
+        );
+        await pg.end();
+        return JSON.stringify({ ok: true, stage: res.rows[0]?.stage || "unknown" });
+      }
+      default:
+        await pg.end();
+        return JSON.stringify({ error: `unknown tool: ${toolName}` });
     }
-  } else {
-    console.error("[wa] GROQ_API_KEY unset, skipping to xAI/Grok fallback");
+  } catch (e: any) {
+    return JSON.stringify({ error: e?.message || "tool execution failed" });
+  }
+}
+
+// ── Log a Grok interaction to the observability table ───────────────────────
+async function logGrokInteraction(opts: {
+  leadId: string;
+  stageBefore: string;
+  stageAfter: string;
+  model: string;
+  reasoningEffort: string | null;
+  inputTokens: number;
+  cachedTokens: number;
+  outputTokens: number;
+  reasoningTokens: number;
+  toolCalls: any[];
+  latencyMs: number;
+  error: string | null;
+  humanHandoff: boolean;
+}) {
+  const dbUrl = process.env.SUPABASE_DB_URL;
+  if (!dbUrl) return;
+  try {
+    const { Client } = await import("pg");
+    const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    await pg.connect();
+    await pg.query(
+      `INSERT INTO grok_interactions
+       (lead_id, conversation_stage_before, conversation_stage_after, model, reasoning_effort,
+        input_tokens, cached_tokens, output_tokens, reasoning_tokens, tool_calls,
+        latency_ms, error, human_handoff)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+      [
+        opts.leadId, opts.stageBefore, opts.stageAfter, opts.model, opts.reasoningEffort,
+        opts.inputTokens, opts.cachedTokens, opts.outputTokens, opts.reasoningTokens,
+        JSON.stringify(opts.toolCalls), opts.latencyMs, opts.error, opts.humanHandoff,
+      ],
+    );
+    await pg.end();
+  } catch {}
+}
+
+// ── Context Compaction via xAI API ──────────────────────────────────────────
+// POST /v1/responses/compact — returns an opaque encrypted_content blob
+// that replaces prior turns. Run every 6 LLM-reaching turns to keep the
+// prompt small and cache-friendly.
+async function compactContext(
+  systemPrompt: string,
+  transcript: string,
+  model: string = "grok-4.20-0309-non-reasoning",
+): Promise<string | null> {
+  const apiKey = process.env.XAI_API_KEY;
+  if (!apiKey || !transcript) return null;
+  try {
+    const res = await fetch("https://api.x.ai/v1/responses/compact", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        instructions: systemPrompt,
+        input: [
+          { role: "user", content: `Summarize this WhatsApp conversation into a compact memory that preserves: key facts about the lead (experience, platform, objections, intent level), the conversation flow, and what was discussed. Keep it under 200 tokens.\n\n${transcript}` },
+        ],
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("[wa] compaction API error:", data?.error?.message || res.status);
+      return null;
+    }
+    return data.compacted_content || data.output || null;
+  } catch (e: any) {
+    console.error("[wa] compaction failed:", e?.message);
+    return null;
+  }
+}
+
+// ── Core Grok reply function ────────────────────────────────────────────────
+// Primary: grok-4.20-0309-non-reasoning (Tier 1, no reasoning tokens)
+// Fallback: Groq → Gemini
+async function grokReply(
+  text: string,
+  topicsAsked: string[] = [],
+  context?: LeadContext | null,
+): Promise<{ reply: string | null; model: string; toolCalls: any[]; humanHandoff: boolean }> {
+  const xaiKey = process.env.XAI_API_KEY;
+  const stageBefore = context?.conversationStage || "NEW";
+  let toolCalls: any[] = [];
+  let humanHandoff = false;
+
+  if (!xaiKey) {
+    console.error("[wa] XAI_API_KEY unset, falling back to Groq");
+    const reply = await fallbackGroqReply(text, topicsAsked, context);
+    return { reply, model: "groq-fallback", toolCalls: [], humanHandoff: false };
   }
 
-  // Groq failed, was unset, or returned non-compliant — try xAI/Grok (Grok-3)
-  const xaiKey = process.env.XAI_API_KEY;
-  if (xaiKey) {
-    try {
-      console.log("[wa] trying xAI/Grok fallback...");
-      const res = await fetch("https://api.x.ai/v1/chat/completions", {
+  const systemPrompt = buildSystemPrompt(topicsAsked);
+  const isFirstContact = !context || !context.transcript;
+
+  // Build dynamic messages array
+  const messages: any[] = [];
+
+  // Compacted memory or raw transcript
+  if (context?.grokCompactionBlob) {
+    messages.push({
+      role: "user",
+      content: `[COMPACTED MEMORY]\n${context.grokCompactionBlob}`,
+    });
+  } else if (context?.transcript) {
+    // Raw recent turns (last 10 to keep token count reasonable)
+    const recentTurns = context.transcript.split("\n").slice(-10).join("\n");
+    messages.push({
+      role: "user",
+      content: `RECENT CONVERSATION:\n${recentTurns}`,
+    });
+  }
+
+  // Lead state block (compact, ~150-200 tokens)
+  if (context) {
+    const stateParts = [
+      `LEAD STATE:`,
+      `Stage: ${context.stage} | Conversation: ${context.conversationStage} | Score: ${context.leadScore}`,
+    ];
+    if (context.trustLevel) stateParts.push(`Trust: ${context.trustLevel}`);
+    if (context.streamingExperience) stateParts.push(`Experience: ${context.streamingExperience}`);
+    if (context.currentPlatform) stateParts.push(`Platform: ${context.currentPlatform}`);
+    if (context.objectionCount > 0) stateParts.push(`Objections: ${context.objectionCount}`);
+    if (context.conversationSummary) stateParts.push(`Summary: ${context.conversationSummary}`);
+    if (context.nextBestAction) stateParts.push(`Next: ${context.nextBestAction}`);
+    messages.push({ role: "user", content: stateParts.join("\n") });
+  }
+
+  // New inbound message
+  messages.push({ role: "user", content: text });
+
+  const startTime = Date.now();
+  let inputTokens = 0;
+  let cachedTokens = 0;
+  let outputTokens = 0;
+  let reasoningTokens = 0;
+
+  try {
+    const res = await fetch("https://api.x.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${xaiKey}`,
+        "x-grok-conv-id": context?.id || "unknown",
+      },
+      body: JSON.stringify({
+        model: "grok-4.20-0309-non-reasoning",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+        ],
+        tools: GROK_TOOLS,
+        max_tokens: 150,
+        temperature: 0.7,
+      }),
+    });
+
+    const latencyMs = Date.now() - startTime;
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error(`[wa] Grok API error ${res.status}:`, JSON.stringify(data).slice(0, 200));
+      // Log the failure
+      logGrokInteraction({
+        leadId: context?.id || "unknown",
+        stageBefore, stageAfter: stageBefore,
+        model: "grok-4.20-0309-non-reasoning", reasoningEffort: null,
+        inputTokens: 0, cachedTokens: 0, outputTokens: 0, reasoningTokens: 0,
+        toolCalls: [], latencyMs, error: `HTTP ${res.status}`, humanHandoff: false,
+      });
+      // Fall back to Groq
+      const reply = await fallbackGroqReply(text, topicsAsked, context);
+      return { reply, model: "groq-fallback", toolCalls: [], humanHandoff: false };
+    }
+
+    // Extract usage
+    inputTokens = data.usage?.prompt_tokens || 0;
+    cachedTokens = data.usage?.prompt_tokens_details?.cached_tokens || 0;
+    outputTokens = data.usage?.completion_tokens || 0;
+
+    const choice = data.choices?.[0];
+    const message = choice?.message;
+
+    // Handle tool calls
+    if (message?.tool_calls?.length) {
+      const dbUrl = process.env.SUPABASE_DB_URL;
+      for (const tc of message.tool_calls) {
+        const fnName = tc.function?.name;
+        const fnArgs = tc.function?.args ? JSON.parse(tc.function.args) : {};
+        toolCalls.push({ name: fnName, args: fnArgs });
+
+        if (fnName === "request_human_handoff") humanHandoff = true;
+
+        // Execute the tool
+        const result = await executeToolCall(fnName, fnArgs, context?.id || "", "");
+        toolCalls[toolCalls.length - 1].result = JSON.parse(result);
+      }
+
+      // If human handoff was triggered, don't send a reply
+      if (humanHandoff) {
+        logGrokInteraction({
+          leadId: context?.id || "unknown",
+          stageBefore, stageAfter: "HUMAN_HANDOFF",
+          model: "grok-4.20-0309-non-reasoning", reasoningEffort: null,
+          inputTokens, cachedTokens, outputTokens, reasoningTokens,
+          toolCalls, latencyMs, error: null, humanHandoff: true,
+        });
+        return { reply: null, model: "grok-4.20-0309-non-reasoning", toolCalls, humanHandoff: true };
+      }
+
+      // Re-call with tool results for the final text reply
+      messages.push({ role: "assistant", tool_calls: message.tool_calls });
+      for (const tc of toolCalls) {
+        messages.push({
+          role: "tool",
+          tool_call_id: tc.name,
+          content: JSON.stringify(tc.result || { ok: true }),
+        });
+      }
+
+      const res2 = await fetch("https://api.x.ai/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${xaiKey}`,
+          "x-grok-conv-id": context?.id || "unknown",
         },
         body: JSON.stringify({
-          model: "grok-3-mini",
+          model: "grok-4.20-0309-non-reasoning",
           messages: [
             { role: "system", content: systemPrompt },
-            ...(contextBlock ? [{ role: "user", content: contextBlock }] : []),
-            { role: "user", content: text },
+            ...messages,
           ],
-          max_tokens: 200,
+          max_tokens: 150,
           temperature: 0.7,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        console.error(`[wa] xAI API error ${res.status}:`, JSON.stringify(data).slice(0, 200));
-      } else {
-        const reply = data.choices?.[0]?.message?.content?.trim();
-        if (!reply) {
-          console.error("[wa] xAI returned no content:", JSON.stringify(data).slice(0, 200));
-        } else if (complianceCheck(reply).ok) {
-          return reply;
-        }
+      const data2 = await res2.json();
+      outputTokens += data2.usage?.completion_tokens || 0;
+      const reply2 = data2.choices?.[0]?.message?.content?.trim();
+      if (reply2 && complianceCheck(reply2).ok) {
+        logGrokInteraction({
+          leadId: context?.id || "unknown",
+          stageBefore, stageAfter: context?.conversationStage || stageBefore,
+          model: "grok-4.20-0309-non-reasoning", reasoningEffort: null,
+          inputTokens: data2.usage?.prompt_tokens || 0,
+          cachedTokens: data2.usage?.prompt_tokens_details?.cached_tokens || 0,
+          outputTokens, reasoningTokens, toolCalls, latencyMs: Date.now() - startTime,
+          error: null, humanHandoff: false,
+        });
+        return { reply: reply2, model: "grok-4.20-0309-non-reasoning", toolCalls, humanHandoff: false };
       }
-    } catch (e: any) {
-      console.error("[wa] xAI threw:", e?.message || e);
     }
+
+    // Plain text reply (no tool calls)
+    const reply = message?.content?.trim();
+    if (reply && complianceCheck(reply).ok) {
+      logGrokInteraction({
+        leadId: context?.id || "unknown",
+        stageBefore, stageAfter: context?.conversationStage || stageBefore,
+        model: "grok-4.20-0309-non-reasoning", reasoningEffort: null,
+        inputTokens, cachedTokens, outputTokens, reasoningTokens: 0,
+        toolCalls: [], latencyMs, error: null, humanHandoff: false,
+      });
+      return { reply, model: "grok-4.20-0309-non-reasoning", toolCalls: [], humanHandoff: false };
+    }
+
+    logGrokInteraction({
+      leadId: context?.id || "unknown",
+      stageBefore, stageAfter: stageBefore,
+      model: "grok-4.20-0309-non-reasoning", reasoningEffort: null,
+      inputTokens, cachedTokens, outputTokens, reasoningTokens: 0,
+      toolCalls, latencyMs, error: "no compliant reply", humanHandoff: false,
+    });
+  } catch (e: any) {
+    console.error("[wa] Grok threw:", e?.message || e);
+    logGrokInteraction({
+      leadId: context?.id || "unknown",
+      stageBefore, stageAfter: stageBefore,
+      model: "grok-4.20-0309-non-reasoning", reasoningEffort: null,
+      inputTokens: 0, cachedTokens: 0, outputTokens: 0, reasoningTokens: 0,
+      toolCalls: [], latencyMs: Date.now() - startTime, error: e?.message, humanHandoff: false,
+    });
   }
 
-  // Both Groq and xAI failed — try Gemini before giving up
-  console.log("[wa] falling back to Gemini for reply generation");
-  return callGemini(systemPrompt, contextBlock, text);
+  // Grok failed — fall back to Groq
+  const reply = await fallbackGroqReply(text, topicsAsked, context);
+  return { reply, model: reply ? "groq-fallback" : "none", toolCalls: [], humanHandoff: false };
+}
+
+// ── Fallback: Groq (existing key) ───────────────────────────────────────────
+async function fallbackGroqReply(
+  text: string,
+  topicsAsked: string[] = [],
+  context?: LeadContext | null,
+): Promise<string | null> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return callGeminiFallback(text, topicsAsked, context);
+
+  const systemPrompt = buildSystemPrompt(topicsAsked);
+  let contextBlock = "";
+  if (context) {
+    contextBlock = `LEAD CONTEXT:\nStage: ${context.stage} | Conversation: ${context.conversationStage}\nSummary: ${context.conversationSummary || "none"}\nRecent:\n${context.transcript}`;
+  }
+
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: "openai/gpt-oss-120b",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...(contextBlock ? [{ role: "user", content: contextBlock }] : []),
+          { role: "user", content: text },
+        ],
+        max_tokens: 150,
+        temperature: 0.7,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      console.error(`[wa] Groq fallback error ${res.status}:`, JSON.stringify(data).slice(0, 200));
+      return callGeminiFallback(text, topicsAsked, context);
+    }
+    const reply = data.choices?.[0]?.message?.content?.trim();
+    if (!reply) return callGeminiFallback(text, topicsAsked, context);
+    return complianceCheck(reply).ok ? reply : callGeminiFallback(text, topicsAsked, context);
+  } catch (e: any) {
+    console.error("[wa] Groq fallback threw:", e?.message || e);
+    return callGeminiFallback(text, topicsAsked, context);
+  }
+}
+
+// ── Fallback: Gemini (last resort) ──────────────────────────────────────────
+async function callGeminiFallback(
+  text: string,
+  topicsAsked: string[] = [],
+  context?: LeadContext | null,
+): Promise<string | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  const systemPrompt = buildSystemPrompt(topicsAsked);
+  let contextBlock = "";
+  if (context) {
+    contextBlock = `LEAD CONTEXT:\nStage: ${context.stage} | Conversation: ${context.conversationStage}\nSummary: ${context.conversationSummary || "none"}\nRecent:\n${context.transcript}`;
+  }
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [{
+            role: "user",
+            parts: [{ text: `${contextBlock}\n\nLead just wrote: "${text}"\n\nWrite only Barbie's WhatsApp reply.` }],
+          }],
+          generationConfig: { maxOutputTokens: 150, temperature: 0.6 },
+        }),
+      },
+    );
+    const data = await res.json();
+    if (!res.ok) return null;
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!reply) return null;
+    return complianceCheck(reply).ok ? reply : null;
+  } catch {
+    return null;
+  }
 }
 
 // ── Gemini Vision — screenshot analysis ──────────────────────────────────────
@@ -1136,19 +1577,55 @@ client.on("message", async (msg: any) => {
       }
     }
 
-    // Pull full lead context from DB for the LLM (transcript, stage, topics)
+    // Pull full lead context from DB for the LLM (transcript, stage, topics, Grok state)
     const leadCtx = await getLeadContext(phone);
 
     let replyText: string | null = null;
     let source = "canned";
+    let toolCalls: any[] = [];
+    let humanHandoff = false;
+
     if (answer) {
       replyText = [answer.reply, answer.nextNudge].filter(Boolean).join("\n\n");
       source = `canned:${answer.id}`;
+    } else if (ACKNOWLEDGEMENT_RE.test(text)) {
+      // Bare acknowledgements ("ok", "hmm", "👍") — never reach the LLM.
+      // Silent or a single short nudge depending on context.
+      const lastBotMsg = leadCtx?.transcript?.split("\n").filter(l => l.startsWith("Barbie:")).pop() || "";
+      if (lastBotMsg.includes("?")) {
+        // Last bot message ended with a question — nudge gently
+        replyText = "😊";
+        source = "ack-nudge";
+      } else {
+        // Otherwise stay silent — don't reply to "ok" with "ok"
+        console.log(`[wa] acknowledgement from +${phone}, staying silent`);
+        return;
+      }
     } else if (APPROVE_MODE === "all-auto") {
-      console.log(`[wa] no canned match for +${phone}, calling LLM...`);
-      replyText = await writeReply(text, topics, leadCtx);
-      source = "llm";
-      console.log(`[wa] LLM returned: ${replyText ? replyText.slice(0, 60) : "NULL"}`);
+      console.log(`[wa] no canned match for +${phone}, calling Grok...`);
+      const result = await grokReply(text, topics, leadCtx);
+      replyText = result.reply;
+      toolCalls = result.toolCalls;
+      humanHandoff = result.humanHandoff;
+      source = `llm:${result.model}`;
+      console.log(`[wa] Grok returned (${result.model}): ${replyText ? replyText.slice(0, 60) : "NULL"}`);
+    }
+
+    // If human handoff was triggered by a tool call, don't send a reply
+    if (humanHandoff) {
+      console.log(`[wa] human handoff triggered for +${phone}`);
+      return;
+    }
+
+    // If Grok called send_joining_link, actually send the link
+    const linkCall = toolCalls.find(t => t.name === "send_joining_link");
+    if (linkCall) {
+      const joiningMsg = "Yeh rahi link — 2 minute ka kaam hai:\nhttps://barbieverse.org/join";
+      await humanTyping(msg, joiningMsg.length);
+      await msg.reply(joiningMsg);
+      await saveMessage(leadId, "out", joiningMsg);
+      noteReply(key);
+      // Continue to also send Grok's text reply if any
     }
 
     if (!replyText) {
