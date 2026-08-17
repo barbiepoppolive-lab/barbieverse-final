@@ -123,6 +123,7 @@ const optOuts = new Set<string>(loadJson<string[]>(OPTOUT_FILE, []));
 // These are existing team members / internal numbers. Bot must never interact.
 const BLOCKED_PHONES = new Set<string>([
   "214168695263324", // Gayatri Devi Bolla
+  "919967980700", // Barbie's own contact ("sir") — not a recruiting lead, bot pitched him anyway
 ]);
 // Also check at message handler level — merge with optOuts for outbound protection
 // message ids already handled — prevents double-replies after a restart
@@ -1518,6 +1519,171 @@ client.on("disconnected", async (r) => {
   await tg(`⚠️ WhatsApp bot disconnected: ${r}`);
 });
 
+// Fires once a contact's message burst has gone quiet for DEBOUNCE_MS (or hit
+// the DEBOUNCE_MAX_MS hard cap). Joins everything they sent into one combined
+// turn and generates a single reply for it, instead of one reply per message.
+function flushPending(key: string) {
+  const entry = pendingMessages.get(key);
+  if (!entry) return;
+  pendingMessages.delete(key);
+  const combinedText = entry.texts.join("\n");
+  processTurn(entry.msg, entry.phone, entry.leadId, key, combinedText).catch(
+    (err: any) => console.error("[wa] processTurn error:", err?.message),
+  );
+}
+
+// Canned/ack/LLM reply generation for one logical turn (which may be several
+// rapid-fire WhatsApp messages joined together by the debounce buffer above).
+async function processTurn(
+  msg: any,
+  phone: string,
+  leadId: string | null,
+  key: string,
+  text: string,
+) {
+  const matchResult = matchAnswer(text);
+  const topics = leadTopics.get(key) || [];
+  // A canned answer is only used the FIRST time its topic comes up for
+  // this lead. Nothing gated repeats before — Q0 (the ad-opener pitch,
+  // "Haan, batati hoon...") re-fired on every message that happened to
+  // contain overlapping words, so a lead five turns into a real
+  // conversation could get the first-contact pitch again verbatim. If the
+  // topic's already covered, treat it as unmatched and let the LLM write
+  // a fresh, context-aware answer instead (it already excludes covered
+  // facts from what it's told).
+  const alreadyCovered = matchResult && topics.includes(matchResult.answer.id);
+  const answer = alreadyCovered ? null : (matchResult?.answer ?? null);
+  if (answer && !topics.includes(answer.id)) {
+    topics.push(answer.id);
+    leadTopics.set(key, topics);
+  }
+
+  // Capture which ad prefill variant brought this lead in (Q0 = first contact).
+  // Only writes once — the first time Q0 fires for this lead.
+  if (matchResult && answer?.id === "Q0" && leadId) {
+    const variant = Q0_VARIANTS[matchResult.matchIndex] || `q0-${matchResult.matchIndex}`;
+    try {
+      const dbUrl = process.env.SUPABASE_DB_URL;
+      if (dbUrl) {
+        const { Client } = await import("pg");
+        const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+        await pg.connect();
+        await pg.query(
+          "UPDATE wa_leads SET prefill_variant = $1 WHERE id = $2 AND prefill_variant IS NULL",
+          [variant, leadId],
+        );
+        await pg.end();
+        console.log(`[wa] prefill_variant set: +${phone} -> ${variant}`);
+      }
+    } catch (e: any) {
+      console.error("[wa] prefill_variant write failed:", e?.message);
+    }
+  }
+
+  // Pull full lead context from DB for the LLM (transcript, stage, topics, Grok state)
+  const leadCtx = await getLeadContext(phone);
+
+  let replyText: string | null = null;
+  let source = "canned";
+  let toolCalls: any[] = [];
+  let humanHandoff = false;
+
+  if (answer) {
+    replyText = [answer.reply, answer.nextNudge].filter(Boolean).join("\n\n");
+    source = `canned:${answer.id}`;
+  } else if (ACKNOWLEDGEMENT_RE.test(text)) {
+    // Bare acknowledgements ("ok", "hmm", "👍") — never reach the LLM.
+    // Silent or a single short nudge depending on context.
+    const lastBotMsg = leadCtx?.transcript?.split("\n").filter(l => l.startsWith("Barbie:")).pop() || "";
+    if (lastBotMsg.includes("?")) {
+      // Last bot message ended with a question — nudge gently
+      replyText = "😊";
+      source = "ack-nudge";
+    } else {
+      // Otherwise stay silent — don't reply to "ok" with "ok"
+      console.log(`[wa] acknowledgement from +${phone}, staying silent`);
+      return;
+    }
+  } else if (APPROVE_MODE === "all-auto") {
+    console.log(`[wa] no canned match for +${phone}, calling Grok...`);
+    const result = await grokReply(text, topics, leadCtx);
+    replyText = result.reply;
+    toolCalls = result.toolCalls;
+    humanHandoff = result.humanHandoff;
+    source = `llm:${result.model}`;
+    console.log(`[wa] Grok returned (${result.model}): ${replyText ? replyText.slice(0, 60) : "NULL"}`);
+  }
+
+  // If human handoff was triggered by a tool call, don't send a reply
+  if (humanHandoff) {
+    console.log(`[wa] human handoff triggered for +${phone}`);
+    return;
+  }
+
+  // If Grok called send_joining_link, actually send the link
+  const linkCall = toolCalls.find(t => t.name === "send_joining_link");
+  if (linkCall) {
+    const joiningMsg = "Yeh rahi link — 2 minute ka kaam hai:\nhttps://barbieverse.org/join";
+    await humanTyping(msg, joiningMsg.length);
+    await msg.reply(joiningMsg);
+    await saveMessage(leadId, "out", joiningMsg);
+    noteReply(key);
+    // Continue to also send Grok's text reply if any
+  }
+
+  if (!replyText) {
+    await tg(
+      `❓ <b>+${phone}</b> — no canned answer matched.\n"${text.slice(0, 200)}"\n\nReply by hand.`,
+    );
+    return;
+  }
+
+  const gate = complianceCheck(replyText);
+  if (!gate.ok) {
+    await tg(`⛔ Blocked reply to +${phone}: ${gate.issues.join("; ")}`);
+    return;
+  }
+
+  // Think, then type. Instant replies at any hour are the clearest tell.
+  await humanTyping(msg, replyText.length);
+
+  // Send the reply — media card first if applicable, then text
+  const answerObj = answer;
+  if (answerObj?.mediaTag) {
+    try {
+      const ext = answerObj.mediaType === "video" ? "mp4" : "png";
+      const mediaUrl = `${MEDIA_BASE}/cards/${answerObj.mediaTag}.${ext}`;
+      // For videos, include the nextNudge as caption on the video itself
+      const caption = answerObj.mediaCaption || answerObj.nextNudge || "";
+      // msg.reply(url, {caption}) never actually sent a video: reply()'s
+      // real signature is reply(content, chatId, options) — the {caption}
+      // object was being passed as chatId, not options, so it threw and
+      // silently fell through to text-only every single time. And even
+      // with args in the right place, a raw URL string is sent as a text
+      // link, not an attachment — it has to be wrapped in MessageMedia.
+      const media = await MessageMedia.fromUrl(mediaUrl, {
+        unsafeMime: true,
+      });
+      await msg.reply(
+        media,
+        undefined,
+        answerObj.mediaType === "video" ? { caption } : {},
+      );
+      // Brief pause between media and text, like a human sends a photo then types
+      await sleep(800 + Math.random() * 1500);
+    } catch (e) {
+      console.error(
+        "[wa] media send failed, continuing with text:",
+        (e as any)?.message,
+      );
+    }
+  }
+  await msg.reply(replyText);
+  await saveMessage(leadId, "out", replyText);
+  noteReply(key);
+  console.log(`[wa] -> +${phone} (${source})`);
+}
+
 client.on("message", async (msg: any) => {
   try {
     messagesSeen++;
@@ -1757,147 +1923,34 @@ client.on("message", async (msg: any) => {
       return;
     }
 
-    const matchResult = matchAnswer(text);
-    const topics = leadTopics.get(key) || [];
-    // A canned answer is only used the FIRST time its topic comes up for
-    // this lead. Nothing gated repeats before — Q0 (the ad-opener pitch,
-    // "Haan, batati hoon...") re-fired on every message that happened to
-    // contain overlapping words, so a lead five turns into a real
-    // conversation could get the first-contact pitch again verbatim. If the
-    // topic's already covered, treat it as unmatched and let the LLM write
-    // a fresh, context-aware answer instead (it already excludes covered
-    // facts from what it's told).
-    const alreadyCovered = matchResult && topics.includes(matchResult.answer.id);
-    const answer = alreadyCovered ? null : (matchResult?.answer ?? null);
-    if (answer && !topics.includes(answer.id)) {
-      topics.push(answer.id);
-      leadTopics.set(key, topics);
-    }
-
-    // Capture which ad prefill variant brought this lead in (Q0 = first contact).
-    // Only writes once — the first time Q0 fires for this lead.
-    if (matchResult && answer?.id === "Q0" && leadId) {
-      const variant = Q0_VARIANTS[matchResult.matchIndex] || `q0-${matchResult.matchIndex}`;
-      try {
-        const dbUrl = process.env.SUPABASE_DB_URL;
-        if (dbUrl) {
-          const { Client } = await import("pg");
-          const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-          await pg.connect();
-          await pg.query(
-            "UPDATE wa_leads SET prefill_variant = $1 WHERE id = $2 AND prefill_variant IS NULL",
-            [variant, leadId],
-          );
-          await pg.end();
-          console.log(`[wa] prefill_variant set: +${phone} -> ${variant}`);
-        }
-      } catch (e: any) {
-        console.error("[wa] prefill_variant write failed:", e?.message);
-      }
-    }
-
-    // Pull full lead context from DB for the LLM (transcript, stage, topics, Grok state)
-    const leadCtx = await getLeadContext(phone);
-
-    let replyText: string | null = null;
-    let source = "canned";
-    let toolCalls: any[] = [];
-    let humanHandoff = false;
-
-    if (answer) {
-      replyText = [answer.reply, answer.nextNudge].filter(Boolean).join("\n\n");
-      source = `canned:${answer.id}`;
-    } else if (ACKNOWLEDGEMENT_RE.test(text)) {
-      // Bare acknowledgements ("ok", "hmm", "👍") — never reach the LLM.
-      // Silent or a single short nudge depending on context.
-      const lastBotMsg = leadCtx?.transcript?.split("\n").filter(l => l.startsWith("Barbie:")).pop() || "";
-      if (lastBotMsg.includes("?")) {
-        // Last bot message ended with a question — nudge gently
-        replyText = "😊";
-        source = "ack-nudge";
-      } else {
-        // Otherwise stay silent — don't reply to "ok" with "ok"
-        console.log(`[wa] acknowledgement from +${phone}, staying silent`);
-        return;
-      }
-    } else if (APPROVE_MODE === "all-auto") {
-      console.log(`[wa] no canned match for +${phone}, calling Grok...`);
-      const result = await grokReply(text, topics, leadCtx);
-      replyText = result.reply;
-      toolCalls = result.toolCalls;
-      humanHandoff = result.humanHandoff;
-      source = `llm:${result.model}`;
-      console.log(`[wa] Grok returned (${result.model}): ${replyText ? replyText.slice(0, 60) : "NULL"}`);
-    }
-
-    // If human handoff was triggered by a tool call, don't send a reply
-    if (humanHandoff) {
-      console.log(`[wa] human handoff triggered for +${phone}`);
+    // Rapid-fire messages ("hii sir" / "hahaha" / "yeah sir" / "ok sir" inside
+    // one minute) used to each trigger their own full reply — three or four
+    // disjointed bot messages landing back to back, which reads as spam and
+    // is the #1 "this is obviously a bot" tell. Buffer them: wait for a short
+    // quiet gap, then answer the whole burst as one turn. Opt-out/escalation
+    // above already ran on every individual message, so nothing urgent gets
+    // delayed by this — only the actual reply generation waits.
+    const existing = pendingMessages.get(key);
+    if (existing) {
+      existing.texts.push(text);
+      existing.msg = msg;
+      clearTimeout(existing.timer);
+      const elapsed = Date.now() - existing.firstAt;
+      const wait = Math.max(0, Math.min(DEBOUNCE_MS, DEBOUNCE_MAX_MS - elapsed));
+      existing.timer = setTimeout(() => flushPending(key), wait);
       return;
     }
-
-    // If Grok called send_joining_link, actually send the link
-    const linkCall = toolCalls.find(t => t.name === "send_joining_link");
-    if (linkCall) {
-      const joiningMsg = "Yeh rahi link — 2 minute ka kaam hai:\nhttps://barbieverse.org/join";
-      await humanTyping(msg, joiningMsg.length);
-      await msg.reply(joiningMsg);
-      await saveMessage(leadId, "out", joiningMsg);
-      noteReply(key);
-      // Continue to also send Grok's text reply if any
-    }
-
-    if (!replyText) {
-      await tg(
-        `❓ <b>+${phone}</b> — no canned answer matched.\n"${text.slice(0, 200)}"\n\nReply by hand.`,
-      );
-      return;
-    }
-
-    const gate = complianceCheck(replyText);
-    if (!gate.ok) {
-      await tg(`⛔ Blocked reply to +${phone}: ${gate.issues.join("; ")}`);
-      return;
-    }
-
-    // Think, then type. Instant replies at any hour are the clearest tell.
-    await humanTyping(msg, replyText.length);
-
-    // Send the reply — media card first if applicable, then text
-    const answerObj = answer;
-    if (answerObj?.mediaTag) {
-      try {
-        const ext = answerObj.mediaType === "video" ? "mp4" : "png";
-        const mediaUrl = `${MEDIA_BASE}/cards/${answerObj.mediaTag}.${ext}`;
-        // For videos, include the nextNudge as caption on the video itself
-        const caption = answerObj.mediaCaption || answerObj.nextNudge || "";
-        // msg.reply(url, {caption}) never actually sent a video: reply()'s
-        // real signature is reply(content, chatId, options) — the {caption}
-        // object was being passed as chatId, not options, so it threw and
-        // silently fell through to text-only every single time. And even
-        // with args in the right place, a raw URL string is sent as a text
-        // link, not an attachment — it has to be wrapped in MessageMedia.
-        const media = await MessageMedia.fromUrl(mediaUrl, {
-          unsafeMime: true,
-        });
-        await msg.reply(
-          media,
-          undefined,
-          answerObj.mediaType === "video" ? { caption } : {},
-        );
-        // Brief pause between media and text, like a human sends a photo then types
-        await sleep(800 + Math.random() * 1500);
-      } catch (e) {
-        console.error(
-          "[wa] media send failed, continuing with text:",
-          (e as any)?.message,
-        );
-      }
-    }
-    await msg.reply(replyText);
-    await saveMessage(leadId, "out", replyText);
-    noteReply(key);
-    console.log(`[wa] -> +${phone} (${source})`);
+    const entry = {
+      texts: [text],
+      timer: null as any,
+      firstAt: Date.now(),
+      msg,
+      leadId,
+      phone,
+      key,
+    };
+    entry.timer = setTimeout(() => flushPending(key), DEBOUNCE_MS);
+    pendingMessages.set(key, entry);
   } catch (err: any) {
     console.error("[wa] handler error:", err?.message);
   }
