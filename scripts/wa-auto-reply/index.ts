@@ -483,6 +483,8 @@ Your reply must address HER specific thing, not a generic next step.
 - If she's excited → match her energy, then guide naturally
 - If she asks about money → answer her specific question, don't add extra pitch
 - The conversation should FEEL like texting a friend who happens to know about streaming, not like a sales call
+- NEVER say the same thing twice in a row — if you already said "link bhejun?", don't say it again. Wait for her to respond.
+- If she hasn't replied in a while, do NOT double-text. One message is enough. She'll reply when she's ready.
 
 ━━━ QUESTIONS MUST BE REAL ━━━
 - Every question must map to an actual next step: "install ho gaya?" (after link sent), "agency ID daal diya?" (after install), "screenshot bhej do" (after agency linked)
@@ -506,6 +508,18 @@ ${facts || "(topic already covered — give a fresh angle, keep numbers identica
 - Promise to call back or be available at a specific time
 - Send the same template reply to different leads — every reply must be specific to THIS conversation
 - Use formal/business language — this is WhatsApp, not email
+- Send "😊" as a standalone reply more than once per conversation
+- Use "Hey!" or "Hi!" as an opener if there's already an active conversation — just reply to what she said
+- Follow up after she said "baad mein", "abhi nahi", "sochungi", or similar soft-no's — she'll come back when ready
+- Send any message if conversation_stage is LOST — that lead is done
+
+━━━ SOFT REJECTIONS — WHEN TO STOP ━━━
+If she says ANY of these, reply ONCE warmly and STOP. Do not follow up again unless she messages first:
+- "baad mein" / "abhi nahi" / "sochungi" / "baad mein karte hain"
+- "nahi chahiye" / "mujhe nahi karna" / "interested nahi hoon"
+- "busy hoon" / "baad mein baat karte hain"
+- Any variation of "not now" in Hindi or English
+Your ONE reply: acknowledge, don't push. Example: "Okay sister, jab ready ho tab bol dena 😊" — then STOP. Mark conversation_stage as WARM with reason "soft rejection — waiting for her to return".
 
 ━━━ TOOL USE — YOU MUST CALL THESE TOOLS EVERY TURN ━━━
 After reading the conversation and before writing your reply, decide if any of these apply. If yes, call the tool(s) WITH REAL DATA from the conversation. Do NOT call tools with empty args.
@@ -1019,7 +1033,7 @@ async function callGeminiFallback(
             role: "user",
             parts: [{ text: `${contextBlock}\n\nLead just wrote: "${text}"\n\nWrite only Barbie's WhatsApp reply.` }],
           }],
-          generationConfig: { maxOutputTokens: 150, temperature: 0.6 },
+          generationConfig: { maxOutputTokens: 320, temperature: 0.6 },
         }),
       },
     );
@@ -1579,6 +1593,7 @@ async function maybeRunDailyReengagement() {
        where stage not in ('AGENCY_LINKED','FACE_VERIFIED','FIRST_LIVE','ACTIVE','NOT_INTERESTED')
          and coalesce(escalated, false) = false
          and coalesce(human_takeover, false) = false
+         and conversation_stage is distinct from 'LOST'
          and (last_outbound_at is null or last_outbound_at < now() - interval '3 days')
          and (last_inbound_at is null or last_inbound_at < now() - interval '1 day')
          -- Real WhatsApp mobile numbers only. Contacts whose ID never resolved
@@ -1999,6 +2014,14 @@ client.on("message", async (msg: any) => {
             return;
           }
 
+          // LOST stage — Grok marked this as dead/trolling. Stop all replies.
+          if (res.rows[0].conversation_stage === "LOST") {
+            await pg.end();
+            console.log(`[wa] +${normPhone} is LOST — skipping auto-reply`);
+            await saveMessage(leadId, "in", msg.body || "[media]");
+            return;
+          }
+
           const convertedStages = [
             "AGENCY_LINKED",
             "FACE_VERIFIED",
@@ -2162,31 +2185,16 @@ let campaignTotal = 0;
 // Stage-specific re-engagement messages — varied, human, never identical
 const STAGE_MESSAGES: Record<string, string[]> = {
   ASKED: [
-    "Hey 😊 aapne pehle interest dikhaya tha — join karna hai? Link bhejun?",
-    "Sister, aapka process reh gaya tha — ready ho to continue karein?",
-    "Hi! Baat hui thi apki — kya socha? Join karna hai?",
-    "Hey, missing you 😊 abhi bhi karna chahti ho to main hoon guide karne ke liye",
+    "Hey, baat hui thi apki — kya socha?",
+    "Hi! Aapka process pending tha — continue karna hai?",
   ],
   LINK_SENT: [
-    "Hey! App install ho gaya kya? Koi issue aaya toh batao, main help karti hoon",
-    "Sister aapka setup reh gaya tha — install complete hua? Screenshot bhej dena",
-    "Hi! Link bheja tha — download ho gaya? Aage kya karna hai wo bata deti hoon",
-    "Hey 😊 pending hai aapka — kab free ho to baat karte hain?",
+    "Hey! App install ho gaya kya?",
+    "Hi! Link bheja tha — download ho gaya?",
   ],
   INSTALLED: [
-    "Hey! App toh install ho gaya — ab Profile > My Agency > Agent ID 2517496 daalo",
-    "Sister, agency ID enter karna baaki hai — karke dekhein? Main saath mein hoon",
-    "Hi! Aapka step reh gaya tha — agency join karna hai? Link bhejun?",
-  ],
-  AGENCY_LINKED: [
-    "Hey! Agency toh join ho gayi — ab face verification baki hai. Karke dekhein?",
-    "Sister, face verify kar lo — bas ek selfie jaisa hai, 1 minute ka kaam",
-    "Hi! Verification baki hai — ready ho to kar lete hain. Main guide karti hoon",
-  ],
-  FACE_VERIFIED: [
-    "Hey! Verification ho gaya — ab aap ready ho! Pehla live kab logi? Main guide karungi 🎉",
-    "Sister, congrats! Ab live start karo — main online rahungi aapke liye",
-    "Hi! Aap ready ho — pehla live kab? Main help karungi setup mein",
+    "Hey! Agency ID daal diya kya? 2517496",
+    "Hi! Agency join karna hai? Baaki sab clear hai?",
   ],
 };
 
@@ -2228,6 +2236,13 @@ async function runCampaign(phones: string[], overrideMessage?: string) {
     }
     if (BLOCKED_PHONES.has(phone) || BLOCKED_PHONES.has(bare)) {
       console.log(`[wa] campaign: +${phone} is on blocklist, skipping`);
+      continue;
+    }
+
+    // NEVER message converted hosts, LOST leads, or human-takeover contacts
+    const stage = stageMap[phone] || "ASKED";
+    if (["AGENCY_LINKED", "FACE_VERIFIED", "FIRST_LIVE", "ACTIVE"].includes(stage)) {
+      console.log(`[wa] campaign: +${phone} is ${stage} (converted), skipping`);
       continue;
     }
 
