@@ -134,6 +134,7 @@ const BLOCKED_PHONES = new Set<string>([
   "214168695263324", // Gayatri Devi Bolla
   "919967980700", // Barbie's own contact ("sir") — not a recruiting lead, bot pitched him anyway
   "91807674259", // Riya — converted lead, no longer texting
+  "226603112083690", // Janvi — host, do not auto-reply
 ]);
 // Also check at message handler level — merge with optOuts for outbound protection
 // message ids already handled — prevents double-replies after a restart
