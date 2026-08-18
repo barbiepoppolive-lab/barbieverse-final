@@ -1481,17 +1481,22 @@ let currentQrAt = 0;
 let isReady = false;
 let messagesSeen = 0;
 
+let lastQrSentAt = 0;
 client.on("qr", async (qr) => {
   try {
     currentQrPng = await QRCode.toBuffer(qr, { width: 512, margin: 2 });
     currentQrAt = Date.now();
     console.log(
-      `[wa] QR ready — open /qr?k=... to scan (also attempting Telegram)`,
+      `[wa] QR ready — open /qr?k=... to scan`,
     );
-    await tgPhoto(
-      currentQrPng,
-      "📱 Scan within 60 seconds:\nWhatsApp → Settings → Linked devices → Link a device",
-    );
+    // Rate-limit QR photos to Telegram — max 1 per 5 minutes
+    if (Date.now() - lastQrSentAt > 5 * 60_000) {
+      lastQrSentAt = Date.now();
+      await tgPhoto(
+        currentQrPng,
+        "📱 Scan within 60 seconds:\nWhatsApp → Settings → Linked devices → Link a device",
+      );
+    }
   } catch (e) {
     console.error("[wa] QR render failed", e);
   }
