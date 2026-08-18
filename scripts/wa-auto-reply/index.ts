@@ -63,16 +63,25 @@ const MAX_REPLIES_PER_CONTACT_PER_DAY = Number(
 const MIN_DELAY_MS = Number(process.env.WA_MIN_DELAY_MS || 10_000);
 const MAX_DELAY_MS = Number(process.env.WA_MAX_DELAY_MS || 12_000);
 
+const OPTOUT_FILE = path.join(SESSION_DIR, "optouts.json");
+const SEEN_FILE = path.join(SESSION_DIR, "seen.json");
+const PAUSE_FILE = path.join(SESSION_DIR, "paused.json");
+
 // Pause toggle: WA_BOT_PAUSED=true shuts off all replies without killing the process.
-let botPaused = process.env.WA_BOT_PAUSED === "true";
+// The /pause HTTP route used to only flip this in-memory — which meant every
+// redeploy (and there were several in one night) silently un-paused the bot
+// with no warning, because a fresh process boots from WA_BOT_PAUSED alone.
+// That's confirmed to be the actual cause behind "the pause button doesn't
+// work": it worked, the next deploy just quietly undid it. Now persisted to
+// the same volume everything else (opt-outs, seen-ids) already survives on.
+let botPaused =
+  process.env.WA_BOT_PAUSED === "true" ||
+  loadJson<{ paused?: boolean }>(PAUSE_FILE, {}).paused === true;
 
 const MEDIA_BASE = process.env.PUBLIC_APP_URL || "https://barbieverse.org";
 
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT = process.env.TELEGRAM_CHAT_ID;
-
-const OPTOUT_FILE = path.join(SESSION_DIR, "optouts.json");
-const SEEN_FILE = path.join(SESSION_DIR, "seen.json");
 
 fs.mkdirSync(SESSION_DIR, { recursive: true });
 
@@ -553,11 +562,28 @@ async function executeToolCall(
         return JSON.stringify({ ok: true });
       }
       case "mark_conversation_stage": {
+        // LOST is supposed to mean "stop engaging" — but marking it was never
+        // actually wired to stop anything. Confirmed in production: a troll
+        // sent 15+ turns of harassment (marriage jokes, photo demands, "is
+        // this a bot"), Grok correctly called mark_conversation_stage(LOST)
+        // with reasoning like "not a serious lead... trolling" on nearly
+        // every turn, and the bot kept replying with the same canned
+        // redirect anyway — because only request_human_handoff actually sets
+        // human_takeover, and Grok reached for the (wrong, but reasonable)
+        // stage-tracking tool instead under pressure. Don't rely on Grok
+        // picking the exactly-right tool every time: LOST silences the bot
+        // here too, same as an explicit handoff.
+        const silence = args.stage === "LOST";
         await pg.query(
-          `UPDATE wa_leads SET conversation_stage = $1 WHERE id = $2`,
+          `UPDATE wa_leads SET conversation_stage = $1${silence ? ", human_takeover = true" : ""} WHERE id = $2`,
           [args.stage, leadId],
         );
         await pg.end();
+        if (silence) {
+          await tg(
+            `🔇 <b>+${phone}</b> marked LOST by Grok — bot silenced on this contact.\nReason: ${args.reason || "(none given)"}`,
+          );
+        }
         return JSON.stringify({ ok: true, stage: args.stage });
       }
       case "request_human_handoff": {
@@ -858,7 +884,14 @@ async function grokReply(
             { role: "system", content: systemPrompt },
             ...messages,
           ],
-          max_tokens: 150,
+          // Was 150. Confirmed in production (grok-linked host 157556664180817,
+          // 17 Aug ~16:42-17:11 IST): real replies were cut off mid-word —
+          // "Lakhs tak ja sak", "Jab tak agency ID nahi da" — sent to WhatsApp
+          // exactly like that, mid-sentence, because this is the follow-up
+          // call after tool execution and the system prompt's own multi-line
+          // reply style (several short paragraphs + a question) routinely
+          // needs more than 150 tokens, especially with Hindi/Hinglish text.
+          max_tokens: 320,
           temperature: 0.7,
         }),
       });
@@ -941,7 +974,7 @@ async function fallbackGroqReply(
           ...(contextBlock ? [{ role: "user", content: contextBlock }] : []),
           { role: "user", content: text },
         ],
-        max_tokens: 150,
+        max_tokens: 320, // same truncation fix as the Grok follow-up call above
         temperature: 0.7,
       }),
     });
@@ -2429,10 +2462,12 @@ http
       const action = url.searchParams.get("action");
       if (action === "pause") {
         botPaused = true;
+        saveJson(PAUSE_FILE, { paused: true });
         console.log("[wa] bot PAUSED via HTTP");
         await tg("⏸ WhatsApp bot PAUSED via admin");
       } else if (action === "resume") {
         botPaused = false;
+        saveJson(PAUSE_FILE, { paused: false });
         console.log("[wa] bot RESUMED via HTTP");
         await tg("▶️ WhatsApp bot RESUMED via admin");
       }
