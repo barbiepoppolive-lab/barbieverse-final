@@ -280,7 +280,7 @@ async function getLeadContext(phone: string): Promise<LeadContext | null> {
       `SELECT id, phone, display_name, stage, topics_asked, conversation_stage, lead_score,
               streaming_experience, current_platform, trust_level,
               objection_count, conversation_summary, next_best_action,
-              grok_compaction_blob, created_at, last_inbound_at
+              human_takeover, grok_compaction_blob, created_at, last_inbound_at
        FROM wa_leads WHERE phone = $1`,
       [phone],
     );
@@ -1831,67 +1831,49 @@ async function processTurn(
   console.log(`[wa] -> +${phone} (${source})`);
 }
 
+// ── STOP / RESUME codewords — runs on message_create (reliable for outbound) ──
+// The 'message' event does NOT reliably fire for messages sent from Barbie's
+// own phone. 'message_create' fires for ALL messages including outbound.
+client.on("message_create", async (msg: any) => {
+  try {
+    if (!msg.fromMe || msg.isStatus) return;
+    const text = (msg.body || "").trim().toLowerCase();
+    if (text !== "stop" && text !== "/stop" && text !== "resume" && text !== "/resume") return;
+
+    const leadPhone = String(msg.to || "").replace(/\D/g, "").replace(/@.*/, "");
+    if (!leadPhone || !/^\d{8,15}$/.test(leadPhone)) return;
+
+    const dbUrl = process.env.SUPABASE_DB_URL;
+    if (!dbUrl) return;
+    const { Client } = await import("pg");
+    const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    await pg.connect();
+
+    if (text === "stop" || text === "/stop") {
+      await pg.query(
+        `UPDATE wa_leads SET human_takeover = true, updated_at = NOW() WHERE phone = $1`,
+        [leadPhone],
+      );
+      console.log(`[wa] TAKEOVER: +${leadPhone} — bot stopped, Barbie taking over`);
+      await tg(`🙋 <b>TAKEOVER</b>\nBarbie took over +${leadPhone}\nBot will stop replying to this contact.`);
+    } else {
+      await pg.query(
+        `UPDATE wa_leads SET human_takeover = false, updated_at = NOW() WHERE phone = $1`,
+        [leadPhone],
+      );
+      console.log(`[wa] RESUME: +${leadPhone} — bot resumed`);
+      await tg(`🤖 <b>RESUMED</b>\nBot back on +${leadPhone}`);
+    }
+    await pg.end();
+  } catch (e: any) {
+    console.error("[wa] codeword error:", e?.message);
+  }
+});
+
 client.on("message", async (msg: any) => {
   try {
     messagesSeen++;
-
-    // ── CODeword: Barbie types in any chat to take over that conversation ──
-    // When Barbie sends "STOP" or "/stop" in a chat, the bot stops replying
-    // to that contact and marks human_takeover = true.
-    if (msg.fromMe && !msg.isStatus) {
-      const text = (msg.body || "").trim().toLowerCase();
-      if (text === "stop" || text === "/stop") {
-        // msg.to is the chat the message was sent TO — that's the lead
-        const leadPhone = String(msg.to || "").replace(/\D/g, "").replace(/@.*/, "");
-        if (leadPhone && /^\d{8,15}$/.test(leadPhone)) {
-          const dbUrl = process.env.SUPABASE_DB_URL;
-          if (dbUrl) {
-            try {
-              const { Client } = await import("pg");
-              const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-              await pg.connect();
-              await pg.query(
-                `UPDATE wa_leads SET human_takeover = true, updated_at = NOW() WHERE phone = $1`,
-                [leadPhone],
-              );
-              await pg.end();
-              console.log(`[wa] TAKEOVER: +${leadPhone} — bot stopped, Barbie taking over`);
-              await tg(`🙋 <b>TAKEOVER</b>\nBarbie took over +${leadPhone}\nBot will stop replying to this contact.`);
-            } catch (e: any) {
-              console.error("[wa] takeover DB error:", e?.message);
-            }
-          }
-        }
-        return; // don't process further
-      }
-      if (text === "resume" || text === "/resume") {
-        const leadPhone = String(msg.to || "").replace(/\D/g, "").replace(/@.*/, "");
-        if (leadPhone && /^\d{8,15}$/.test(leadPhone)) {
-          const dbUrl = process.env.SUPABASE_DB_URL;
-          if (dbUrl) {
-            try {
-              const { Client } = await import("pg");
-              const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-              await pg.connect();
-              await pg.query(
-                `UPDATE wa_leads SET human_takeover = false, updated_at = NOW() WHERE phone = $1`,
-                [leadPhone],
-              );
-              await pg.end();
-              console.log(`[wa] RESUME: +${leadPhone} — bot resumed`);
-              await tg(`🤖 <b>RESUMED</b>\nBot back on +${leadPhone}`);
-            } catch (e: any) {
-              console.error("[wa] resume DB error:", e?.message);
-            }
-          }
-        }
-        return;
-      }
-      // Skip all other outbound messages
-      return;
-    }
-
-    if (msg.isStatus) return;
+    if (msg.fromMe || msg.isStatus) return;
 
     // Groups, broadcasts and status. Auto-replying in a group is the single
     // most visible "this is a bot" signal there is, and it annoys people who
@@ -1989,7 +1971,7 @@ client.on("message", async (msg: any) => {
         // 91-prefixed row can exist for the same person (import history vs.
         // live testing created duplicates for at least one number already).
         const res = await pg.query(
-          "select id, stage from wa_leads where phone = any($1)",
+          "select id, stage, human_takeover, conversation_stage from wa_leads where phone = any($1)",
           [[normPhone, bare91, phone, digits]],
         );
         if (!res.rows[0]) {
