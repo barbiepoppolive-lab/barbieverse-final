@@ -55,10 +55,10 @@ const SESSION_DIR = process.env.WA_SESSION_DIR || "/data/wwebjs_auth";
 // Set very high defaults so the checks are effectively no-ops while keeping the
 // code available for if Barbie wants to re-enable caps later.
 const MAX_REPLIES_PER_HOUR = Number(
-  process.env.WA_MAX_REPLIES_PER_HOUR || 9999,
+  process.env.WA_MAX_REPLIES_PER_HOUR || 30,
 );
 const MAX_REPLIES_PER_CONTACT_PER_DAY = Number(
-  process.env.WA_MAX_PER_CONTACT_DAY || 999,
+  process.env.WA_MAX_PER_CONTACT_DAY || 5,
 );
 const MIN_DELAY_MS = Number(process.env.WA_MIN_DELAY_MS || 10_000);
 const MAX_DELAY_MS = Number(process.env.WA_MAX_DELAY_MS || 12_000);
@@ -520,7 +520,14 @@ If she says ANY of these, reply ONCE warmly and STOP. Do not follow up again unl
 - "nahi chahiye" / "mujhe nahi karna" / "interested nahi hoon"
 - "busy hoon" / "baad mein baat karte hain"
 - Any variation of "not now" in Hindi or English
+- She hasn't replied to your last 2 messages — STOP. Do not send another.
 Your ONE reply: acknowledge, don't push. Example: "Okay sister, jab ready ho tab bol dena 😊" — then STOP. Mark conversation_stage as WARM with reason "soft rejection — waiting for her to return".
+
+━━━ ANTI-SPAM RULES ━━━
+- NEVER send 2 messages in a row without a lead message in between. If you already sent a message and she hasn't replied, do NOT send another.
+- If she sent 1 short reply ("ha", "ok", "thk"), send 1 short reply back. Do NOT follow up with a longer message.
+- NEVER send a question AND a statement in the same turn. Pick ONE.
+- If the last 2 messages in the conversation are both from you (Barbie), you have ALREADY said too much. Stay silent until she replies.
 
 ━━━ TOOL USE — YOU MUST CALL THESE TOOLS EVERY TURN ━━━
 After reading the conversation and before writing your reply, decide if any of these apply. If yes, call the tool(s) WITH REAL DATA from the conversation. Do NOT call tools with empty args.
@@ -1680,6 +1687,36 @@ async function processTurn(
   key: string,
   text: string,
 ) {
+  // ── Rate limit: don't spam any single contact ──
+  if (!canReply(phone)) {
+    console.log(`[wa] +${phone} hit daily per-contact limit — staying silent`);
+    return;
+  }
+
+  // ── Consecutive outbound guard: if last 2 messages were bot-sent, stop ──
+  // This prevents the bot from firing 5+ messages in a row when the lead
+  // hasn't replied. Only check if we have a leadId (known lead).
+  if (leadId) {
+    try {
+      const dbUrl = process.env.SUPABASE_DB_URL;
+      if (dbUrl) {
+        const { Client } = await import("pg");
+        const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+        await pg.connect();
+        const recent = await pg.query(
+          `SELECT direction FROM wa_messages WHERE lead_id = $1 ORDER BY created_at DESC LIMIT 2`,
+          [leadId],
+        );
+        await pg.end();
+        const last2 = recent.rows.map((r: any) => r.direction);
+        if (last2.length >= 2 && last2[0] === "out" && last2[1] === "out") {
+          console.log(`[wa] +${phone} last 2 messages were outbound — blocking consecutive send`);
+          return;
+        }
+      }
+    } catch {}
+  }
+
   const matchResult = matchAnswer(text);
   const topics = leadTopics.get(key) || [];
   // A canned answer is only used the FIRST time its topic comes up for
