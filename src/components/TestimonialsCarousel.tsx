@@ -11,29 +11,7 @@ export type Testimonial = {
   quote: string;
 };
 
-const DEFAULTS: Testimonial[] = [
-  {
-    name: "Priya S.",
-    platform: "Poppo/Vone Live",
-    earnings: "₹12,000/mo",
-    quote:
-      "BarbieVerse ne mujhe ghar baithe earning ka mauka diya. Support team hamesha available rehti hai!",
-  },
-  {
-    name: "Ananya R.",
-    platform: "Poppo/Vone Live",
-    earnings: "₹8,500/mo",
-    quote:
-      "60 din me top creator level reach kiya. Onboarding aur guidance dono perfect tha.",
-  },
-  {
-    name: "Sneha M.",
-    platform: "Poppo/Vone Live",
-    earnings: "₹18,000/mo",
-    quote:
-      "First week me ₹1,150 guaranteed mila. Genuine agency hai — fully recommended.",
-  },
-];
+const DEFAULTS: Testimonial[] = [];
 
 export function TestimonialsCarousel({ items }: { items?: Testimonial[] }) {
   const slides = items && items.length ? items : DEFAULTS;

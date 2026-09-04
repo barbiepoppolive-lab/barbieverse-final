@@ -23,7 +23,7 @@
 
 import { generateSocialPost } from "@/lib/ai/modules/content-ai";
 import { scoreContent, improveContent } from "@/lib/ai/content-quality";
-import { checkCompliance, formatIssuesForRevision } from "@/lib/ai/compliance-gate";
+import { checkCompliance, formatIssuesForRevision } from "@/shared/compliance-gate";
 import { generateContentSEO, type Platform as SEOPlatform } from "@/lib/ai/content-seo";
 import { generateCarousel } from "@/lib/ai/modules/brand-manager";
 import { generateImage } from "@/lib/ai/image-gen";

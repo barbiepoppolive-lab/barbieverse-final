@@ -48,11 +48,15 @@ function CoinsPage() {
     return (
       <SiteLayout>
         <section className="container mx-auto px-4 py-16 text-center">
-          <div className="mx-auto max-w-md rounded-2xl border border-border/60 bg-card/60 p-8 backdrop-blur-md">
-            <AlertCircle className="mx-auto h-14 w-14 text-muted-foreground" />
-            <h1 className="mt-4 font-display text-2xl font-bold">⏸️ Coin Sales Paused</h1>
-            <p className="mt-3 text-muted-foreground">
-              Coin recharge is currently paused. Please check back later or contact support on WhatsApp. 💬
+          <div className="mx-auto max-w-md rounded-3xl border border-gold/20 bg-gradient-to-br from-card/80 via-card/40 to-card/10 p-10 backdrop-blur-xl shadow-luxe">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-gold/30 bg-gradient-gold/10">
+              <Sparkles className="h-8 w-8 text-gold" />
+            </div>
+            <h1 className="mt-6 font-display text-3xl font-medium text-gradient-gold">
+              We'll Be Right Back
+            </h1>
+            <p className="mt-3 text-muted-foreground leading-relaxed">
+              Our coin boutique is being refreshed. Please check back shortly or message us on WhatsApp for assistance.
             </p>
             <Link
               to="/"
@@ -94,11 +98,14 @@ function CoinsPage() {
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 mx-auto h-[120px] max-w-2xl rounded-full bg-primary/10 blur-[120px]" />
 
         <div className="mx-auto max-w-3xl text-center">
-          <h1 className="font-display text-3xl font-bold sm:text-4xl">
-            🪙 {t("coins.recharge")} <span className="text-gradient-pink">{t("coins.poppo")}</span> {t("section.packages.coins")} 🪙
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-gold/30 bg-gradient-gold/10">
+            <Coins className="h-6 w-6 text-gold" />
+          </div>
+          <h1 className="font-display text-3xl font-medium sm:text-4xl">
+            {t("coins.recharge")} <span className="text-gradient-pink">{t("coins.poppo")}</span> {t("section.packages.coins")}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            🚀 {t("coins.page.sub")}
+            {t("coins.page.sub")}
           </p>
         </div>
 
@@ -106,17 +113,17 @@ function CoinsPage() {
           <StepProgress
             className="mt-5"
             steps={[
-              { label: "📦 Pick Package" },
-              { label: "📝 Details" },
-              { label: "💳 Payment" },
-              { label: "✅ Done" },
+              { label: "Select" },
+              { label: "Details" },
+              { label: "Payment" },
+              { label: "Complete" },
             ]}
             current={step === "pick" ? 0 : step === "form" ? 1 : step === "pay" ? 2 : 3}
           />
         )}
 
         {step === "pick" && (
-          <div className="mx-auto mt-5 grid max-w-3xl grid-cols-4 gap-1.5 sm:grid-cols-4 lg:gap-2.5 stagger-grid">
+          <div className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4 lg:gap-4 stagger-grid">
             {packages.map((p, i) => (
               <PackageCard
                 key={i}
@@ -132,24 +139,18 @@ function CoinsPage() {
 
         {/* Trust bar — inline below packages */}
         {step === "pick" && (
-          <div className="mx-auto mt-5 flex max-w-3xl flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[11px] text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              🔒 UID only — no password needed
+          <div className="mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-gold" /> UID only — no password needed
             </span>
-            <span className="inline-flex items-center gap-1">
-              💬 WhatsApp support
+            <span className="inline-flex items-center gap-1.5">
+              <MessageCircle className="h-3.5 w-3.5 text-gold" /> WhatsApp support
             </span>
-            <span className="inline-flex items-center gap-1">
-              🇮🇳 UPI — zero extra charges
+            <span className="inline-flex items-center gap-1.5">
+              <Smartphone className="h-3.5 w-3.5 text-gold" /> UPI — zero extra charges
             </span>
-            <span className="inline-flex items-center gap-1">
-              📦 Select
-            </span>
-            <span className="inline-flex items-center gap-1">
-              📱 Pay via UPI
-            </span>
-            <span className="inline-flex items-center gap-1">
-              ✨ Coins delivered
+            <span className="inline-flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-gold" /> Coins in minutes
             </span>
           </div>
         )}
@@ -196,8 +197,8 @@ function CoinsPage() {
 
         {step === "pay" && selected && orderResult && method === "upi" && (
           <SmartPaymentVerification
-            upiId="thestrongwingsofficial@okaxis"
-            payeeName="Barbie"
+            upiId={settings.upi_id || "thestrongwingsofficial@okaxis"}
+            payeeName={settings.upi_payee_name || "Barbie"}
             amountRupees={orderResult.expected_amount_rupees}
             orderId={orderResult.id}
             orderShortId={orderResult.id.slice(0, 8)}
@@ -226,16 +227,36 @@ function CoinsPage() {
         )}
 
         {step === "done" && (
-          <GlassCard className="mx-auto mt-12 max-w-md p-8 text-center" glow="pink">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-pink shadow-glow" style={{ animation: "bounce-in 0.6s cubic-bezier(0.16, 1, 0.3, 1)" }}>
-              <Sparkles className="h-8 w-8 text-primary-foreground" />
+          <GlassCard className="mx-auto mt-12 max-w-md p-10 text-center" glow="pink">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-gold shadow-luxe" style={{ animation: "bounce-in 0.6s cubic-bezier(0.16, 1, 0.3, 1)" }}>
+              <CheckCircle2 className="h-10 w-10 text-primary-foreground" />
             </div>
-            <h2 className="mt-4 font-display text-2xl font-bold">🎉 Payment Submitted! 🎉</h2>
-            <p className="mt-3 text-muted-foreground">
-              We're verifying your payment now. Coins will be credited within minutes. You'll get a WhatsApp confirmation as soon as it's complete. 🪙✨
+            <h2 className="mt-6 font-display text-3xl font-medium">
+              Order <span className="text-gradient-pink">#{orderResult?.id.slice(0, 8)}</span> Received
+            </h2>
+            <p className="mt-3 text-muted-foreground leading-relaxed">
+              Your payment is being verified. Coins will arrive within minutes.
+              You'll receive a WhatsApp confirmation shortly.
             </p>
+            {selected && (
+              <div className="mt-6 rounded-xl border border-gold/20 bg-card/40 p-4 text-left">
+                <div className="text-[11px] uppercase tracking-[0.22em] text-gold">Order Summary</div>
+                <div className="mt-3 flex justify-between text-sm">
+                  <span className="text-muted-foreground">Package</span>
+                  <span className="font-semibold">{selected.name}</span>
+                </div>
+                <div className="mt-1 flex justify-between text-sm">
+                  <span className="text-muted-foreground">Coins</span>
+                  <span className="font-semibold">{(selected.coins * quantity).toLocaleString()}</span>
+                </div>
+                <div className="mt-1 flex justify-between text-sm">
+                  <span className="text-muted-foreground">Amount</span>
+                  <span className="font-display text-lg font-bold text-gradient-pink">₹{(selected.price * quantity).toLocaleString()}</span>
+                </div>
+              </div>
+            )}
             <PremiumButton onClick={() => { setStep("pick"); setSelected(null); setOrderResult(null); }} className="mt-6" variant="primary">
-              🛒 New order <ArrowRight className="h-4 w-4" />
+              New Order <ArrowRight className="h-4 w-4" />
             </PremiumButton>
           </GlassCard>
         )}
@@ -243,15 +264,15 @@ function CoinsPage() {
         {/* FAQ Section */}
         {step === "pick" && (
           <div className="mx-auto mt-16 max-w-2xl">
-            <h2 className="text-center font-display text-2xl font-bold">❓ Frequently Asked Questions</h2>
+            <h2 className="text-center font-display text-2xl font-medium">Frequently Asked Questions</h2>
             <FaqAccordion
               className="mt-8"
               items={[
-                { q: "🛡️ Is it safe to recharge here?", a: "Yes! We only need your Poppo/Vone User ID. We never ask for your password or login credentials. Your account stays 100% secure." },
-                { q: "⚡ How long does delivery take?", a: "Within 30 minutes of payment verification during business hours. Most orders are completed within 10 minutes!" },
-                { q: "⚠️ What if I enter the wrong Poppo/Vone ID?", a: "Double-check your ID before submitting. We cannot reverse transactions with incorrect IDs, so please verify carefully!" },
-                { q: "💳 What payment methods are accepted?", a: "UPI only — scan our QR code or use our UPI ID directly. Zero extra charges on your payment!" },
-                { q: "📱 How do I find my Poppo/Vone User ID?", a: "Open Poppo/Vone app → tap My → your numeric ID is below your profile photo. It looks like: ID: XXXXXXXX" },
+                { q: "Is it safe to recharge here?", a: "Yes. We only require your Poppo/Vone User ID — never your password or login credentials. Your account remains fully secure." },
+                { q: "How long does delivery take?", a: "Within 30 minutes of payment verification during business hours. Most orders are completed within 10 minutes." },
+                { q: "What if I enter the wrong Poppo/Vone ID?", a: "Double-check your ID before submitting. We cannot reverse transactions with incorrect IDs, so please verify carefully." },
+                { q: "What payment methods are accepted?", a: "UPI is recommended for instant auto-verification. USDT (TRC20) and Net Banking are also available with manual verification." },
+                { q: "How do I find my Poppo/Vone User ID?", a: "Open Poppo/Vone app, tap My, and your numeric ID appears below your profile photo. It looks like: ID: XXXXXXXX." },
               ]}
             />
           </div>
@@ -276,41 +297,42 @@ function PackageCard({ pkg, index, onSelect, isPopular, savingsPercent }: { pkg:
   return (
     <div
       onClick={onSelect}
-      className={`group relative overflow-hidden rounded-xl border bg-card/40 p-2 text-center backdrop-blur-md transition-all duration-300 hover-lift cursor-pointer sm:p-3.5 sm:text-left ${
+      className={`group relative overflow-hidden rounded-2xl border bg-card/40 p-4 text-center backdrop-blur-md transition-all duration-300 hover-lift cursor-pointer sm:p-5 sm:text-left ${
         isPopular
           ? "border-primary/50 shadow-[0_0_25px_oklch(0.72_0.25_350/0.1)]"
           : "border-border/60 hover:border-gold/40"
       }`}
     >
       <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${tier.gradient} opacity-0 transition-opacity duration-300 group-hover:opacity-100`} />
+      {isPopular && <div className="pointer-events-none absolute inset-0 wealth-shimmer opacity-10 rounded-2xl" />}
 
       {isPopular && (
-        <div className="absolute -right-6 top-1.5 rotate-45 bg-gradient-pink px-6 py-0.5 text-[7px] font-bold uppercase tracking-wider text-primary-foreground shadow-lg sm:-right-7 sm:top-2 sm:px-8 sm:text-[8px]">
+        <div className="absolute -right-8 top-2 rotate-45 bg-gradient-pink px-8 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary-foreground shadow-lg sm:-right-10 sm:top-2.5 sm:px-10 sm:text-[10px]">
           {tier.badge}
         </div>
       )}
 
       {savingsPercent > 0 && (
-        <div className="absolute left-1.5 top-1.5 rounded-full bg-gradient-gold px-1.5 py-0.5 text-[7px] font-bold text-black shadow-lg sm:left-2 sm:top-2 sm:px-2 sm:text-[8px]">
+        <div className="absolute left-2 top-2 rounded-full bg-gradient-gold px-2 py-0.5 text-[9px] font-bold text-black shadow-lg sm:left-2.5 sm:top-2.5 sm:px-2.5 sm:text-[10px]">
           Save {savingsPercent}%
         </div>
       )}
 
       <div className="relative text-center text-2xl sm:text-3xl">{tier.emoji}</div>
 
-      <div className="relative mt-0.5 text-center text-[7px] font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:mt-1 sm:text-[9px] sm:tracking-[0.16em]">
+      <div className="relative mt-1 text-center text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:mt-1.5 sm:tracking-[0.16em]">
         {pkg.name}
       </div>
 
       <div className="relative mt-1.5 text-center sm:mt-2">
         <span className={`font-display text-lg font-bold leading-none sm:text-2xl ${tier.accent}`}>{pkg.coins.toLocaleString()}</span>
-        <span className="ml-0.5 text-[8px] text-muted-foreground sm:text-[10px]">{t("coins.coins")}</span>
+        <span className="ml-1 text-xs text-muted-foreground sm:text-sm">{t("coins.coins")}</span>
       </div>
 
       <div className="relative mt-1 text-center font-display text-sm font-bold text-foreground sm:text-base">
         ₹{pkg.price.toLocaleString()}
       </div>
-      <div className="relative text-center text-[8px] text-muted-foreground sm:text-[9px]">
+      <div className="relative text-center text-xs text-muted-foreground sm:text-sm">
         <span className={savingsPercent > 0 ? "text-green-400 font-semibold" : ""}>₹{coinRate}</span>{t("coins.percoin")}
         {savingsPercent > 0 && (
           <span className="ml-0.5 text-green-400 font-semibold">(−{savingsPercent}%)</span>
@@ -319,7 +341,7 @@ function PackageCard({ pkg, index, onSelect, isPopular, savingsPercent }: { pkg:
 
       <div className="relative my-2 border-t border-border/40 sm:my-3" />
 
-      <div className="relative inline-flex w-full items-center justify-center gap-0.5 rounded-full bg-gradient-pink px-3 py-1.5 text-[10px] font-bold text-primary-foreground transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-[0_0_40px_oklch(0.72_0.25_350/0.4)] sm:gap-1 sm:px-4 sm:py-2 sm:text-[11px]">
+      <div className="relative inline-flex w-full items-center justify-center gap-1 rounded-full bg-gradient-pink px-4 py-2 text-xs font-bold text-primary-foreground transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-[0_0_40px_oklch(0.72_0.25_350/0.4)] sm:gap-1.5 sm:px-5 sm:py-2.5 sm:text-sm">
         {t("section.packages.select")} <ArrowRight className="h-3 w-3" />
       </div>
     </div>
@@ -484,6 +506,7 @@ function PayStep({
   const usdtAmount = (pkg.price / usdtRate).toFixed(2);
 
   const qrData = method === "usdt" ? usdtAddress : `${settings.bank_account_name || ""} ${settings.bank_account_number || ""} ${settings.bank_ifsc || ""}`;
+  // Using api.qrserver.com as fallback for USDT/NetBanking (less critical path)
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(qrData || "barbieverse")}`;
 
   const [copied, setCopied] = useState<string | null>(null);

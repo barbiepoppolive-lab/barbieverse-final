@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { confirmPayment } from "@/lib/api/confirm-payment.server";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -17,6 +17,7 @@ import {
   Image,
   ClipboardPaste,
 } from "lucide-react";
+import QRCode from "qrcode";
 
 interface SmartPaymentVerificationProps {
   upiId: string;
@@ -145,7 +146,13 @@ export function SmartPaymentVerification({
     );
   }
 
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiLink)}`;
+  // Client-side QR generation (no external API dependency)
+  const [qrSrc, setQrSrc] = useState("");
+  useEffect(() => {
+    QRCode.toDataURL(upiLink, { width: 300, margin: 1, color: { dark: "#000000", light: "#FFFFFF" } })
+      .then(setQrSrc)
+      .catch(() => setQrSrc(""));
+  }, [upiLink]);
 
   return (
     <div className="mx-auto max-w-xl space-y-6">

@@ -34,7 +34,7 @@ export const PROOF_STATS = {
 } as const;
 
 const LADDER = [
-  { when: "Your first week", amount: "₹1,150", note: "guaranteed — paid even with zero gifts" },
+  { when: "Your first week", amount: "₹1,331", note: "based on dated host-share rates" },
   { when: "Your first month", amount: "₹4,000 – ₹15,000", note: "typical for a new host" },
   { when: "Once you're consistent", amount: "₹15,000 – ₹80,000", note: "per month" },
   { when: "At the very top", amount: PROOF_STATS.monthlyInr, note: "where Barbie is", highlight: true },

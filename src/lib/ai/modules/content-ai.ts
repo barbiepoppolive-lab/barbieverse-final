@@ -1,7 +1,7 @@
 import { aiPremium, aiContent } from "../router";
 import { generateContentSEO, type ContentSEO } from "../content-seo";
-import { TERMINOLOGY_RULES } from "@/lib/ai/brand-terminology";
-import { COMPLIANCE_PROMPT_RULES } from "@/lib/ai/compliance-gate";
+import { TERMINOLOGY_RULES } from "@/shared/brand-terminology";
+import { COMPLIANCE_PROMPT_RULES } from "@/shared/compliance-gate";
 
 // Inline type (audio-gen.server removed from client bundle)
 type AudioGenResult = { audioPath: string; audioUrl: string; voice: string; sizeKb: number; subtitlePath?: string; subtitleUrl?: string };

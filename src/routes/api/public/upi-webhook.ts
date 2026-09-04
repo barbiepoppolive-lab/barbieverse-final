@@ -1,15 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
-// ── Replay protection: deduplicate by amount_paise + utr within 60s ────────
+// ── Replay protection: in-memory fast-pass + DB-backed authoritative dedup ──
+// In-memory set catches rapid-fire duplicates within a single process instance.
+// DB table (webhook_idempotency) survives deploys/restarts/multi-instance —
+// it is the authoritative dedup. The in-memory set is just a cheap first filter.
 const recentPayments = new Set<string>();
 const REPLAY_WINDOW_MS = 60_000;
 
-function isDuplicate(key: string): boolean {
+function isDuplicateMem(key: string): boolean {
   if (recentPayments.has(key)) return true;
   recentPayments.add(key);
   setTimeout(() => recentPayments.delete(key), REPLAY_WINDOW_MS);
   return false;
+}
+
+// DB-backed dedup — returns true if this key was already seen
+async function isDuplicateDb(key: string, q: (text: string, params?: any[]) => Promise<any[]>): Promise<boolean> {
+  const inserted = await q(
+    `INSERT INTO webhook_idempotency (key) VALUES ($1) ON CONFLICT DO NOTHING RETURNING key`,
+    [key],
+  );
+  return inserted.length === 0;
 }
 
 // Receives parsed UPI payment notifications from MacroDroid (or similar).
@@ -39,8 +51,16 @@ export const Route = createFileRoute("/api/public/upi-webhook")({
 
         // Check idempotency key first (replay prevention)
         const idempotencyKey = request.headers.get("x-idempotency-key");
-        if (idempotencyKey && isDuplicate(`upihook:${idempotencyKey}`)) {
-          return Response.json({ ok: false, matched: false, reason: "duplicate" });
+        if (idempotencyKey) {
+          const memKey = `upihook:${idempotencyKey}`;
+          if (isDuplicateMem(memKey)) {
+            return Response.json({ ok: false, matched: false, reason: "duplicate" });
+          }
+          // DB-backed check (survives deploys/restarts)
+          const { q: qFn } = await import("@/lib/db.server");
+          if (await isDuplicateDb(memKey, qFn)) {
+            return Response.json({ ok: false, matched: false, reason: "duplicate" });
+          }
         }
 
         let parsed: z.infer<typeof Schema>;
@@ -53,7 +73,11 @@ export const Route = createFileRoute("/api/public/upi-webhook")({
         // Dedup by amount_paise + utr as fallback
         if (parsed.utr) {
           const dedupKey = `upaise:${parsed.amount_paise}:${parsed.utr}`;
-          if (isDuplicate(dedupKey)) {
+          if (isDuplicateMem(dedupKey)) {
+            return Response.json({ ok: false, matched: false, reason: "duplicate" });
+          }
+          const { q: qFn } = await import("@/lib/db.server");
+          if (await isDuplicateDb(dedupKey, qFn)) {
             return Response.json({ ok: false, matched: false, reason: "duplicate" });
           }
         }

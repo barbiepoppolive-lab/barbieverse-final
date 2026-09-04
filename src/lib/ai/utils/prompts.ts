@@ -1,7 +1,7 @@
 // Prompt Templates — Reusable prompts for BarbieVerse AI tasks
 
-import { TERMINOLOGY_RULES } from "@/lib/ai/brand-terminology";
-import { COMPLIANCE_PROMPT_RULES } from "@/lib/ai/compliance-gate";
+import { TERMINOLOGY_RULES } from "@/shared/brand-terminology";
+import { COMPLIANCE_PROMPT_RULES } from "@/shared/compliance-gate";
 
 export const PROMPTS = {
   // ── Lead Scoring ───────────────────────────────────────

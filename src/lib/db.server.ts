@@ -10,11 +10,20 @@ if (!connectionString) {
   throw new Error("SUPABASE_DB_URL (or DATABASE_URL) environment variable is required");
 }
 
+// SSL: use Supabase CA cert if provided, otherwise allow unauthorized
+// (required for Supabase pooler connections that use self-signed certs).
+// For production, set SUPABASE_DB_CA_CERT env var to the CA cert PEM.
+const sslConfig = process.env.SUPABASE_DB_CA_CERT
+  ? { rejectUnauthorized: true, ca: process.env.SUPABASE_DB_CA_CERT }
+  : { rejectUnauthorized: false };
+
 export const pool = new Pool({
   connectionString,
-  ssl: { rejectUnauthorized: false },
-  max: 2,
-  idleTimeoutMillis: 5000,
+  ssl: sslConfig,
+  max: 10,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 5_000,
+  statement_timeout: 10_000,
 });
 
 export async function q<T = any>(text: string, params: any[] = []): Promise<T[]> {

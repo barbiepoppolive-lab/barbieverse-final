@@ -67,32 +67,32 @@ function envProvider(envKey: string, defaultValue: Provider): Provider {
 function getTaskRoutes(): Record<TaskType, RouteConfig> {
   return {
     chat: {
-      primary: envProvider("AI_ROUTE_CHAT_PRIMARY", "openrouter"),
+      primary: envProvider("AI_ROUTE_CHAT_PRIMARY", "gemini"),
       fallback: envProvider("AI_ROUTE_CHAT_FALLBACK", "openrouter"),
-      model: process.env.AI_ROUTE_CHAT_MODEL || "meta-llama/llama-3.3-70b-instruct:free",
+      model: process.env.AI_ROUTE_CHAT_MODEL || "google/gemma-4-31b-it:free",
       maxTokens: 1024,
-      reason: "OpenRouter free models for chat",
+      reason: "Gemini primary, OpenRouter free models as fallback",
     },
     analysis: {
-      primary: envProvider("AI_ROUTE_ANALYSIS_PRIMARY", "openrouter"),
+      primary: envProvider("AI_ROUTE_ANALYSIS_PRIMARY", "gemini"),
       fallback: envProvider("AI_ROUTE_ANALYSIS_FALLBACK", "openrouter"),
-      model: process.env.AI_ROUTE_ANALYSIS_MODEL || "meta-llama/llama-3.3-70b-instruct:free",
+      model: process.env.AI_ROUTE_ANALYSIS_MODEL || "google/gemma-4-31b-it:free",
       maxTokens: 2048,
-      reason: "OpenRouter free models for analysis",
+      reason: "Gemini primary, OpenRouter free models as fallback",
     },
     code: {
-      primary: envProvider("AI_ROUTE_CODE_PRIMARY", "openrouter"),
+      primary: envProvider("AI_ROUTE_CODE_PRIMARY", "gemini"),
       fallback: envProvider("AI_ROUTE_CODE_FALLBACK", "openrouter"),
       model: process.env.AI_ROUTE_CODE_MODEL || "qwen/qwen-2.5-coder-32b-instruct",
       maxTokens: 4096,
       systemPrompt:
         "You are an expert TypeScript/React developer. Write clean, production-ready code. Follow existing code patterns and conventions. Never add comments unless asked.",
-      reason: "OpenRouter free models for code",
+      reason: "Gemini primary, OpenRouter as fallback",
     },
     content: {
-      primary: envProvider("AI_ROUTE_CONTENT_PRIMARY", "openrouter"),
+      primary: envProvider("AI_ROUTE_CONTENT_PRIMARY", "gemini"),
       fallback: envProvider("AI_ROUTE_CONTENT_FALLBACK", "openrouter"),
-      model: process.env.AI_ROUTE_CONTENT_MODEL || "meta-llama/llama-3.3-70b-instruct:free",
+      model: process.env.AI_ROUTE_CONTENT_MODEL || "google/gemma-4-31b-it:free",
       maxTokens: 2048,
       systemPrompt: `You are a world-class content strategist and writer for BarbieVerse — a creator economy platform that helps people earn money through live streaming on Poppo Live and Vone Live.
 
@@ -132,7 +132,7 @@ Write like a human who genuinely cares about helping people succeed.`,
       reason: "Gemini for content quality (free)",
     },
     premium: {
-      primary: envProvider("AI_ROUTE_PREMIUM_PRIMARY", "openrouter"),
+      primary: envProvider("AI_ROUTE_PREMIUM_PRIMARY", "gemini"),
       fallback: envProvider("AI_ROUTE_PREMIUM_FALLBACK", "openrouter"),
       model: process.env.AI_ROUTE_PREMIUM_MODEL || "mistralai/mistral-large-2411",
       maxTokens: 8192,
@@ -159,34 +159,69 @@ Write content that converts. Make them feel something.`,
       reason: "Gemini for premium content quality (free)",
     },
     reasoning: {
-      primary: envProvider("AI_ROUTE_REASONING_PRIMARY", "openrouter"),
+      primary: envProvider("AI_ROUTE_REASONING_PRIMARY", "gemini"),
       fallback: envProvider("AI_ROUTE_REASONING_FALLBACK", "openrouter"),
-      model: process.env.AI_ROUTE_REASONING_MODEL || "meta-llama/llama-3.3-70b-instruct:free",
+      model: process.env.AI_ROUTE_REASONING_MODEL || "google/gemma-4-31b-it:free",
       maxTokens: 4096,
-      reason: "OpenRouter free models for reasoning",
+      reason: "Gemini primary, OpenRouter as fallback",
     },
     embedding: {
-      primary: envProvider("AI_ROUTE_EMBEDDING_PRIMARY", "openrouter"),
+      primary: envProvider("AI_ROUTE_EMBEDDING_PRIMARY", "gemini"),
       fallback: envProvider("AI_ROUTE_EMBEDDING_FALLBACK", "openrouter"),
-      model: process.env.AI_ROUTE_EMBEDDING_MODEL || "meta-llama/llama-3.3-70b-instruct:free",
+      model: process.env.AI_ROUTE_EMBEDDING_MODEL || "google/gemma-4-31b-it:free",
       maxTokens: 512,
       reason: "Ollama embeddings free and fast",
     },
     vision: {
-      primary: envProvider("AI_ROUTE_VISION_PRIMARY", "openrouter"),
+      primary: envProvider("AI_ROUTE_VISION_PRIMARY", "gemini"),
       fallback: envProvider("AI_ROUTE_VISION_FALLBACK", "openrouter"),
-      model: process.env.AI_ROUTE_VISION_MODEL || "meta-llama/llama-3.3-70b-instruct:free",
+      model: process.env.AI_ROUTE_VISION_MODEL || "google/gemma-4-31b-it:free",
       maxTokens: 1024,
-      reason: "OpenRouter for vision tasks",
+      reason: "Gemini vision primary, OpenRouter as fallback",
     },
     fallback: {
-      primary: envProvider("AI_ROUTE_FALLBACK_PRIMARY", "openrouter"),
+      primary: envProvider("AI_ROUTE_FALLBACK_PRIMARY", "gemini"),
       fallback: envProvider("AI_ROUTE_FALLBACK_FALLBACK", "openrouter"),
-      model: process.env.AI_ROUTE_FALLBACK_MODEL || "meta-llama/llama-3.3-70b-instruct:free",
+      model: process.env.AI_ROUTE_FALLBACK_MODEL || "google/gemma-4-31b-it:free",
       maxTokens: 1024,
-      reason: "OpenRouter as last resort",
+      reason: "Gemini primary, OpenRouter as last resort",
     },
   };
+}
+
+// ── Model Resolution ───────────────────────────────────
+
+/**
+ * Pick the right model identifier for whichever provider we're about to call.
+ *
+ * The `model` field in the routing table is written in OpenRouter's format
+ * (`vendor/name[:tag]`, e.g. "google/gemma-4-31b-it:free"). Those strings are
+ * meaningless to any other provider — Gemini expects "gemini-2.5-flash",
+ * Groq expects its own names. Passing an OpenRouter ID to Gemini is a 404,
+ * which is exactly the trap waiting when the primary provider changes.
+ *
+ * Rule: a slash means the string is OpenRouter-flavoured, so any other
+ * provider gets its own registry default instead.
+ */
+async function resolveModelFor(
+  provider: Provider,
+  taskType: TaskType,
+  configModel: string,
+): Promise<string> {
+  if (provider === "openrouter") {
+    try {
+      return await selectBestModel(taskType as any);
+    } catch {
+      return configModel;
+    }
+  }
+
+  if (configModel.includes("/")) {
+    const fallbackModel = PROVIDER_REGISTRY[provider].defaultModel;
+    return fallbackModel || configModel;
+  }
+
+  return configModel;
 }
 
 // ── Token Estimation ───────────────────────────────────
@@ -204,8 +239,9 @@ export async function aiRoute(params: {
   systemPrompt?: string;
   imageBase64?: string;
   mimeType?: string;
+  temperature?: number;
 }): Promise<AIRouteResult> {
-  const { prompt, taskType, maxTokens, systemPrompt, imageBase64, mimeType } =
+  const { prompt, taskType, maxTokens, systemPrompt, imageBase64, mimeType, temperature } =
     params;
 
   const TASK_ROUTES = getTaskRoutes();
@@ -225,6 +261,7 @@ export async function aiRoute(params: {
     maxTokens: config.maxTokens,
     systemPrompt: config.systemPrompt,
     model: config.model,
+    ...(temperature !== undefined && { temperature }),
   };
 
   // Build provider chain: primary → fallback → ollama (if available)

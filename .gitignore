@@ -7,3 +7,12 @@ dist/
 .env.local
 .DS_Store
 public/generated-videos/
+
+# WhatsApp auto-reply session + opt-outs (don't commit login state)
+scripts/wa-auto-reply/.wwebjs_auth/
+scripts/wa-auto-reply/optouts.json
+supabase/migrations/20260815_005_backfill_leads.sql
+TONIGHT-FOLLOWUPS.html
+
+# lead phone numbers + full chat transcripts — never commit
+wa-history/

@@ -76,11 +76,11 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 let modelHealthCache: Record<string, ModelHealth> = {};
 let costLog: CostEntry[] = [];
 let recentSwitches: { from: string; to: string; reason: string; timestamp: number }[] = [];
-let activeModel = "meta-llama/llama-3.3-70b-instruct:free";
+let activeModel = "google/gemma-4-31b-it:free";
 
 const DEFAULT_CONFIG: OptimizerConfig = {
   preferred_free_models: [
-    "meta-llama/llama-3.3-70b-instruct:free",
+    "google/gemma-4-31b-it:free",
     "google/gemma-2-9b-it:free",
     "mistralai/mistral-7b-instruct:free",
     "qwen/qwen-2.5-72b-instruct:free",
@@ -92,7 +92,7 @@ const DEFAULT_CONFIG: OptimizerConfig = {
     "unsloth/gemma-3-12b-it-bnb-4bit:free",
   ],
   fallback_chain: [
-    "meta-llama/llama-3.3-70b-instruct:free",
+    "google/gemma-4-31b-it:free",
     "qwen/qwen-2.5-72b-instruct:free",
     "deepseek/deepseek-chat-v3-0324:free",
     "google/gemini-2.5-flash:free",
@@ -316,21 +316,21 @@ export async function selectBestModel(
     code: [
       "deepseek/deepseek-chat-v3-0324:free",
       "qwen/qwen-2.5-72b-instruct:free",
-      "meta-llama/llama-3.3-70b-instruct:free",
+      "google/gemma-4-31b-it:free",
     ],
     content: [
       "google/gemini-2.5-flash:free",
-      "meta-llama/llama-3.3-70b-instruct:free",
+      "google/gemma-4-31b-it:free",
       "qwen/qwen-2.5-72b-instruct:free",
     ],
     analysis: [
       "deepseek/deepseek-r1-0528:free",
       "qwen/qwen-2.5-72b-instruct:free",
-      "meta-llama/llama-3.3-70b-instruct:free",
+      "google/gemma-4-31b-it:free",
     ],
     vision: [
       "google/gemini-2.5-flash:free",
-      "meta-llama/llama-3.3-70b-instruct:free",
+      "google/gemma-4-31b-it:free",
     ],
     reasoning: [
       "deepseek/deepseek-r1-0528:free",

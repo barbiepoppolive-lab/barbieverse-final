@@ -19,8 +19,8 @@ import { aiContent } from "../router";
 import { scoreContent, improveContent } from "../content-quality";
 import { generateImage } from "../image-gen";
 import { seedFromString, personaForTopic, imageStyleFor } from "../image-persona";
-import { TERMINOLOGY_RULES } from "@/lib/ai/brand-terminology";
-import { checkCompliance } from "@/lib/ai/compliance-gate";
+import { TERMINOLOGY_RULES } from "@/shared/brand-terminology";
+import { checkCompliance } from "@/shared/compliance-gate";
 
 export type AdAngle =
   | "earnings_transparency"

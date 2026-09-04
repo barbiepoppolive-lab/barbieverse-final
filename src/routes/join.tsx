@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { SiteLayout } from "@/components/SiteLayout";
 import { getPublicSettings } from "@/lib/api/settings.functions";
+import { recordJoinClick, submitJoinApplication } from "@/lib/api/attribution.functions";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useLang } from "@/lib/i18n";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BadgeCheck,
   Copy,
@@ -48,9 +50,47 @@ function JoinPageNew() {
   const { data: settings } = useSuspenseQuery(settingsQO);
   const { t } = useLang();
   const [copied, setCopied] = useState(false);
+  const [bvClickId, setBvClickId] = useState<string | null>(null);
+
+  const recordClick = useServerFn(recordJoinClick);
+  const submitApplication = useServerFn(submitJoinApplication);
 
   const agencyId = settings.agency_id || "2517496";
   const adminWhatsapp = settings.admin_whatsapp || "919000966360";
+
+  // Record click on page load and store bv_click_id
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const existingClickId = document.cookie
+      .split("; ")
+      .find((c) => c.startsWith("bv_click_id="))
+      ?.split("=")[1];
+
+    if (existingClickId) {
+      setBvClickId(existingClickId);
+      return;
+    }
+
+    recordClick({
+      data: {
+        fbclid: params.get("fbclid") || undefined,
+        bv_cid: params.get("bv_cid") || undefined,
+        bv_asid: params.get("bv_asid") || undefined,
+        bv_adid: params.get("bv_adid") || undefined,
+        utm_source: params.get("utm_source") || undefined,
+        utm_medium: params.get("utm_medium") || undefined,
+        utm_campaign: params.get("utm_campaign") || undefined,
+        utm_content: params.get("utm_content") || undefined,
+        landing_path: window.location.pathname,
+        user_agent: navigator.userAgent,
+      },
+    }).then((res) => {
+      if (res?.bv_click_id) {
+        setBvClickId(res.bv_click_id);
+        document.cookie = `bv_click_id=${res.bv_click_id}; path=/; max-age=${90 * 24 * 60 * 60}; SameSite=Lax`;
+      }
+    });
+  }, []);
 
   const copyAgencyId = () => {
     navigator.clipboard.writeText(agencyId);

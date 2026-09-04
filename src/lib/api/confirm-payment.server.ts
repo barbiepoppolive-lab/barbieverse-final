@@ -26,6 +26,13 @@ export const confirmPayment = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
+    // Rate limit: 10 confirm attempts per minute per order
+    const { rateLimit } = await import("../rate-limiter");
+    const rlKey = `confirm:${data.order_id}`;
+    if (!rateLimit(rlKey, 10, 60_000)) {
+      return { ok: false, error: "Too many attempts. Please wait a minute and try again." };
+    }
+
     const { q1 } = await import("../db.server");
 
     const order = await q1<any>(
@@ -35,6 +42,15 @@ export const confirmPayment = createServerFn({ method: "POST" })
     );
 
     if (!order) return { ok: false, error: "Order not found" };
+
+    // Verify the caller's WhatsApp matches the order
+    if (data.customer_whatsapp) {
+      const callerWa = data.customer_whatsapp.replace(/[^\d]/g, "");
+      const orderWa = order.whatsapp.replace(/[^\d]/g, "");
+      if (callerWa !== orderWa) {
+        return { ok: false, error: "WhatsApp number does not match this order" };
+      }
+    }
 
     // If already completed or rejected, reject
     if (["completed", "rejected"].includes(order.status)) {

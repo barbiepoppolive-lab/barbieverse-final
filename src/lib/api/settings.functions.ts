@@ -68,11 +68,21 @@ const ADMIN_SETTING_KEYS = new Set([
   "refund_msg", "usdt_confirm_msg", "netbank_confirm_msg",
 ]);
 
+// ─── Settings cache (60s TTL) ────────────────────────────────────────────────
+// These keys change rarely (once a week at most) but were queried on every
+// page load. Cache eliminates a 40+ key SELECT from every request.
+let settingsCache: { data: Record<string, string>; at: number } | null = null;
+const SETTINGS_CACHE_TTL = 60_000; // 60 seconds
+
 /**
  * Get public-only settings (safe to expose to anyone)
  */
 export const getPublicSettings = createServerFn({ method: "GET" })
   .handler(async () => {
+    // Return cached if fresh
+    if (settingsCache && Date.now() - settingsCache.at < SETTINGS_CACHE_TTL) {
+      return settingsCache.data;
+    }
     const { q } = await import("../db.server");
     const keys = Array.from(PUBLIC_SETTING_KEYS);
     const placeholders = keys.map((_, i) => `$${i + 1}`).join(",");
@@ -84,6 +94,7 @@ export const getPublicSettings = createServerFn({ method: "GET" })
     rows.forEach((row: any) => {
       result[row.key] = row.value;
     });
+    settingsCache = { data: result, at: Date.now() };
     return result;
   });
 

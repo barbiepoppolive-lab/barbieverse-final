@@ -15,37 +15,62 @@ import {
   type MusicMood,
   type MusicGenre,
 } from "../music";
-import { generateContentSEO, type ContentSEO, type Platform } from "../content-seo";
+import {
+  generateContentSEO,
+  type ContentSEO,
+  type Platform,
+} from "../content-seo";
 // Must stay at the top: BRAND_VOICE below interpolates TERMINOLOGY_RULES at
 // module-evaluation time. Under TypeScript's CJS emit, an import lower in the
 // file becomes a require() in that position, and the constant would evaluate
 // to undefined inside the prompt string.
-import { TERMINOLOGY_RULES } from "@/lib/ai/brand-terminology";
-import { AUDIENCE_RULES, CLAIMS_RULES } from "@/lib/ai/recruitment-targeting";
-import { COMPLIANCE_PROMPT_RULES } from "@/lib/ai/compliance-gate";
+import { TERMINOLOGY_RULES } from "@/shared/brand-terminology";
+import { AUDIENCE_RULES, CLAIMS_RULES } from "@/shared/recruitment-targeting";
+import { COMPLIANCE_PROMPT_RULES } from "@/shared/compliance-gate";
 
 function safeParseJson(text: string): any {
-  let clean = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+  let clean = text
+    .replace(/^```json\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
   clean = clean.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
   clean = clean.replace(/,\s*([\]}])/g, "$1");
-  try { return JSON.parse(clean); } catch {}
+  try {
+    return JSON.parse(clean);
+  } catch {}
   const first = clean.indexOf("{");
   const last = clean.lastIndexOf("}");
   if (first >= 0 && last > first) {
-    try { return JSON.parse(clean.slice(first, last + 1)); } catch {}
+    try {
+      return JSON.parse(clean.slice(first, last + 1));
+    } catch {}
   }
   return null;
 }
 
 // Inline types (audio-gen.server.ts removed from client bundle)
-type AudioGenResult = { audioPath: string; audioUrl: string; voice: string; sizeKb: number; subtitlePath?: string; subtitleUrl?: string };
-type CarouselAudio = { slides: { text: string; audioUrl: string }[]; fullNarration: { audioUrl: string; duration: string } };
+type AudioGenResult = {
+  audioPath: string;
+  audioUrl: string;
+  voice: string;
+  sizeKb: number;
+  subtitlePath?: string;
+  subtitleUrl?: string;
+};
+type CarouselAudio = {
+  slides: { text: string; audioUrl: string }[];
+  fullNarration: { audioUrl: string; duration: string };
+};
 
 // ── Helper: Choose provider based on user selection ────
 
 export type ProviderChoice = "premium" | "free";
 
-function aiGenerate(prompt: string, systemPrompt: string, provider: ProviderChoice = "free") {
+function aiGenerate(
+  prompt: string,
+  systemPrompt: string,
+  provider: ProviderChoice = "free",
+) {
   if (provider === "premium") {
     return aiPremium(prompt, { systemPrompt, maxTokens: 4096 });
   }
@@ -54,7 +79,13 @@ function aiGenerate(prompt: string, systemPrompt: string, provider: ProviderChoi
 
 // ── Types ──────────────────────────────────────────────
 
-export type ContentPlatform = "instagram" | "twitter" | "linkedin" | "facebook" | "youtube" | "moj";
+export type ContentPlatform =
+  | "instagram"
+  | "twitter"
+  | "linkedin"
+  | "facebook"
+  | "youtube"
+  | "moj";
 
 export type ContentType =
   | "carousel"
@@ -66,7 +97,12 @@ export type ContentType =
   | "thread"
   | "poll";
 
-export type ContentStatus = "draft" | "approved" | "scheduled" | "published" | "failed";
+export type ContentStatus =
+  | "draft"
+  | "approved"
+  | "scheduled"
+  | "published"
+  | "failed";
 
 export interface ContentItem {
   id: string;
@@ -80,7 +116,12 @@ export interface ContentItem {
   image_prompt?: string;
   scheduled_for?: string;
   published_at?: string;
-  engagement?: { likes: number; comments: number; shares: number; views: number };
+  engagement?: {
+    likes: number;
+    comments: number;
+    shares: number;
+    views: number;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -103,7 +144,12 @@ export interface CarouselWithAudio {
 
 export interface ReelScript {
   hook: string;
-  scenes: { duration: string; visual: string; audio: string; text_overlay: string }[];
+  scenes: {
+    duration: string;
+    visual: string;
+    audio: string;
+    text_overlay: string;
+  }[];
   caption: string;
   hashtags: string[];
   music_suggestion: string;
@@ -161,7 +207,10 @@ ${COMPLIANCE_PROMPT_RULES}
 
 // ── Brand Visual Identity (append to ALL image prompts) ──
 
-const BRAND_AESTHETIC = `BarbieVerse brand aesthetic: luxurious pink and black color palette, rose gold accents, cinematic lighting with soft bokeh, glamorous and feminine, professional studio quality, 8K ultra-detailed, dramatic lighting, elegant typography space, shallow depth of field, editorial fashion photography style, high-end beauty magazine quality, sparkle and shimmer effects, royal crown motifs, dark moody backgrounds with pink neon glow, premium luxury feel, photorealistic, hyperdetailed skin texture, studio ring light reflection in eyes, magazine cover quality`;
+const BRAND_AESTHETIC = `photorealistic, shot on 85mm lens f/1.8, shallow depth of field with creamy bokeh, natural skin texture with visible pores and fine lines, subsurface scattering, film grain, sharp focus on eyes, natural skin imperfections, cinematic lighting with a single clear light source, Rembrandt or rim lighting, editorial fashion photography style, high-end beauty magazine quality, glamorous and feminine, luxurious pink and black color palette, rose gold accents, elegant, premium luxury feel, professional studio quality, high detail, 8K ultra-detailed, magazine cover quality, dynamic range, authentic documentary photography, unretouched natural look`;
+
+const BRAND_NEGATIVE =
+  "plastic skin, airbrushed, waxy, smooth skin, oversaturated, doll-like, mannequin, 3d render, cgi, digital art, painting, illustration, drawing, cartoon, anime, jpeg artifacts, compression artifacts, blurry, low quality, worst quality, (low resolution:1.2), noisy, grainy, bad anatomy, deformed, disfigured, poorly drawn face, bad hands, extra fingers, missing fingers, watermark, text, logo, flat lighting, overexposed, washed out";
 
 // ── Moj Recruitment Voice (Hinglish, music-synced, drives to Poppo/Vone) ──
 
@@ -245,7 +294,7 @@ export async function generateCarousel(input: {
   provider?: ProviderChoice;
   withAudio?: boolean;
 }): Promise<CarouselWithAudio> {
-  const numSlides = input.slides || 7;
+  const numSlides = input.slides ?? 8 + Math.floor(Math.random() * 3);
   const style = input.style || "educational";
   const provider = input.provider || "free";
   const platform = input.platform || "instagram";
@@ -257,21 +306,72 @@ export async function generateCarousel(input: {
     ? `\n\nPLATFORM: Moj (vertical 9:16 short-video app, Indian audience).\nLANGUAGE: Hinglish (Hindi + English mix) — write headlines and body in Hinglish.\nFORMAT: 9:16 vertical images. Final slide CTA must include Poppo Live / Vone Live referral link.\nMUSIC-SYNC: hook should feel like it belongs over a trending track.`
     : "";
 
+  const creativeHooks = [
+    "controversial/brave opening",
+    "curiosity gap",
+    "bold promise",
+    "relatable confession",
+    "myth vs reality",
+    "question that stops the scroll",
+  ];
+  const creativeFormats = [
+    "listicle (X signs / X ways / X mistakes)",
+    "myth-busting (myth vs reality)",
+    "before → after transformation",
+    "step-by-step process",
+    "story arc (setup → conflict → payoff)",
+    "quiz/poll engagement",
+    "beginner to pro progression",
+    "dos and don'ts",
+    "seamless panoramic — one continuous visual flowing across all slides",
+    "contrast/versus split-screen",
+    "WTF is...? explainer of a confusing topic",
+  ];
+  const cameraShots = [
+    "shot on 85mm f/1.8, shallow depth of field, creamy bokeh background",
+    "shot on 35mm f/2.8, cinematic wide with soft background falloff",
+    "shot on 50mm f/2, natural reportage framing, sharp subject, gentle blur",
+    "shot on 135mm f/2, compressed telephoto look, isolated subject",
+  ];
+  const chosenHook =
+    creativeHooks[Math.floor(Math.random() * creativeHooks.length)];
+  const chosenFormat =
+    creativeFormats[Math.floor(Math.random() * creativeFormats.length)];
+  const chosenCamera =
+    cameraShots[Math.floor(Math.random() * cameraShots.length)];
+  const visualMoods = [
+    "warm golden-hour glow, soft amber highlights",
+    "neon pink and deep purple night-time glow, cyberpunk-lite",
+    "clean minimal pastel pink, soft studio white, airy",
+    "dramatic black and rose gold, luxury editorial",
+    "vibrant magenta and hot pink, energetic club lighting",
+    "soft cream and blush tones, warm morning light, cozy",
+  ];
+  const chosenMood =
+    visualMoods[Math.floor(Math.random() * visualMoods.length)];
+
   const result = await aiGenerate(
     `Create a${isMoj ? " Moj" : "n Instagram"} carousel post about: ${input.topic}
 ${mojExtra}
 STYLE: ${style}
 NUMBER OF SLIDES: ${numSlides}
 
+CREATIVE DIRECTION (pick a fresh angle — do NOT repeat generic structure):
+- HOOK STYLE: ${chosenHook}
+- SLIDE FORMAT: ${chosenFormat}
+- VISUAL MOOD: ${chosenMood} (this is the palette/mood for the WHOLE carousel — every slide should build on it, keep it cohesive)
+- CAMERA LANGUAGE: ${chosenCamera} (every image_prompt should reference this photographic look for consistent quality)
+
 REQUIREMENTS:
-- Slide 1: Bold hook headline + short subtitle (this is the cover) — this MUST have a caption/text overlay described in image_prompt
-- Slides 2-${numSlides - 1}: One key point per slide with headline + 1-2 sentences
-- Last slide: Strong CTA slide with BarbieVerse handle + Poppo/Vone referral link
-- Each slide needs a VISUAL image description for AI image generation
-- Keep text minimal — ${isMoj ? "Moj" : "Instagram"} carousels work best with 20-40 words per slide
-- Write in a conversational, empowering${isMoj ? " Hinglish" : ""} tone
-- EVERY image_prompt MUST describe a pink/black/gold color palette, cinematic lighting, and professional quality
-- The first slide image_prompt must describe a bold, eye-catching cover with text space
+- Slide 1: Cover — bold, scroll-stopping hook headline that matches the HOOK STYLE above + a subtitle. It MUST feel like the reader CANNOT swipe past.
+- Slides 2-${numSlides - 1}: Build the ${chosenFormat} format — each slide adds one beat. Vary slide ROLES: one can be a question, one a surprising stat/insight, one a relatable scenario, one a punchy rule. Do NOT make every slide the same "one point + explanation". Include ONE soft mid-way CTA slide (a low-pressure "save this" / "swipe for the payoff" line) to re-engage the swipe.
+- Last slide: Strong CTA — BarbieVerse handle + Poppo/Vone referral link, plus a reason to SAVE or SHARE the carousel.
+- Every slide needs a VISUAL image description that MATCHES the chosen mood (not the default pink/black unless that IS the mood).
+- Text: 20-40 words per slide, punchy, varied sentence rhythm.
+- Voice: conversational, empowering${isMoj ? " Hinglish" : ""}, like a real streamer not a brand.
+- Slide headlines must vary in structure — mix questions, imperatives, numbers, and one-liners. NO repetitive "X tips" on every slide.
+- Every image_prompt must describe specific scene, the chosen visual mood, cinematic single-source lighting, ${chosenCamera}, professional quality, and a distinct visual DIFFERENT from the previous slide (varied composition, props, settings, camera angles — not the same glamour portrait repeated).
+- IMAGE COMPOSITION: keep the center of frame clear of clutter — leave an empty gradient band at the TOP and BOTTOM 25% for headline/text overlay (described as "empty dark/soft gradient space at top and bottom, no text, no subject, clean background").
 
 Return EXACTLY this JSON:
 {
@@ -280,14 +380,14 @@ Return EXACTLY this JSON:
     {
       "headline": "short punchy headline",
       "body": "1-2 sentences max",
-      "image_prompt": "detailed scene description — pink and black color palette, rose gold accents, cinematic studio lighting, glamorous, 8K quality, editorial photography, professional, text overlay space for headline"
+      "image_prompt": "specific scene description matching the chosen mood — varied composition, cinematic lighting, professional, text overlay space for headline"
     }
   ],
   "caption": "${isMoj ? "Moj" : "Instagram"} caption for this carousel",
   "hashtags": ["relevant", "hashtags"]
 }`,
     systemPrompt,
-    provider
+    provider,
   );
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
@@ -307,7 +407,11 @@ Return EXACTLY this JSON:
       for (let i = 0; i < carousel.slides.length; i++) {
         const slide = carousel.slides[i];
         if (slide.image_prompt) {
-          slide.image_url = await generateContentImage(slide.image_prompt, platform, "carousel");
+          slide.image_url = await generateContentImage(
+            slide.image_prompt,
+            platform,
+            "carousel",
+          );
         }
       }
     } catch (err) {
@@ -327,7 +431,13 @@ Return EXACTLY this JSON:
   }
 
   // Enrich with SEO data
-  return enrichWithSEO(carousel, carousel.title, input.topic, isMoj ? "moj" : "instagram", "carousel");
+  return enrichWithSEO(
+    carousel,
+    carousel.title,
+    input.topic,
+    isMoj ? "moj" : "instagram",
+    "carousel",
+  );
 }
 
 // ── Reel Script Generator ──────────────────────────────
@@ -335,7 +445,11 @@ Return EXACTLY this JSON:
 export async function generateReelScript(input: {
   topic: string;
   duration?: "15s" | "30s" | "60s" | "90s";
-  style?: "educational" | "entertaining" | "inspirational" | "behind-the-scenes";
+  style?:
+    | "educational"
+    | "entertaining"
+    | "inspirational"
+    | "behind-the-scenes";
   provider?: ProviderChoice;
   withAudio?: boolean;
 }): Promise<ReelScriptWithAudio> {
@@ -374,7 +488,7 @@ Return EXACTLY this JSON:
   "cover_prompt": "reel cover thumbnail — BarbieVerse pink/black aesthetic, glamorous streamer portrait, cinematic lighting, rose gold accents, 8K, magazine cover quality"
 }`,
     BRAND_VOICE,
-    provider
+    provider,
   );
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
@@ -394,7 +508,9 @@ Return EXACTLY this JSON:
     try {
       const sceneTexts = reel.scenes
         .map((s) => s.audio)
-        .filter((a) => a && !a.startsWith("[") && !a.toLowerCase().includes("music"));
+        .filter(
+          (a) => a && !a.startsWith("[") && !a.toLowerCase().includes("music"),
+        );
 
       if (sceneTexts.length > 0) {
         // Audio generated server-side via cron
@@ -416,7 +532,13 @@ Return EXACTLY this JSON:
   }
 
   // Enrich with SEO data
-  return enrichWithSEO(reel, reel.hook || input.topic, input.topic, "instagram", "reel_script");
+  return enrichWithSEO(
+    reel,
+    reel.hook || input.topic,
+    input.topic,
+    "instagram",
+    "reel_script",
+  );
 }
 
 // ── Thumbnail Generator ────────────────────────────────
@@ -447,7 +569,7 @@ Return EXACTLY this JSON:
   "image_prompt": "detailed scene description — BarbieVerse aesthetic, pink and black palette, rose gold accents, cinematic lighting, glamorous, 8K, editorial, professional, text overlay space, dramatic"
 }`,
     BRAND_VOICE,
-    provider
+    provider,
   );
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
@@ -460,10 +582,16 @@ Return EXACTLY this JSON:
     model: "flux",
   });
 
-  return enrichWithSEO({
-    image_url: imageResult.url,
-    image_prompt: parsed.image_prompt || "",
-  }, input.title, input.title, "instagram", "thumbnail");
+  return enrichWithSEO(
+    {
+      image_url: imageResult.url,
+      image_prompt: parsed.image_prompt || "",
+    },
+    input.title,
+    input.title,
+    "instagram",
+    "thumbnail",
+  );
 }
 
 // ── Story Generator ────────────────────────────────────
@@ -473,7 +601,10 @@ export async function generateStory(input: {
   slides?: number;
   provider?: ProviderChoice;
   withAudio?: boolean;
-}): Promise<{ slides: { text: string; image_prompt: string; cta?: string }[]; audio?: { slides: AudioGenResult[]; full: AudioGenResult } }> {
+}): Promise<{
+  slides: { text: string; image_prompt: string; cta?: string }[];
+  audio?: { slides: AudioGenResult[]; full: AudioGenResult };
+}> {
   const numSlides = input.slides || 3;
   const provider = input.provider || "free";
 
@@ -503,7 +634,7 @@ Return EXACTLY this JSON:
   ]
 }`,
     BRAND_VOICE,
-    provider
+    provider,
   );
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
@@ -511,7 +642,11 @@ Return EXACTLY this JSON:
   const parsed = safeParseJson(jsonMatch[0]);
 
   const storySlides = parsed.slides || [];
-  const storyResult: { slides: (typeof storySlides)[0] & { image_url?: string }[]; audio?: { slides: AudioGenResult[]; full: AudioGenResult }; music?: MusicRecommendation } = { slides: storySlides };
+  const storyResult: {
+    slides: (typeof storySlides)[0] & { image_url?: string }[];
+    audio?: { slides: AudioGenResult[]; full: AudioGenResult };
+    music?: MusicRecommendation;
+  } = { slides: storySlides };
 
   // Generate images for each story slide
   if (storySlides.length > 0) {
@@ -519,7 +654,11 @@ Return EXACTLY this JSON:
       for (let i = 0; i < storySlides.length; i++) {
         const slide = storySlides[i];
         if (slide.image_prompt) {
-          slide.image_url = await generateContentImage(slide.image_prompt, "instagram", "story");
+          slide.image_url = await generateContentImage(
+            slide.image_prompt,
+            "instagram",
+            "story",
+          );
         }
       }
     } catch (err) {
@@ -548,7 +687,13 @@ Return EXACTLY this JSON:
   }
 
   // Enrich with SEO data
-  return enrichWithSEO(storyResult, input.topic, input.topic, "instagram", "story");
+  return enrichWithSEO(
+    storyResult,
+    input.topic,
+    input.topic,
+    "instagram",
+    "story",
+  );
 }
 
 // ── Thread Generator (Twitter/LinkedIn) ────────────────
@@ -582,17 +727,23 @@ Return EXACTLY this JSON:
   "hashtags": ["relevant", "hashtags"]
 }`,
     BRAND_VOICE,
-    provider
+    provider,
   );
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("Failed to parse thread content");
   const parsed = safeParseJson(jsonMatch[0]);
 
-  return enrichWithSEO({
-    tweets: parsed.tweets || [],
-    hashtags: parsed.hashtags || [],
-  }, input.topic, input.topic, input.platform || "twitter", "thread");
+  return enrichWithSEO(
+    {
+      tweets: parsed.tweets || [],
+      hashtags: parsed.hashtags || [],
+    },
+    input.topic,
+    input.topic,
+    input.platform || "twitter",
+    "thread",
+  );
 }
 
 // ── Poll Generator ─────────────────────────────────────
@@ -621,18 +772,24 @@ Return EXACTLY this JSON:
   "caption": "caption to post with the poll"
 }`,
     BRAND_VOICE,
-    provider
+    provider,
   );
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("Failed to parse poll content");
   const parsed = safeParseJson(jsonMatch[0]);
 
-  return enrichWithSEO({
-    question: parsed.question || "",
-    options: parsed.options || [],
-    caption: parsed.caption || "",
-  }, input.topic, input.topic, platform, "poll");
+  return enrichWithSEO(
+    {
+      question: parsed.question || "",
+      options: parsed.options || [],
+      caption: parsed.caption || "",
+    },
+    input.topic,
+    input.topic,
+    platform,
+    "poll",
+  );
 }
 
 // ── Weekly Content Plan ────────────────────────────────
@@ -643,7 +800,12 @@ export async function generateWeeklyPlan(input?: {
   theme?: string;
 }): Promise<ContentCalendarEntry[]> {
   const platforms = input?.platforms || ["instagram", "twitter"];
-  const contentTypes = input?.content_types || ["carousel", "social_post", "reel_script", "thread"];
+  const contentTypes = input?.content_types || [
+    "carousel",
+    "social_post",
+    "reel_script",
+    "thread",
+  ];
   const theme = input?.theme || "live streaming and earning tips";
 
   const result = await aiContent(
@@ -671,7 +833,7 @@ Return EXACTLY this JSON:
     }
   ]
 }`,
-    { maxTokens: 4096 }
+    { maxTokens: 4096 },
   );
 
   const jsonMatch = result.text.match(/\{[\s\S]*\}/);
@@ -698,29 +860,48 @@ export async function generateContentImage(
   platform: ContentPlatform,
   type: ContentType,
 ): Promise<string> {
-  let size: keyof typeof SIZES = "square";
+  let size: keyof typeof SIZES | { width: number; height: number } = "square";
 
   if (type === "story") size = "story";
   else if (type === "thumbnail") size = "thumbnail";
-  else if (type === "carousel") size = platform === "moj" ? "story" : "carousel";
+  else if (type === "carousel")
+    size = platform === "moj" ? "story" : "carousel";
   else if (platform === "twitter") size = "landscape";
   else if (platform === "linkedin") size = "landscape";
   else if (platform === "youtube") size = "thumbnail";
 
-  // Always append brand aesthetic for consistent visual identity
-  const enhancedPrompt = `${prompt}, ${BRAND_AESTHETIC}`;
+  // SD1.5 renders best near native res (768). The two-pass hires-fix
+  // upscales to ~2x after, so 768 base → ~1536 final (IG downscales to 1080).
+  // Rendering at 1080 base directly takes 2.5x longer and OOMs on 6GB.
+  const useSd15Native = size === "carousel";
+  if (useSd15Native) size = { width: 768, height: 768 };
+
+  // Quality/lighting/camera tags lead the prompt, then the scene — research shows
+  // prompt structure order (quality → subject → setting → lighting → camera) matters.
+  const enhancedPrompt = `${BRAND_AESTHETIC}, ${prompt}`;
 
   try {
     const result = await generateImageFull({
       prompt: enhancedPrompt,
+      negativePrompt: BRAND_NEGATIVE,
       size,
       provider: "auto",
       useFaceDetailer: false,
+      steps: 30,
+      cfg: 5.5,
+      sampler: "dpmpp_2m",
+      scheduler: "karras",
+      model: "Realistic_Vision_V5.1.safetensors",
+      upscale: true,
     });
     return result.url;
   } catch {
     // Fallback to Pollinations
-    const fallback = generateImageUrl({ prompt: enhancedPrompt, size, model: "flux" });
+    const fallback = generateImageUrl({
+      prompt: enhancedPrompt,
+      size,
+      model: "flux",
+    });
     return fallback.url;
   }
 }

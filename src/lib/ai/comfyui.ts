@@ -2,7 +2,7 @@
 // Supports: txt2img, img2img, workflow execution, health checks
 
 const COMFYUI_BASE = process.env.COMFYUI_BASE_URL || "http://localhost:8188";
-const TIMEOUT_MS = 60_000;
+const TIMEOUT_MS = 5 * 60_000;
 const POLL_INTERVAL_MS = 1_000;
 
 // ── Types ──────────────────────────────────────────────
@@ -24,6 +24,7 @@ export interface GenerateImageInput {
   sampler?: string;
   scheduler?: string;
   batchSize?: number;
+  upscale?: boolean;
 }
 
 export interface GenerateImageResult {
@@ -56,7 +57,10 @@ export interface HealthStatus {
 let healthCache: { status: HealthStatus; timestamp: number } | null = null;
 const HEALTH_CACHE_TTL = 30_000;
 
-async function comfyFetch(endpoint: string, options: RequestInit = {}): Promise<any> {
+async function comfyFetch(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<any> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -130,7 +134,8 @@ export async function getHealthStatus(): Promise<HealthStatus> {
 
     // Get available models
     const objectInfo = await comfyFetch("/object_info");
-    const checkpoints = objectInfo.CheckpointLoaderSimple?.input?.required?.ckpt_name?.[0] || [];
+    const checkpoints =
+      objectInfo.CheckpointLoaderSimple?.input?.required?.ckpt_name?.[0] || [];
     const activeModel = checkpoints.length > 0 ? checkpoints[0] : null;
 
     const status: HealthStatus = {
@@ -168,16 +173,19 @@ interface ComfyUIWorkflow {
   [nodeId: string]: ComfyUINode;
 }
 
-function buildTxt2ImgWorkflow(input: GenerateImageInput, checkpoint: string): ComfyUIWorkflow {
+function buildTxt2ImgWorkflow(
+  input: GenerateImageInput,
+  checkpoint: string,
+): ComfyUIWorkflow {
   const seed = input.seed ?? Math.floor(Math.random() * 2 ** 32);
   const width = input.width ?? 1024;
   const height = input.height ?? 1024;
-  const steps = input.steps ?? 20;
-  const cfg = input.cfg ?? 7.0;
-  const sampler = input.sampler ?? "euler";
-  const scheduler = input.scheduler ?? "normal";
+  const steps = input.steps ?? 30;
+  const cfg = input.cfg ?? 5.5;
+  const sampler = input.sampler ?? "dpmpp_2m";
+  const scheduler = input.scheduler ?? "karras";
 
-  return {
+  const base: ComfyUIWorkflow = {
     "1": {
       class_type: "CheckpointLoaderSimple",
       inputs: {
@@ -194,7 +202,9 @@ function buildTxt2ImgWorkflow(input: GenerateImageInput, checkpoint: string): Co
     "3": {
       class_type: "CLIPTextEncode",
       inputs: {
-        text: input.negativePrompt || "blurry, low quality, distorted, deformed, ugly, bad anatomy",
+        text:
+          input.negativePrompt ||
+          "plastic skin, airbrushed, waxy, smooth, oversaturated, doll-like, mannequin, 3d render, cgi, digital art, painting, illustration, drawing, cartoon, anime, jpeg artifacts, compression artifacts, blurry, low quality, worst quality, (low resolution:1.2), noisy, grainy, bad anatomy, deformed, disfigured, poorly drawn face, bad hands, extra fingers, missing fingers, watermark, text, logo",
         clip: ["6", 1],
       },
     },
@@ -248,6 +258,62 @@ function buildTxt2ImgWorkflow(input: GenerateImageInput, checkpoint: string): Co
       },
     },
   };
+
+  if (input.upscale) {
+    base["14"] = {
+      class_type: "UpscaleModelLoader",
+      inputs: {
+        model_name: "4x-UltraSharp.pth",
+      },
+    };
+    base["15"] = {
+      class_type: "ImageUpscaleWithModel",
+      inputs: {
+        upscale_model: ["14", 0],
+        image: ["8", 0],
+      },
+    };
+    base["16"] = {
+      class_type: "ImageScaleBy",
+      inputs: {
+        image: ["15", 0],
+        upscale_method: "lanczos",
+        scale_by: 0.5,
+      },
+    };
+    base["17"] = {
+      class_type: "VAEEncode",
+      inputs: {
+        pixels: ["16", 0],
+        vae: ["6", 2],
+      },
+    };
+    base["18"] = {
+      class_type: "KSampler",
+      inputs: {
+        seed,
+        steps,
+        cfg,
+        sampler_name: sampler,
+        scheduler,
+        denoise: 0.35,
+        model: ["6", 0],
+        positive: ["2", 0],
+        negative: ["3", 0],
+        latent_image: ["17", 0],
+      },
+    };
+    base["19"] = {
+      class_type: "VAEDecode",
+      inputs: {
+        samples: ["18", 0],
+        vae: ["6", 2],
+      },
+    };
+    base["9"].inputs.images = ["19", 0];
+  }
+
+  return base;
 }
 
 function buildTxt2ImgWithFaceDetailer(
@@ -287,10 +353,10 @@ function buildTxt2ImgWithFaceDetailer(
       guide_size_for: true,
       max_size: 1024,
       seed: input.seed ?? Math.floor(Math.random() * 2 ** 32),
-      steps: input.steps ?? 20,
-      cfg: input.cfg ?? 7.0,
-      sampler_name: input.sampler ?? "euler",
-      scheduler: input.scheduler ?? "normal",
+      steps: input.steps ?? 30,
+      cfg: input.cfg ?? 5.5,
+      sampler_name: input.sampler ?? "dpmpp_2m",
+      scheduler: input.scheduler ?? "karras",
       denoise: 0.4,
       feather: 5,
       noise_mask: true,
@@ -325,7 +391,9 @@ function buildTxt2ImgWithFaceDetailer(
 
 // ── Workflow Execution ─────────────────────────────────
 
-async function executeWorkflow(workflow: ComfyUIWorkflow): Promise<WorkflowResult> {
+async function executeWorkflow(
+  workflow: ComfyUIWorkflow,
+): Promise<WorkflowResult> {
   const start = Date.now();
 
   // Queue the workflow
@@ -398,8 +466,12 @@ export async function generateImage(
     throw new Error(`ComfyUI not available: ${health.error}`);
   }
 
-  // Pick checkpoint
-  const checkpoint = options?.checkpoint || health.activeModel || health.models[0];
+  // Pick checkpoint — prefer the caller's explicit model, then fall back
+  // to the health-reported active model. This matters: on a 6GB card the
+  // first checkpoint (often SDXL) OOMs the two-pass hires-fix, so callers
+  // that need SD1.5 (fast, LoRA-compatible) must pass `model` explicitly.
+  const checkpoint =
+    input.model || options?.checkpoint || health.activeModel || health.models[0];
   if (!checkpoint) {
     throw new Error("No checkpoint models available in ComfyUI");
   }
@@ -408,7 +480,10 @@ export async function generateImage(
   const useFaceDetailer = options?.useFaceDetailer !== false; // default true
   let workflow: ComfyUIWorkflow;
 
-  if (useFaceDetailer && health.models.some((m) => m.includes("face_yolov8m"))) {
+  if (
+    useFaceDetailer &&
+    health.models.some((m) => m.includes("face_yolov8m"))
+  ) {
     workflow = buildTxt2ImgWithFaceDetailer(input, checkpoint);
   } else {
     workflow = buildTxt2ImgWorkflow(input, checkpoint);

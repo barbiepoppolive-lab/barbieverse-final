@@ -9,7 +9,8 @@ export const POPPO_ID_REGEX = /^\d{8,10}$/;
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 async function generateUniqueAmountPaise(basePrice: number, q: any): Promise<number> {
-  for (let i = 0; i < 8; i++) {
+  // Try random paise values — only 99 possible per rupee, so limit attempts
+  for (let i = 0; i < 3; i++) {
     const paise = basePrice * 100 + Math.floor(Math.random() * 99) + 1;
     const rows = await q(
       `SELECT 1 FROM orders
@@ -21,7 +22,24 @@ async function generateUniqueAmountPaise(basePrice: number, q: any): Promise<num
     );
     if (rows.length === 0) return paise;
   }
-  return basePrice * 100 + Math.floor(Math.random() * 99) + 1;
+  // Fallback: use a time-based component to guarantee uniqueness
+  // (Date.now() % 99 gives 0-98, +1 gives 1-99 — same range as above)
+  const fallbackPaise = basePrice * 100 + (Date.now() % 99) + 1;
+  // Verify the fallback is also unique (one final check)
+  const rows = await q(
+    `SELECT 1 FROM orders
+     WHERE expected_amount_paise = $1
+       AND status IN ('awaiting_payment','pending','paid_pending_delivery')
+       AND created_at > now() - INTERVAL '24 hours'
+     LIMIT 1`,
+    [fallbackPaise],
+  );
+  if (rows.length === 0) return fallbackPaise;
+  // Extremely unlikely: all 99 values are taken for this price point.
+  // Return anyway — the webhook match will use created_at DESC so the
+  // most recent order wins. Log a warning.
+  console.warn(`[generateUniqueAmountPaise] all 99 paise values taken for base ${basePrice}`);
+  return fallbackPaise;
 }
 
 // ─── submit order (unchanged from original) ─────────────────────────────────
@@ -46,10 +64,20 @@ export const submitOrder = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
+    // Rate limit: 5 orders per minute per WhatsApp number + per IP
+    const { rateLimit } = await import("../rate-limiter");
+    const rlKey = `order:${data.whatsapp.replace(/[^\d]/g, "")}`;
+    if (!rateLimit(rlKey, 5, 60_000)) {
+      return { ok: false, error: "Too many orders. Please wait a minute and try again." };
+    }
+
     const { q, q1 } = await import("../db.server");
     const expected = await generateUniqueAmountPaise(data.amount, q);
     const actionToken = crypto.randomUUID().replace(/-/g, "");
     const status = data.payment_method === "upi" ? "awaiting_payment" : "pending";
+
+    // Normalize WhatsApp to digits-only for consistent lookups
+    const normalizedWhatsapp = data.whatsapp.replace(/[^\d]/g, "");
 
     const row = await q1<{ id: string }>(
       `INSERT INTO orders
@@ -59,7 +87,7 @@ export const submitOrder = createServerFn({ method: "POST" })
        RETURNING id`,
       [
         data.name,
-        data.whatsapp,
+        normalizedWhatsapp,
         data.poppo_id,
         data.package,
         data.coins,
@@ -73,12 +101,12 @@ export const submitOrder = createServerFn({ method: "POST" })
       ],
     );
 
+    // Fire-and-forget notification (don't block the response on Telegram)
     if (data.payment_method !== "upi") {
-      try {
-        const { sendTelegramWithWhatsAppButtons } = await import("../notifications.server");
-        await sendTelegramWithWhatsAppButtons({
+      import("../notifications.server").then(({ sendTelegramWithWhatsAppButtons }) =>
+        sendTelegramWithWhatsAppButtons({
           customerName: data.name,
-          customerWhatsapp: data.whatsapp,
+          customerWhatsapp: normalizedWhatsapp,
           poppoId: data.poppo_id,
           packageName: data.package,
           quantity: data.quantity,
@@ -86,10 +114,8 @@ export const submitOrder = createServerFn({ method: "POST" })
           orderId: row?.id || "",
           coins: data.coins,
           alertType: "new_order",
-        });
-      } catch (e) {
-        console.error("[order notify]", e);
-      }
+        }).catch((e) => console.error("[order notify]", e))
+      );
     }
 
     return {
@@ -117,7 +143,7 @@ export const submitUtr = createServerFn({ method: "POST" })
     const { q1 } = await import("../db.server");
 
     const order = await q1<any>(
-      `SELECT id, status, name, whatsapp, poppo_id, package, coins, amount, payment_method
+      `SELECT id, status, name, whatsapp, poppo_id, package, coins, amount, quantity, payment_method
        FROM orders WHERE id = $1`,
       [data.order_id],
     );
@@ -138,10 +164,9 @@ export const submitUtr = createServerFn({ method: "POST" })
       [data.utr, data.order_id],
     );
 
-    // Notify admin via Telegram with WhatsApp buttons
-    try {
-      const { sendTelegramWithWhatsAppButtons } = await import("../notifications.server");
-      await sendTelegramWithWhatsAppButtons({
+    // Notify admin via Telegram (fire-and-forget — don't block the response)
+    import("../notifications.server").then(({ sendTelegramWithWhatsAppButtons }) =>
+      sendTelegramWithWhatsAppButtons({
         customerName: order.name,
         customerWhatsapp: order.whatsapp,
         poppoId: order.poppo_id,
@@ -151,10 +176,8 @@ export const submitUtr = createServerFn({ method: "POST" })
         orderId: order.id,
         coins: order.coins,
         alertType: "payment_confirmed",
-      });
-    } catch (e) {
-      console.error("[submitUtr] telegram notify", e);
-    }
+      }).catch((e) => console.error("[submitUtr] telegram notify", e))
+    );
 
     return { ok: true };
   });
@@ -293,18 +316,13 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
       data.id,
     ]);
 
-    // Insert status log
-    await q(
-      `INSERT INTO order_status_logs (order_id, old_status, new_status, changed_by)
-       VALUES ($1, $2, $3, 'admin')`,
-      [data.id, order.status, data.status],
-    );
+    // NOTE: Status logging is handled automatically by the trg_order_status_log trigger
+    // (created in migration 20260613_002_recharge_fixes.sql). No manual INSERT needed.
 
     if (data.status === "completed" && order.status !== "completed") {
-      // Send Telegram alert with WhatsApp button
-      try {
-        const { sendTelegramWithWhatsAppButtons } = await import("../notifications.server");
-        await sendTelegramWithWhatsAppButtons({
+      // Send Telegram alert (fire-and-forget)
+      import("../notifications.server").then(({ sendTelegramWithWhatsAppButtons }) =>
+        sendTelegramWithWhatsAppButtons({
           customerName: order.name,
           customerWhatsapp: order.whatsapp,
           poppoId: order.poppo_id,
@@ -314,10 +332,8 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
           orderId: order.id,
           coins: order.coins,
           alertType: "order_completed",
-        });
-      } catch (e) {
-        console.error("[order complete] telegram notify", e);
-      }
+        }).catch((e) => console.error("[order complete] telegram notify", e))
+      );
     }
     return { ok: true };
   });

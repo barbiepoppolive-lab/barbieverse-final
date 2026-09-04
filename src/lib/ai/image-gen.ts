@@ -24,6 +24,9 @@ export interface ImageGenInput {
   model?: string;
   provider?: "comfyui" | "pollinations" | "auto";
   useFaceDetailer?: boolean;
+  sampler?: string;
+  scheduler?: string;
+  upscale?: boolean;
 }
 
 export interface ImageGenResult {
@@ -65,6 +68,9 @@ async function generateViaComfyUI(
       cfg: input.cfg,
       seed: input.seed,
       model: input.model,
+      sampler: input.sampler,
+      scheduler: input.scheduler,
+      upscale: input.upscale,
     },
     { useFaceDetailer: input.useFaceDetailer },
   );
@@ -146,7 +152,10 @@ export async function generateImage(
       return await generateViaComfyUI(input);
     }
   } catch (err: any) {
-    console.warn("[ImageGen] ComfyUI failed, falling back to Pollinations:", err.message);
+    console.warn(
+      "[ImageGen] ComfyUI failed, falling back to Pollinations:",
+      err.message,
+    );
   }
 
   console.log("[ImageGen] Using Pollinations (cloud)");
@@ -188,4 +197,7 @@ export async function getProviderStatus(): Promise<{
 }
 
 export { SIZES };
-export type { GenerateImageInput as ComfyUIInput, GenerateImageResult as ComfyUIResult };
+export type {
+  GenerateImageInput as ComfyUIInput,
+  GenerateImageResult as ComfyUIResult,
+};

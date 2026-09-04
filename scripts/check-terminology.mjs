@@ -3,7 +3,7 @@
  * Terminology guard.
  *
  * The audience is "streamers", never "creators". That rule lives in exactly
- * one place — src/lib/ai/brand-terminology.ts — and every prompt imports it.
+ * one place — src/shared/brand-terminology.ts — and every prompt imports it.
  *
  * This script fails if anything reintroduces a contradicting literal into a
  * prompt template. It exists because the rule has been silently reversed
@@ -26,7 +26,7 @@ const ROOT = join(dirname(__filename), "..");
 const SRC = join(ROOT, "src");
 
 // The one file allowed to define the rule.
-const SOURCE_OF_TRUTH = "src/lib/ai/brand-terminology.ts";
+const SOURCE_OF_TRUTH = "src/shared/brand-terminology.ts";
 
 // Identifiers that legitimately contain "creator" — DB tables, routes,
 // config modules. Renaming these would require a migration; they are not
