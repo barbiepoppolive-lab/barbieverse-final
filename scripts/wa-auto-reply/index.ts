@@ -181,10 +181,21 @@ function persistSeen() {
 }
 
 // ── telegram ───────────────────────────────────────────────────────────────
-async function tg(text: string) {
-  if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT) return;
+const ALERTS_FILE = path.join(SESSION_DIR, "alerts.json");
+function persistAlert(text: string) {
   try {
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+    const alerts = loadJson<{ text: string; at: string }[]>(ALERTS_FILE, []);
+    alerts.push({ text, at: new Date().toISOString() });
+    saveJson(ALERTS_FILE, alerts.slice(-100));
+  } catch {}
+}
+async function tg(text: string) {
+  if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT) {
+    persistAlert(text);
+    return;
+  }
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -193,8 +204,10 @@ async function tg(text: string) {
         parse_mode: "HTML",
       }),
     });
+    if (!r.ok) persistAlert(text);
   } catch (e) {
     console.error("[wa] telegram failed", e);
+    persistAlert(text);
   }
 }
 
@@ -2318,6 +2331,18 @@ http
     if (url.pathname === "/status") {
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ paused: botPaused, ready: isReady }));
+    }
+
+    // ── alerts: view alerts that failed to send via Telegram ──
+    if (url.pathname === "/alerts") {
+      const hasCookie = (req.headers.cookie || "").includes(`bot_session=${WA_QR_SECRET}`);
+      if (!keyOk && !hasCookie) {
+        res.writeHead(403);
+        return res.end("forbidden");
+      }
+      const alerts = loadJson<{ text: string; at: string }[]>(ALERTS_FILE, []);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify(alerts));
     }
 
     // ── reset: wipe session and restart so fresh QR can be scanned ──
