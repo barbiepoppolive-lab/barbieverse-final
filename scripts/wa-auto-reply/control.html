@@ -31,8 +31,15 @@
     <div class="log" id="log"></div>
   </div>
   <script>
-    const KEY = 'd03875f5258462c890c0fcea9626e3c8';
+    let KEY = '';
     const BASE = window.location.origin;
+
+    async function init() {
+      try {
+        const r = await fetch(`${BASE}/control-key`);
+        if (r.ok) { KEY = await r.text(); }
+      } catch {}
+    }
 
     async function check() {
       try {
@@ -55,6 +62,7 @@
       } catch(e) { document.getElementById('log').textContent = 'error: ' + e.message; }
     }
 
+    init();
     check();
     setInterval(check, 5000);
   </script>

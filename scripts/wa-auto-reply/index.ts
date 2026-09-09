@@ -2282,11 +2282,36 @@ http
 
     const keyOk = QR_SECRET && url.searchParams.get("k") === QR_SECRET;
 
-    // ── control panel (no auth required — key is passed in the page itself) ──
+    // ── control panel — key validated server-side, session cookie for subsequent requests ──
     if (url.pathname === "/control") {
-      const html = fs.readFileSync(path.join(import.meta.dirname, "control.html"), "utf8");
-      res.writeHead(200, { "Content-Type": "text/html" });
-      return res.end(html);
+      const k = url.searchParams.get("k");
+      const hasCookie = (req.headers.cookie || "").includes(`bot_session=${WA_QR_SECRET}`);
+      if (k === WA_QR_SECRET) {
+        res.writeHead(200, {
+          "Content-Type": "text/html",
+          "Set-Cookie": `bot_session=${WA_QR_SECRET}; Path=/; HttpOnly; SameSite=Strict; Max-Age=3600`,
+        });
+        const html = fs.readFileSync(path.join(import.meta.dirname, "control.html"), "utf8");
+        return res.end(html);
+      } else if (hasCookie) {
+        const html = fs.readFileSync(path.join(import.meta.dirname, "control.html"), "utf8");
+        res.writeHead(200, { "Content-Type": "text/html" });
+        return res.end(html);
+      } else {
+        res.writeHead(403, { "Content-Type": "text/plain" });
+        return res.end("Forbidden — append ?k=YOUR_SECRET to the URL");
+      }
+    }
+
+    // ── control-key: returns the secret only if session cookie is valid ──────
+    if (url.pathname === "/control-key") {
+      const hasCookie = (req.headers.cookie || "").includes(`bot_session=${WA_QR_SECRET}`);
+      if (hasCookie) {
+        res.writeHead(200, { "Content-Type": "text/plain" });
+        return res.end(WA_QR_SECRET);
+      }
+      res.writeHead(403, { "Content-Type": "text/plain" });
+      return res.end("Forbidden");
     }
 
     // ── status (no auth — read-only) ──
