@@ -42,10 +42,9 @@ if (!process.env.RAILWAY_PROJECT_ID) {
 }
 
 // ── configuration ──────────────────────────────────────────────────────────
-const APPROVE_MODE = (process.env.WA_APPROVE_MODE || "all-auto") as
-  | "all-manual"
-  | "canned-auto"
-  | "all-auto";
+// Only "all-auto" mode is supported. The bot always uses canned answers when
+// they match, and falls back to Grok for everything else.
+const APPROVE_MODE = "all-auto";
 
 // Session lives on a Railway volume. Without this the container's disk is wiped
 // on every deploy and WhatsApp demands a fresh QR scan each time.
@@ -138,7 +137,7 @@ const BLOCKED_PHONES = new Set<string>([
 ]);
 // Also check at message handler level — merge with optOuts for outbound protection
 // message ids already handled — prevents double-replies after a restart
-const seenIds = new Set<string>(loadJson<string[]>(SEEN_FILE, []).slice(-2000));
+const seenIds = new Set<string>(loadJson<string[]>(SEEN_FILE, []).slice(-10000));
 const leadTopics = new Map<string, string[]>();
 const contactCounts = new Map<string, { day: string; n: number }>();
 // When did we last send a bare "😊" acknowledgement-nudge to this contact?
@@ -160,7 +159,7 @@ const pendingMessages = new Map<string, { texts: string[]; timer: ReturnType<typ
 const ACKNOWLEDGEMENT_RE = /^\s*(ok|okay|hmm?|haan|acha|theek|ji|yes|no|nahi|nah|y|n|👍|😊|🙏|okk?|thx|thanks|k|kk)\s*[!.…]?\s*$/i;
 
 function persistSeen() {
-  saveJson(SEEN_FILE, [...seenIds].slice(-2000));
+  saveJson(SEEN_FILE, [...seenIds].slice(-10000));
 }
 
 // ── telegram ───────────────────────────────────────────────────────────────
@@ -264,7 +263,6 @@ interface LeadContext {
   objectionCount: number;
   conversationSummary: string | null;
   nextBestAction: string | null;
-  grokCompactionBlob: string | null;
   createdAt: string | null;
   lastInboundAt: string | null;
 }
@@ -281,7 +279,7 @@ async function getLeadContext(phone: string): Promise<LeadContext | null> {
       `SELECT id, phone, display_name, stage, topics_asked, conversation_stage, lead_score,
               streaming_experience, current_platform, trust_level,
               objection_count, conversation_summary, next_best_action,
-              human_takeover, grok_compaction_blob, created_at, last_inbound_at
+              human_takeover, created_at, last_inbound_at
        FROM wa_leads WHERE phone = $1`,
       [phone],
     );
@@ -317,7 +315,6 @@ async function getLeadContext(phone: string): Promise<LeadContext | null> {
       objectionCount: lead.objection_count || 0,
       conversationSummary: lead.conversation_summary,
       nextBestAction: lead.next_best_action,
-      grokCompactionBlob: lead.grok_compaction_blob,
       createdAt: lead.created_at,
       lastInboundAt: lead.last_inbound_at,
     };
@@ -688,44 +685,6 @@ async function logGrokInteraction(opts: {
   } catch {}
 }
 
-// ── Context Compaction via xAI API ──────────────────────────────────────────
-// POST /v1/responses/compact — returns an opaque encrypted_content blob
-// that replaces prior turns. Run every 6 LLM-reaching turns to keep the
-// prompt small and cache-friendly.
-async function compactContext(
-  systemPrompt: string,
-  transcript: string,
-  model: string = "grok-4.20-0309-non-reasoning",
-): Promise<string | null> {
-  const apiKey = process.env.XAI_API_KEY;
-  if (!apiKey || !transcript) return null;
-  try {
-    const res = await fetch("https://api.x.ai/v1/responses/compact", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        instructions: systemPrompt,
-        input: [
-          { role: "user", content: `Summarize this WhatsApp conversation into a compact memory that preserves: key facts about the lead (experience, platform, objections, intent level), the conversation flow, and what was discussed. Keep it under 200 tokens.\n\n${transcript}` },
-        ],
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      console.error("[wa] compaction API error:", data?.error?.message || res.status);
-      return null;
-    }
-    return data.compacted_content || data.output || null;
-  } catch (e: any) {
-    console.error("[wa] compaction failed:", e?.message);
-    return null;
-  }
-}
-
 // ── Core Grok reply function ────────────────────────────────────────────────
 // Primary: grok-4.20-0309-non-reasoning (Tier 1, no reasoning tokens)
 // Fallback: Groq → Gemini
@@ -751,14 +710,8 @@ async function grokReply(
   // Build dynamic messages array
   const messages: any[] = [];
 
-  // Compacted memory or raw transcript
-  if (context?.grokCompactionBlob) {
-    messages.push({
-      role: "user",
-      content: `[COMPACTED MEMORY]\n${context.grokCompactionBlob}`,
-    });
-  } else if (context?.transcript) {
-    // Raw recent turns (last 10 to keep token count reasonable)
+  // Raw recent turns
+  if (context?.transcript) {
     const recentTurns = context.transcript.split("\n").slice(-30).join("\n");
     messages.push({
       role: "user",
@@ -1794,7 +1747,7 @@ async function processTurn(
         return;
       }
     }
-  } else if (APPROVE_MODE === "all-auto") {
+  } else {
     console.log(`[wa] no canned match for +${phone}, calling Grok...`);
     const result = await grokReply(text, topics, leadCtx);
     replyText = result.reply;
