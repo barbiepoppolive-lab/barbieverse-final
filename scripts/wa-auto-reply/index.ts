@@ -83,6 +83,19 @@ const MEDIA_BASE = process.env.PUBLIC_APP_URL || "https://barbieverse.org";
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT = process.env.TELEGRAM_CHAT_ID;
 
+// ── Shared database pool ─────────────────────────────────────────────────────
+// Replaces per-function new Client() + connect() + end() pattern.
+// The pool handles connection lifecycle, TLS, and retries automatically.
+import pg from "pg";
+const { Pool } = pg;
+const pool = new Pool({
+  connectionString: process.env.SUPABASE_DB_URL,
+  ssl: { rejectUnauthorized: false },
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
+
 fs.mkdirSync(SESSION_DIR, { recursive: true });
 
 // Remove stale Chromium lock files from previous deploys/crashes.
@@ -273,14 +286,8 @@ interface LeadContext {
 }
 
 async function getLeadContext(phone: string): Promise<LeadContext | null> {
-  const dbUrl = process.env.SUPABASE_DB_URL;
-  if (!dbUrl) return null;
   try {
-    const { Client } = await import("pg");
-    const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-    await pg.connect();
-
-    const leadRes = await pg.query(
+    const leadRes = await pool.query(
       `SELECT id, phone, display_name, stage, topics_asked, conversation_stage, lead_score,
               streaming_experience, current_platform, trust_level,
               objection_count, conversation_summary, next_best_action,
@@ -288,16 +295,15 @@ async function getLeadContext(phone: string): Promise<LeadContext | null> {
        FROM wa_leads WHERE phone = $1`,
       [phone],
     );
-    if (!leadRes.rows[0]) { await pg.end(); return null; }
+    if (!leadRes.rows[0]) return null;
     const lead = leadRes.rows[0];
 
-    const msgRes = await pg.query(
+    const msgRes = await pool.query(
       `SELECT direction, body, created_at FROM wa_messages
        WHERE lead_id = $1 AND body IS NOT NULL AND body != ''
        ORDER BY created_at DESC LIMIT 30`,
       [lead.id],
     );
-    await pg.end();
 
     const msgs = msgRes.rows.reverse().map((m: any) => {
       const dir = m.direction === "out" ? "Barbie" : "Lead";
@@ -560,12 +566,7 @@ async function executeToolCall(
   leadId: string,
   phone: string,
 ): Promise<string> {
-  const dbUrl = process.env.SUPABASE_DB_URL;
   try {
-    const { Client } = await import("pg");
-    const pg = new Client({ connectionString: dbUrl!, ssl: { rejectUnauthorized: false } });
-    await pg.connect();
-
     switch (toolName) {
       case "update_lead_state": {
         const sets: string[] = [];
@@ -580,29 +581,16 @@ async function executeToolCall(
         if (args.lead_score !== undefined) { sets.push(`lead_score = $${idx++}`); vals.push(Math.min(100, Math.max(0, args.lead_score))); }
         if (sets.length > 0) {
           vals.push(leadId);
-          await pg.query(`UPDATE wa_leads SET ${sets.join(", ")} WHERE id = $${idx}`, vals);
+          await pool.query(`UPDATE wa_leads SET ${sets.join(", ")} WHERE id = $${idx}`, vals);
         }
-        await pg.end();
         return JSON.stringify({ ok: true });
       }
       case "mark_conversation_stage": {
-        // LOST is supposed to mean "stop engaging" — but marking it was never
-        // actually wired to stop anything. Confirmed in production: a troll
-        // sent 15+ turns of harassment (marriage jokes, photo demands, "is
-        // this a bot"), Grok correctly called mark_conversation_stage(LOST)
-        // with reasoning like "not a serious lead... trolling" on nearly
-        // every turn, and the bot kept replying with the same canned
-        // redirect anyway — because only request_human_handoff actually sets
-        // human_takeover, and Grok reached for the (wrong, but reasonable)
-        // stage-tracking tool instead under pressure. Don't rely on Grok
-        // picking the exactly-right tool every time: LOST silences the bot
-        // here too, same as an explicit handoff.
         const silence = args.stage === "LOST";
-        await pg.query(
+        await pool.query(
           `UPDATE wa_leads SET conversation_stage = $1${silence ? ", human_takeover = true" : ""} WHERE id = $2`,
           [args.stage, leadId],
         );
-        await pg.end();
         if (silence) {
           await tg(
             `🔇 <b>+${phone}</b> marked LOST by Grok — bot silenced on this contact.\nReason: ${args.reason || "(none given)"}`,
@@ -611,11 +599,10 @@ async function executeToolCall(
         return JSON.stringify({ ok: true, stage: args.stage });
       }
       case "request_human_handoff": {
-        await pg.query(
+        await pool.query(
           `UPDATE wa_leads SET human_takeover = true, escalated = true, escalated_reason = $1, conversation_stage = 'HUMAN_HANDOFF' WHERE id = $2`,
           [args.reason, leadId],
         );
-        await pg.end();
         await tg(
           `🚨 <b>Handoff — ${args.reason}</b>\n+${phone}\nSummary: ${args.summary_for_barbie}\n\nBot stopped. This one is yours.`,
         );
@@ -623,28 +610,23 @@ async function executeToolCall(
       }
       case "notify_admin": {
         await tg(`🔔 <b>+${phone}</b>: ${args.message}`);
-        await pg.end();
         return JSON.stringify({ ok: true });
       }
       case "send_joining_link": {
-        // Mark stage and return — the actual link sending happens in the handler
-        await pg.query(
+        await pool.query(
           `UPDATE wa_leads SET stage = CASE WHEN stage = 'ASKED' THEN 'LINK_SENT' ELSE stage END WHERE id = $1`,
           [leadId],
         );
-        await pg.end();
         return JSON.stringify({ ok: true, action: "link_queued" });
       }
       case "check_application_status": {
-        const res = await pg.query(
+        const res = await pool.query(
           `SELECT stage FROM wa_leads WHERE id = $1`,
           [leadId],
         );
-        await pg.end();
         return JSON.stringify({ ok: true, stage: res.rows[0]?.stage || "unknown" });
       }
       default:
-        await pg.end();
         return JSON.stringify({ error: `unknown tool: ${toolName}` });
     }
   } catch (e: any) {
@@ -668,13 +650,8 @@ async function logGrokInteraction(opts: {
   error: string | null;
   humanHandoff: boolean;
 }) {
-  const dbUrl = process.env.SUPABASE_DB_URL;
-  if (!dbUrl) return;
   try {
-    const { Client } = await import("pg");
-    const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-    await pg.connect();
-    await pg.query(
+    await pool.query(
       `INSERT INTO grok_interactions
        (lead_id, conversation_stage_before, conversation_stage_after, model, reasoning_effort,
         input_tokens, cached_tokens, output_tokens, reasoning_tokens, tool_calls,
@@ -686,7 +663,6 @@ async function logGrokInteraction(opts: {
         JSON.stringify(opts.toolCalls), opts.latencyMs, opts.error, opts.humanHandoff,
       ],
     );
-    await pg.end();
   } catch (e: any) {
     console.error("[wa] logGrokInteraction DB insert failed:", e?.message);
   }
@@ -816,7 +792,6 @@ async function grokReply(
 
     // Handle tool calls
     if (message?.tool_calls?.length) {
-      const dbUrl = process.env.SUPABASE_DB_URL;
       for (const tc of message.tool_calls) {
         const fnName = tc.function?.name;
         const fnArgs = tc.function?.arguments ? JSON.parse(tc.function.arguments) : {};
@@ -1144,12 +1119,7 @@ Do NOT hallucinate values. Only extract numbers you can actually read in the ima
     }
 
     // Write to host_performance
-    const dbUrl = process.env.SUPABASE_DB_URL;
-    if (!dbUrl) return;
-    const { Client } = await import("pg");
-    const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-    await pg.connect();
-    await pg.query(
+    await pool.query(
       `INSERT INTO host_performance (lead_id, period_start, period_end, hours_streamed, gifts_value, rank, earnings_estimate, source, confidence)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'vision_extracted', $8)`,
       [
@@ -1163,7 +1133,6 @@ Do NOT hallucinate values. Only extract numbers you can actually read in the ima
         extracted.confidence || "low",
       ],
     );
-    await pg.end();
     console.log(`[wa] host performance extracted: lead=${leadId}, earnings=${extracted.earnings}, rank=${extracted.rank}`);
   } catch (e: any) {
     console.error("[wa] host performance extraction failed:", e?.message);
@@ -1230,13 +1199,7 @@ If this is just a chat screenshot, error message, or unrelated image, return {"i
     console.log(`[wa] AGENCY JOINING DETECTED! phone=${phone} platform=${result.platform} agency=${result.agency_name}`);
 
     // Promote lead to AGENCY_LINKED
-    const dbUrl = process.env.SUPABASE_DB_URL;
-    if (!dbUrl) return false;
-    const { Client } = await import("pg");
-    const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-    await pg.connect();
-
-    await pg.query(
+    await pool.query(
       `UPDATE wa_leads SET
         stage = 'AGENCY_LINKED',
         agency_verified_at = NOW(),
@@ -1249,14 +1212,12 @@ If this is just a chat screenshot, error message, or unrelated image, return {"i
     );
 
     // Create host_performance entry
-    await pg.query(
+    await pool.query(
       `INSERT INTO host_performance (lead_id, period_start, period_end, source, confidence)
        VALUES ($1, CURRENT_DATE, CURRENT_DATE, 'agency_joining_screenshot', $2)
        ON CONFLICT DO NOTHING`,
       [leadId, result.confidence || "low"],
     );
-
-    await pg.end();
 
     // Notify Barbie via Telegram
     const platform = result.platform || "unknown platform";
@@ -1322,17 +1283,12 @@ async function saveMessage(
   direction: "in" | "out",
   body: string,
 ) {
-  const dbUrl = process.env.SUPABASE_DB_URL;
-  if (!dbUrl || !leadId || !body) return;
+  if (!leadId || !body) return;
   try {
-    const { Client } = await import("pg");
-    const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-    await pg.connect();
-    await pg.query(
+    await pool.query(
       `INSERT INTO wa_messages (lead_id, direction, body, created_at) VALUES ($1, $2, $3, NOW())`,
       [leadId, direction, body],
     );
-    await pg.end();
   } catch (e: any) {
     console.error("[wa] saveMessage failed:", e?.message);
   }
@@ -1498,17 +1454,11 @@ client.on("ready", async () => {
 
 // ── Sync WhatsApp profile names for hosts missing display_name ──────────────
 async function syncHostNames() {
-  const dbUrl = process.env.SUPABASE_DB_URL;
-  if (!dbUrl) return;
-  const { Client } = await import("pg");
-  const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-  await pg.connect();
-  const res = await pg.query(
+  const res = await pool.query(
     `SELECT id, phone FROM wa_leads
      WHERE stage IN ('AGENCY_LINKED','FACE_VERIFIED','FIRST_LIVE','ACTIVE')
        AND (display_name IS NULL OR display_name = '')`
   );
-  await pg.end();
   if (!res.rows.length) return;
 
   console.log(`[wa] syncing names for ${res.rows.length} hosts...`);
@@ -1552,8 +1502,6 @@ const LAST_CAMPAIGN_FILE = path.join(SESSION_DIR, "last-auto-campaign.json");
 const AUTO_CAMPAIGN_BATCH = Number(process.env.WA_AUTO_CAMPAIGN_BATCH || 40);
 
 async function maybeRunDailyReengagement() {
-  const dbUrl = process.env.SUPABASE_DB_URL;
-  if (!dbUrl) return;
   const today = new Date().toISOString().slice(0, 10);
   const last = loadJson<{ date?: string }>(LAST_CAMPAIGN_FILE, {});
   if (last.date === today) {
@@ -1561,10 +1509,7 @@ async function maybeRunDailyReengagement() {
     return;
   }
   try {
-    const { Client } = await import("pg");
-    const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-    await pg.connect();
-    const res = await pg.query(
+    const res = await pool.query(
       `select phone from wa_leads
        -- Already-converted hosts never get cold re-engagement.
        where stage not in ('AGENCY_LINKED','FACE_VERIFIED','FIRST_LIVE','ACTIVE','NOT_INTERESTED')
@@ -1594,7 +1539,6 @@ async function maybeRunDailyReengagement() {
          end,
          coalesce(follow_up_due, created_at) asc`,
     );
-    await pg.end();
     saveJson(LAST_CAMPAIGN_FILE, { date: today });
     if (!res.rows.length) {
       console.log("[wa] daily re-engagement: no eligible leads today");
@@ -1662,25 +1606,18 @@ async function processTurn(
   // hasn't replied. Only check if we have a leadId (known lead).
   if (leadId) {
     try {
-      const dbUrl = process.env.SUPABASE_DB_URL;
-      if (dbUrl) {
-        const { Client } = await import("pg");
-        const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-        await pg.connect();
-        const recent = await pg.query(
-          `SELECT direction FROM wa_messages WHERE lead_id = $1 ORDER BY created_at DESC LIMIT 2`,
-          [leadId],
-        );
-        await pg.end();
-        const last2 = recent.rows.map((r: any) => r.direction);
-        if (last2.length >= 2 && last2[0] === "out" && last2[1] === "out") {
-          console.log(`[wa] +${phone} last 2 messages were outbound — blocking consecutive send`);
-          return;
-        }
-       }
-     } catch (e: any) {
-       console.error("[wa] consecutive outbound guard DB error:", e?.message);
-     }
+      const recent = await pool.query(
+        `SELECT direction FROM wa_messages WHERE lead_id = $1 ORDER BY created_at DESC LIMIT 2`,
+        [leadId],
+      );
+      const last2 = recent.rows.map((r: any) => r.direction);
+      if (last2.length >= 2 && last2[0] === "out" && last2[1] === "out") {
+        console.log(`[wa] +${phone} last 2 messages were outbound — blocking consecutive send`);
+        return;
+      }
+    } catch (e: any) {
+      console.error("[wa] consecutive outbound guard DB error:", e?.message);
+    }
   }
 
   const matchResult = matchAnswer(text);
@@ -1705,18 +1642,11 @@ async function processTurn(
   if (matchResult && answer?.id === "Q0" && leadId) {
     const variant = Q0_VARIANTS[matchResult.matchIndex] || `q0-${matchResult.matchIndex}`;
     try {
-      const dbUrl = process.env.SUPABASE_DB_URL;
-      if (dbUrl) {
-        const { Client } = await import("pg");
-        const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-        await pg.connect();
-        await pg.query(
-          "UPDATE wa_leads SET prefill_variant = $1 WHERE id = $2 AND prefill_variant IS NULL",
-          [variant, leadId],
-        );
-        await pg.end();
-        console.log(`[wa] prefill_variant set: +${phone} -> ${variant}`);
-      }
+      await pool.query(
+        "UPDATE wa_leads SET prefill_variant = $1 WHERE id = $2 AND prefill_variant IS NULL",
+        [variant, leadId],
+      );
+      console.log(`[wa] prefill_variant set: +${phone} -> ${variant}`);
     } catch (e: any) {
       console.error("[wa] prefill_variant write failed:", e?.message);
     }
@@ -1852,28 +1782,21 @@ client.on("message_create", async (msg: any) => {
     const leadPhone = String(msg.to || "").replace(/\D/g, "").replace(/@.*/, "");
     if (!leadPhone || !/^\d{8,15}$/.test(leadPhone)) return;
 
-    const dbUrl = process.env.SUPABASE_DB_URL;
-    if (!dbUrl) return;
-    const { Client } = await import("pg");
-    const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-    await pg.connect();
-
     if (text === "stop" || text === "/stop") {
-      await pg.query(
+      await pool.query(
         `UPDATE wa_leads SET human_takeover = true, updated_at = NOW() WHERE phone = $1`,
         [leadPhone],
       );
       console.log(`[wa] TAKEOVER: +${leadPhone} — bot stopped, Barbie taking over`);
       await tg(`🙋 <b>TAKEOVER</b>\nBarbie took over +${leadPhone}\nBot will stop replying to this contact.`);
     } else {
-      await pg.query(
+      await pool.query(
         `UPDATE wa_leads SET human_takeover = false, updated_at = NOW() WHERE phone = $1`,
         [leadPhone],
       );
       console.log(`[wa] RESUME: +${leadPhone} — bot resumed`);
       await tg(`🤖 <b>RESUMED</b>\nBot back on +${leadPhone}`);
     }
-    await pg.end();
   } catch (e: any) {
     console.error("[wa] codeword error:", e?.message);
   }
@@ -1967,83 +1890,70 @@ client.on("message", async (msg: any) => {
     // added as new leads (stage default NEW) rather than dropped, so first
     // contact from an ad click still gets engaged.
     let leadId: string | null = null;
-    const dbUrl = process.env.SUPABASE_DB_URL;
-    if (dbUrl) {
-      try {
-        const { Client } = await import("pg");
-        const pg = new Client({
-          connectionString: dbUrl,
-          ssl: { rejectUnauthorized: false },
-        });
-        await pg.connect();
-        // any() over all format variants — both a bare 10-digit row and a
-        // 91-prefixed row can exist for the same person (import history vs.
-        // live testing created duplicates for at least one number already).
-        const res = await pg.query(
-          "select id, stage, human_takeover, conversation_stage from wa_leads where phone = any($1)",
-          [[normPhone, bare91, phone, digits]],
-        );
-        if (!res.rows[0]) {
-          console.log(`[wa] +${normPhone} not in wa_leads — adding as new lead`);
-          try {
-            const ins = await pg.query(
-              "insert into wa_leads (phone) values ($1) on conflict (phone) do update set updated_at = now() returning id",
-              [normPhone],
-            );
-            leadId = ins.rows[0]?.id ?? null;
-          } catch (e: any) {
-            console.error("[wa] new-lead insert failed:", e?.message);
-          }
-        } else {
-          leadId = res.rows[0].id;
-
-          // Human takeover — Barbie typed "STOP" in this chat
-          if (res.rows[0].human_takeover) {
-            await pg.end();
-            console.log(`[wa] +${normPhone} is under human_takeover — skipping auto-reply`);
-            await saveMessage(leadId, "in", msg.body || "[media]");
-            return;
-          }
-
-          // LOST stage — Grok marked this as dead/trolling. Stop all replies.
-          if (res.rows[0].conversation_stage === "LOST") {
-            await pg.end();
-            console.log(`[wa] +${normPhone} is LOST — skipping auto-reply`);
-            await saveMessage(leadId, "in", msg.body || "[media]");
-            return;
-          }
-
-          const convertedStages = [
-            "AGENCY_LINKED",
-            "FACE_VERIFIED",
-            "FIRST_LIVE",
-            "ACTIVE",
-          ];
-          if (convertedStages.includes(res.rows[0].stage)) {
-            await pg.end();
-            console.log(
-              `[wa] +${normPhone} is ${res.rows[0].stage} — skipping auto-reply`,
-            );
-            // But still extract host performance data from screenshots
-            if (msg.hasMedia && (msg.type === "image" || msg.type === "sticker") && !(msg.body || "").trim()) {
-              try {
-                const media = await msg.downloadMedia();
-                if (media) {
-                  await saveMessage(leadId, "in", `[${msg.type}]`);
-                  extractHostPerformance(media.data, media.mimetype, leadId, res.rows[0].stage)
-                    .catch(() => {}); // fire-and-forget
-       }
-     } catch (e: any) {
-       console.error("[wa] consecutive outbound check failed:", e?.message);
-     }
-            }
-            return;
-          }
+    try {
+      // any() over all format variants — both a bare 10-digit row and a
+      // 91-prefixed row can exist for the same person (import history vs.
+      // live testing created duplicates for at least one number already).
+      const res = await pool.query(
+        "select id, stage, human_takeover, conversation_stage from wa_leads where phone = any($1)",
+        [[normPhone, bare91, phone, digits]],
+      );
+      if (!res.rows[0]) {
+        console.log(`[wa] +${normPhone} not in wa_leads — adding as new lead`);
+        try {
+          const ins = await pool.query(
+            "insert into wa_leads (phone) values ($1) on conflict (phone) do update set updated_at = now() returning id",
+            [normPhone],
+          );
+          leadId = ins.rows[0]?.id ?? null;
+        } catch (e: any) {
+          console.error("[wa] new-lead insert failed:", e?.message);
         }
-        await pg.end();
-      } catch (e: any) {
-        console.error("[wa] DB check failed, proceeding without it:", e?.message);
+      } else {
+        leadId = res.rows[0].id;
+
+        // Human takeover — Barbie typed "STOP" in this chat
+        if (res.rows[0].human_takeover) {
+          console.log(`[wa] +${normPhone} is under human_takeover — skipping auto-reply`);
+          await saveMessage(leadId, "in", msg.body || "[media]");
+          return;
+        }
+
+        // LOST stage — Grok marked this as dead/trolling. Stop all replies.
+        if (res.rows[0].conversation_stage === "LOST") {
+          console.log(`[wa] +${normPhone} is LOST — skipping auto-reply`);
+          await saveMessage(leadId, "in", msg.body || "[media]");
+          return;
+        }
+
+        const convertedStages = [
+          "AGENCY_LINKED",
+          "FACE_VERIFIED",
+          "FIRST_LIVE",
+          "ACTIVE",
+        ];
+        if (convertedStages.includes(res.rows[0].stage)) {
+          console.log(
+            `[wa] +${normPhone} is ${res.rows[0].stage} — skipping auto-reply`,
+          );
+          // But still extract host performance data from screenshots
+          if (msg.hasMedia && (msg.type === "image" || msg.type === "sticker") && !(msg.body || "").trim()) {
+            try {
+              const media = await msg.downloadMedia();
+              if (media) {
+                await saveMessage(leadId, "in", `[${msg.type}]`);
+                extractHostPerformance(media.data, media.mimetype, leadId, res.rows[0].stage)
+                  .catch(() => {}); // fire-and-forget
       }
+    } catch (e: any) {
+      console.error("[wa] consecutive outbound check failed:", e?.message);
+    }
+          }
+          return;
+        }
+      }
+    } catch (e: any) {
+      console.error("[wa] DB check failed, proceeding without it:", e?.message);
     }
     phone = normPhone || phone;
 
@@ -2204,20 +2114,13 @@ async function runCampaign(phones: string[], overrideMessage?: string) {
 
   // Pull lead stages from DB to send stage-specific messages
   let stageMap: Record<string, string> = {};
-  const dbUrl = process.env.SUPABASE_DB_URL;
-  if (dbUrl) {
-    try {
-      const { Client } = await import("pg");
-      const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-      await pg.connect();
-      const res = await pg.query("SELECT phone, stage FROM wa_leads WHERE phone = ANY($1)", [phones.map(p => p.replace(/[^\d]/g, ""))]);
-      await pg.end();
-       for (const row of res.rows) {
-         stageMap[row.phone] = row.stage;
-       }
-     } catch (e: any) {
-       console.error("[wa] campaign stage query failed:", e?.message);
-     }
+  try {
+    const res = await pool.query("SELECT phone, stage FROM wa_leads WHERE phone = ANY($1)", [phones.map(p => p.replace(/[^\d]/g, ""))]);
+    for (const row of res.rows) {
+      stageMap[row.phone] = row.stage;
+    }
+  } catch (e: any) {
+    console.error("[wa] campaign stage query failed:", e?.message);
   }
 
   for (let i = 0; i < phones.length; i++) {
@@ -2286,20 +2189,14 @@ async function runCampaign(phones: string[], overrideMessage?: string) {
 
       // Mark so tomorrow's auto re-engagement pass doesn't hit her again today,
       // and log the message so the admin dashboard shows it.
-      if (dbUrl) {
-        try {
-          const { Client } = await import("pg");
-          const pg2 = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-          await pg2.connect();
-          const upd = await pg2.query(
-            "update wa_leads set last_outbound_at = now() where phone = any($1) returning id",
-            [[phone, bare]],
-          );
-         await pg2.end();
-         await saveMessage(upd.rows[0]?.id ?? null, "out", msg);
-       } catch (e: any) {
-         console.error(`[wa] campaign per-phone update failed +${phone}:`, e?.message);
-       }
+      try {
+        const upd = await pool.query(
+          "update wa_leads set last_outbound_at = now() where phone = any($1) returning id",
+          [[phone, bare]],
+        );
+        await saveMessage(upd.rows[0]?.id ?? null, "out", msg);
+      } catch (e: any) {
+        console.error(`[wa] campaign per-phone update failed +${phone}:`, e?.message);
       }
     } catch (e: any) {
       console.error(`[wa] campaign failed +${phone}:`, e?.message || e?.stack?.slice(0, 200) || "unknown");
@@ -2589,11 +2486,6 @@ http
         return res.end(JSON.stringify({ error: "bot not ready" }));
       }
       const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 100);
-      const dbUrl = process.env.SUPABASE_DB_URL;
-      if (!dbUrl) {
-        res.writeHead(500, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "no DB connection" }));
-      }
 
       // Run export in background, return immediately
       res.writeHead(202, { "Content-Type": "application/json" });
@@ -2601,10 +2493,6 @@ http
 
       (async () => {
         try {
-          const { Client } = await import("pg");
-          const pg = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-          await pg.connect();
-
           const chats = await client.getChats();
           console.log(`[export] found ${chats.length} chats, processing top ${limit}`);
 
@@ -2622,7 +2510,7 @@ http
               }
 
               // Upsert lead and get id
-              const leadRes = await pg.query(
+              const leadRes = await pool.query(
                 `INSERT INTO wa_leads (phone, stage, created_at, updated_at)
                  VALUES ($1, 'ASKED', NOW(), NOW())
                  ON CONFLICT (phone) DO UPDATE SET updated_at = NOW()
@@ -2642,7 +2530,7 @@ http
                 const ts = new Date(m.timestamp * 1000);
 
                 // Insert message — skip duplicates by lead + body + timestamp window
-                await pg.query(
+                await pool.query(
                   `INSERT INTO wa_messages (lead_id, direction, body, created_at)
                    SELECT $1, $2, $3, $4::timestamptz
                    WHERE NOT EXISTS (
@@ -2661,7 +2549,6 @@ http
             }
           }
 
-          await pg.end();
           const msg = `[export] done: ${exported} chats exported, ${skipped} skipped, ${errors} errors`;
           console.log(msg);
           await tg(msg);
@@ -2715,13 +2602,6 @@ http
 
       (async () => {
         try {
-          const { Client } = await import("pg");
-          const pg = new Client({
-            connectionString: process.env.SUPABASE_DB_URL,
-            ssl: { rejectUnauthorized: false },
-          });
-          await pg.connect();
-
           let imported = 0;
           let msgCount = 0;
 
@@ -2730,7 +2610,7 @@ http
               const phone = (lead.phone || "").replace(/[^\d]/g, "");
               if (!phone || !/^\d{8,15}$/.test(phone)) continue;
 
-              const leadRes = await pg.query(
+              const leadRes = await pool.query(
                 `INSERT INTO wa_leads (phone, stage, topics_asked, last_inbound_at, created_at, updated_at)
                  VALUES ($1, $2, $3, $4, NOW(), NOW())
                  ON CONFLICT (phone) DO UPDATE SET
@@ -2753,7 +2633,7 @@ http
                 const text = msg.m || "";
                 if (!text || text === "[media]") continue;
                 const ts = new Date(msg.t);
-                await pg.query(
+                await pool.query(
                   `INSERT INTO wa_messages (lead_id, direction, body, created_at)
                    SELECT $1, $2, $3, $4::timestamptz
                    WHERE NOT EXISTS (
@@ -2772,7 +2652,6 @@ http
             }
           }
 
-          await pg.end();
           const msg = `[import] done: ${imported} leads, ${msgCount} messages`;
           console.log(msg);
           await tg(msg);
@@ -2878,12 +2757,7 @@ tick();
       // Run async, return immediately
       (async () => {
         try {
-          const dbUrl = process.env.SUPABASE_DB_URL;
-          if (!dbUrl) return;
-          const { Client: PgClient } = await import("pg");
-          const pg = new PgClient({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-          await pg.connect();
-          const res2 = await pg.query(
+          const res2 = await pool.query(
             `SELECT id, phone, display_name FROM wa_leads
              WHERE stage IN ('AGENCY_LINKED','FACE_VERIFIED','FIRST_LIVE','ACTIVE')
              ORDER BY display_name NULLS FIRST`
@@ -2904,7 +2778,7 @@ tick();
                 const name = await extractNameFromScreenshot(media.data, media.mimetype);
                 if (name && name.length >= 2) {
                   console.log(`[sync-names] +${host.phone} → ${name}`);
-                  await pg.query(
+                  await pool.query(
                     `UPDATE wa_leads SET display_name = $1, updated_at = NOW() WHERE id = $2 AND (display_name IS NULL OR display_name = '')`,
                     [name, host.id],
                   );
@@ -2918,7 +2792,6 @@ tick();
             await new Promise((r) => setTimeout(r, 300));
           }
           console.log(`[sync-names] done — ${synced} names updated`);
-          await pg.end();
           await tg(`✅ Screenshot name sync done — ${synced} names extracted from agency joining screenshots`);
         } catch (e) {
           console.error("[sync-names] fatal:", e?.message);
