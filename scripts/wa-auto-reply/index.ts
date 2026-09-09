@@ -65,6 +65,7 @@ const MAX_DELAY_MS = Number(process.env.WA_MAX_DELAY_MS || 12_000);
 const OPTOUT_FILE = path.join(SESSION_DIR, "optouts.json");
 const SEEN_FILE = path.join(SESSION_DIR, "seen.json");
 const PAUSE_FILE = path.join(SESSION_DIR, "paused.json");
+const RATELIMIT_FILE = path.join(SESSION_DIR, "ratelimit.json");
 
 // Pause toggle: WA_BOT_PAUSED=true shuts off all replies without killing the process.
 // The /pause HTTP route used to only flip this in-memory — which meant every
@@ -139,13 +140,17 @@ const BLOCKED_PHONES = new Set<string>([
 // message ids already handled — prevents double-replies after a restart
 const seenIds = new Set<string>(loadJson<string[]>(SEEN_FILE, []).slice(-10000));
 const leadTopics = new Map<string, string[]>();
-const contactCounts = new Map<string, { day: string; n: number }>();
 // When did we last send a bare "😊" acknowledgement-nudge to this contact?
 // Used to break out of total silence on a trailing "ok"/"okk" without
 // risking an "ok" <-> "😊" ping-pong loop (see ACKNOWLEDGEMENT_RE handling).
 const lastAckReplyAt = new Map<string, number>();
-let hourStamp = new Date().getUTCHours();
-let repliesThisHour = 0;
+const rateData = loadJson<{ hourStamp: number; repliesThisHour: number; contactCounts: Record<string, { day: string; n: number }> }>(RATELIMIT_FILE, { hourStamp: -1, repliesThisHour: 0, contactCounts: {} });
+let hourStamp = rateData.hourStamp === new Date().getUTCHours() ? rateData.hourStamp : new Date().getUTCHours();
+let repliesThisHour = rateData.hourStamp === hourStamp ? rateData.repliesThisHour : 0;
+const contactCounts = new Map<string, { day: string; n: number }>(Object.entries(rateData.contactCounts || {}));
+function persistRateLimit() {
+  saveJson(RATELIMIT_FILE, { hourStamp, repliesThisHour, contactCounts: Object.fromEntries(contactCounts) });
+}
 
 // ── Debounce buffer: concatenate rapid-fire messages per lead ────────────────
 // When a lead sends "Hi" / "details chahiye" / "earning kitni hai?" in quick
@@ -682,7 +687,9 @@ async function logGrokInteraction(opts: {
       ],
     );
     await pg.end();
-  } catch {}
+  } catch (e: any) {
+    console.error("[wa] logGrokInteraction DB insert failed:", e?.message);
+  }
 }
 
 // ── Core Grok reply function ────────────────────────────────────────────────
@@ -1337,6 +1344,7 @@ function hourlyBudgetLeft(): boolean {
   if (h !== hourStamp) {
     hourStamp = h;
     repliesThisHour = 0;
+    persistRateLimit();
   }
   return repliesThisHour < MAX_REPLIES_PER_HOUR;
 }
@@ -1361,6 +1369,7 @@ function noteReply(phone: string) {
       ? { day: today, n: rec.n + 1 }
       : { day: today, n: 1 },
   );
+  persistRateLimit();
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -1516,9 +1525,11 @@ async function syncHostNames() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phone: row.phone, name }),
         });
-        synced++;
-      }
-    } catch {}
+         synced++;
+       }
+     } catch (e: any) {
+       console.error(`[wa] syncHostNames failed for ${phone}:`, e?.message);
+     }
     // Small delay to avoid rate limits
     await new Promise((r) => setTimeout(r, 200));
   }
@@ -1666,8 +1677,10 @@ async function processTurn(
           console.log(`[wa] +${phone} last 2 messages were outbound — blocking consecutive send`);
           return;
         }
-      }
-    } catch {}
+       }
+     } catch (e: any) {
+       console.error("[wa] consecutive outbound guard DB error:", e?.message);
+     }
   }
 
   const matchResult = matchAnswer(text);
@@ -2019,8 +2032,10 @@ client.on("message", async (msg: any) => {
                   await saveMessage(leadId, "in", `[${msg.type}]`);
                   extractHostPerformance(media.data, media.mimetype, leadId, res.rows[0].stage)
                     .catch(() => {}); // fire-and-forget
-                }
-              } catch {}
+       }
+     } catch (e: any) {
+       console.error("[wa] consecutive outbound check failed:", e?.message);
+     }
             }
             return;
           }
@@ -2197,10 +2212,12 @@ async function runCampaign(phones: string[], overrideMessage?: string) {
       await pg.connect();
       const res = await pg.query("SELECT phone, stage FROM wa_leads WHERE phone = ANY($1)", [phones.map(p => p.replace(/[^\d]/g, ""))]);
       await pg.end();
-      for (const row of res.rows) {
-        stageMap[row.phone] = row.stage;
-      }
-    } catch {}
+       for (const row of res.rows) {
+         stageMap[row.phone] = row.stage;
+       }
+     } catch (e: any) {
+       console.error("[wa] campaign stage query failed:", e?.message);
+     }
   }
 
   for (let i = 0; i < phones.length; i++) {
@@ -2278,9 +2295,11 @@ async function runCampaign(phones: string[], overrideMessage?: string) {
             "update wa_leads set last_outbound_at = now() where phone = any($1) returning id",
             [[phone, bare]],
           );
-          await pg2.end();
-          await saveMessage(upd.rows[0]?.id ?? null, "out", msg);
-        } catch {}
+         await pg2.end();
+         await saveMessage(upd.rows[0]?.id ?? null, "out", msg);
+       } catch (e: any) {
+         console.error(`[wa] campaign per-phone update failed +${phone}:`, e?.message);
+       }
       }
     } catch (e: any) {
       console.error(`[wa] campaign failed +${phone}:`, e?.message || e?.stack?.slice(0, 200) || "unknown");
@@ -2748,7 +2767,9 @@ http
                 msgCount++;
               }
               imported++;
-            } catch {}
+            } catch (e: any) {
+              console.error(`[wa] import-history per-lead error:`, e?.message);
+            }
           }
 
           await pg.end();
