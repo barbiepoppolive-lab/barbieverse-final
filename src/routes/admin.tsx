@@ -76,9 +76,11 @@ function AdminLayout() {
     { to: "/admin/payouts", label: "Payouts", icon: IndianRupee },
     { to: "/admin/orders", label: "Orders", icon: ShoppingCart },
     { to: "/admin/unmatched", label: "Unmatched", icon: AlertTriangle },
+    { to: "/admin/meta-ads", label: "Meta Ads", icon: Megaphone },
     { to: "/admin/marketing", label: "Marketing", icon: Megaphone },
     { to: "/admin/posts", label: "Posts", icon: FileText },
     { to: "/admin/brand-manager", label: "Brand Manager", icon: Sparkles },
+    { to: "/admin/luckysender", label: "LuckySender", icon: Radar },
     { to: "/admin/policies", label: "Policies", icon: ScrollText },
     { to: "/admin/settings", label: "Settings", icon: SettingsIcon },
   ];
@@ -104,7 +106,7 @@ function AdminLayout() {
               className="inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-foreground hover:translate-x-1"
               activeProps={{
                 className:
-                  "bg-primary/15 text-foreground shadow-[0_0_15px_oklch(0.72_0.25_350/0.08)]",
+                  "bg-primary/15 text-foreground shadow-[0_0_15px_oklch(0.72_0.12_210/0.08)]",
               }}
             >
               <n.icon className="h-4 w-4" /> {n.label}
