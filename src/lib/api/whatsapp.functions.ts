@@ -392,7 +392,7 @@ export const getGrokCosts = createServerFn({ method: "GET" }).handler(
 // just export from business.facebook.com/adsmanager/ads/reporting
 export const importAdSpend = createServerFn({ method: "POST" })
   .validator(
-    (data: {
+    (data: unknown) => data as {
       rows: Array<{
         date: string;
         campaign_name: string;
@@ -405,7 +405,7 @@ export const importAdSpend = createServerFn({ method: "POST" })
         cpm?: number;
         cpc?: number;
       }>;
-    }),
+    },
   )
   .handler(async ({ data }) => {
     const { requireAdmin } = await import("../admin-session.server");
