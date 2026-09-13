@@ -234,6 +234,19 @@ export type {
   ProviderChoice,
 } from "./modules/brand-manager";
 
+// Meta Ads Agent (NL command parser + campaign planner)
+export {
+  parseCommand,
+  generateCampaignPlan,
+  generateCreatives,
+  handleMetaAdsCommand,
+} from "./modules/meta-ads-agent";
+export type {
+  MetaAdsIntent,
+  ParsedCommand,
+  AgentResponse,
+} from "./modules/meta-ads-agent";
+
 // Utilities
 export { generateEmbedding, cosineSimilarity, findSimilar } from "./utils/embeddings";
 export type { EmbeddingProvider } from "./utils/embeddings";

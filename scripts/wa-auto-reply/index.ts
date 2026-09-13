@@ -21,7 +21,7 @@
 // Barbie's business.
 
 import pkg from "whatsapp-web.js";
-const { Client, LocalAuth, MessageMedia } = pkg;
+const { Client, LocalAuth, MessageMedia, Poll } = pkg;
 
 import QRCode from "qrcode";
 import path from "path";
@@ -33,6 +33,17 @@ import {
   ANSWERS,
   Q0_VARIANTS,
 } from "./answer-bank";
+import {
+  FLOWS,
+  getStage,
+  getFlowState,
+  createFlowState,
+  advanceStage,
+  handleObjection,
+  detectLeadTypeFromText,
+  type FlowState,
+  type FlowStage,
+} from "./flows";
 
 if (!process.env.RAILWAY_PROJECT_ID) {
   try {
@@ -1287,6 +1298,113 @@ async function extractNameFromScreenshot(
   }
 }
 
+// ── Option-based flow helpers ───────────────────────────────────────────────
+
+const CARDS_DIR = path.join(import.meta.dirname, "public", "cards");
+const SCREENSHOTS_DIR = path.join(import.meta.dirname, "public", "screenshots");
+
+/** Send a WhatsApp Poll to a chat */
+async function sendFlowPoll(
+  client: any,
+  chatId: string,
+  question: string,
+  options: string[],
+): Promise<void> {
+  const poll = new Poll(question, options);
+  await client.sendMessage(chatId, poll);
+}
+
+/** Send an image (local file or URL) to a chat */
+async function sendFlowImage(
+  client: any,
+  chatId: string,
+  media: { local?: string; url?: string; video?: boolean },
+): Promise<void> {
+  try {
+    let mediaObj: any;
+    if (media.local && fs.existsSync(media.local)) {
+      const ext = media.local.split(".").pop();
+      const mime = media.video ? "video/mp4" : `image/${ext === "jpg" ? "jpeg" : ext}`;
+      const buf = fs.readFileSync(media.local);
+      mediaObj = new MessageMedia(mime, buf.toString("base64"), path.basename(media.local));
+    } else if (media.url) {
+      const fullUrl = media.url.startsWith("http") ? media.url : `${MEDIA_BASE}/${media.url}`;
+      mediaObj = await MessageMedia.fromUrl(fullUrl);
+    }
+    if (mediaObj) await client.sendMessage(chatId, mediaObj);
+  } catch (e: any) {
+    console.error(`[wa] flow image send failed: ${e?.message}`);
+  }
+}
+
+/** Load flow state from a lead record */
+function loadFlowState(lead: any): FlowState | null {
+  if (!lead?.flow_type || !lead?.flow_state) return null;
+  return getFlowState(lead.flow_state);
+}
+
+/** Save flow state to DB */
+async function saveFlowState(
+  leadId: string,
+  flowType: string,
+  state: FlowState,
+): Promise<void> {
+  await pool.query(
+    `UPDATE wa_leads SET flow_type = $1, flow_state = $2, flow_updated_at = NOW() WHERE id = $3`,
+    [flowType, JSON.stringify(state), leadId],
+  );
+}
+
+/** Send all images + text + poll for a flow stage */
+async function executeFlowStage(
+  client: any,
+  chatId: string,
+  stage: FlowStage,
+): Promise<void> {
+  // Send images first
+  if (stage.images) {
+    for (const img of stage.images) {
+      await sendFlowImage(client, chatId, img);
+      await new Promise(r => setTimeout(r, 500)); // small delay between images
+    }
+  }
+
+  // Send text
+  if (stage.text) {
+    await client.sendMessage(chatId, stage.text);
+  }
+
+  // Send poll
+  if (stage.poll) {
+    await sendFlowPoll(
+      client,
+      chatId,
+      stage.poll.question,
+      stage.poll.options.map(o => o.text),
+    );
+  }
+}
+
+/** Check if a lead should enter the option flow */
+function shouldEnterFlow(lead: any): boolean {
+  // Only new leads (no stage set yet, or ASKED stage) enter the flow
+  if (lead.flow_type) return false; // already in a flow
+  if (lead.stage && lead.stage !== "NEW" && lead.stage !== "ASKED") return false;
+  if (lead.human_takeover) return false;
+  if (lead.conversation_stage === "LOST") return false;
+  return true;
+}
+
+/** Parse numbered option "1" / "2" / "3" to option index */
+function parseNumberedOption(text: string, optionCount: number): number | null {
+  const t = (text || "").trim();
+  if (/^[1-9]$/.test(t)) {
+    const idx = parseInt(t) - 1;
+    if (idx < optionCount) return idx;
+  }
+  return null;
+}
+
 // Persist one turn of the live conversation. Without this the bot could talk
 // but the admin dashboard (barbieverse.org/admin/whatsapp) and every future
 // LLM call would never see it — getLeadContext only ever showed the Aug 15
@@ -1971,6 +2089,137 @@ client.on("message", async (msg: any) => {
     phone = normPhone || phone;
 
     const text = (msg.body || "").trim();
+
+    // ── Option-based flow routing ─────────────────────────────────────────
+    // Check if this lead is already in an active flow
+    if (leadId) {
+      try {
+        const flowRes = await pool.query(
+          "SELECT flow_type, flow_state, stage FROM wa_leads WHERE id = $1",
+          [leadId],
+        );
+        const flowRow = flowRes.rows[0];
+        if (flowRow?.flow_type && flowRow?.flow_state) {
+          const flowType = flowRow.flow_type;
+          const flowDef = FLOWS[flowType as keyof typeof FLOWS];
+          const state = loadFlowState(flowRow);
+          if (flowDef && state) {
+            const currentStage = getStage(flowDef, state.stage);
+            if (!currentStage) {
+              console.log(`[wa-flow] flow stage ${state.stage} not found — falling back to LLM`);
+            } else {
+              // Check if user sent a numbered option (poll response)
+              const optIdx = parseNumberedOption(text, currentStage.poll?.options?.length || 0);
+              if (optIdx !== null) {
+                console.log(`[wa-flow] +${phone} chose option ${optIdx + 1} at stage ${state.stage}`);
+                const chosen = currentStage.poll.options[optIdx];
+                const nextState = advanceStage(flowDef, state, chosen.next);
+                if (nextState) {
+                  await saveFlowState(leadId, flowType, nextState);
+                  const nextStageDef = getStage(flowDef, nextState.stage);
+                  if (nextStageDef) {
+                    // Update stage in wa_leads
+                    await pool.query(
+                      "UPDATE wa_leads SET stage = $1 WHERE id = $2",
+                      [nextStageDef.name || nextState.stage, leadId],
+                    ).catch(() => {});
+                    await executeFlowStage(client, chatId, nextStageDef);
+                  }
+                } else {
+                  // Flow completed — clear flow state
+                  await pool.query(
+                    "UPDATE wa_leads SET flow_type = NULL, flow_state = NULL, flow_updated_at = NULL WHERE id = $1",
+                    [leadId],
+                  );
+                  console.log(`[wa-flow] +${phone} flow ${flowType} completed`);
+                }
+                await saveMessage(leadId, "in", text || "[poll response]");
+                await saveMessage(leadId, "out", chosen.text || "[flow stage]");
+                return;
+              }
+
+              // Check for objection during flow
+              if (text) {
+                const objectionStage = handleObjection(flowDef, state, text);
+                if (objectionStage) {
+                  console.log(`[wa-flow] +${phone} objection detected at ${state.stage} → ${objectionStage.name}`);
+                  const newState = createFlowState(state.stage);
+                  newState.stage = objectionStage.name;
+                  await saveFlowState(leadId, flowType, newState);
+                  await executeFlowStage(client, chatId, objectionStage);
+                  await saveMessage(leadId, "in", text);
+                  await saveMessage(leadId, "out", objectionStage.text || "[objection]");
+                  return;
+                }
+              }
+
+              // Free text during flow — let LLM handle but stay in flow
+              console.log(`[wa-flow] +${phone} free text during ${flowType} flow at ${state.stage} — routing to LLM`);
+              // Don't return — fall through to normal LLM processing
+            }
+          }
+        } else if (shouldEnterFlow(flowRow)) {
+          // New lead — start the flow
+          console.log(`[wa-flow] +${phone} is a new lead — starting poll flow`);
+          const startState = createFlowState("ASK_LEAD_TYPE");
+          const startStage = getStage(FLOWS.ASK_LEAD_TYPE, "ASK_LEAD_TYPE");
+          if (startStage) {
+            await executeFlowStage(client, chatId, startStage);
+            // Save with flow_type null until they answer the first poll
+            await pool.query(
+              "UPDATE wa_leads SET stage = 'ASKED' WHERE id = $1",
+              [leadId],
+            );
+            await saveMessage(leadId, "in", text || "[new lead]");
+            await saveMessage(leadId, "out", startStage.text || "[ask lead type]");
+            return;
+          }
+        }
+      } catch (e: any) {
+        console.error(`[wa-flow] flow routing error: ${e?.message}`);
+      }
+    }
+
+    // Handle first poll response (lead type selection) when no flow_type yet
+    if (leadId && text) {
+      try {
+        const checkRes = await pool.query(
+          "SELECT flow_type, stage FROM wa_leads WHERE id = $1",
+          [leadId],
+        );
+        const chk = checkRes.rows[0];
+        if (chk?.stage === "ASKED" && !chk?.flow_type) {
+          const leadType = detectLeadTypeFromText(text);
+          if (leadType) {
+            const flowType = leadType === "HOST" ? "HOST" : "SUB_AGENT";
+            const startState = createFlowState("HOOK");
+            const hookStage = getStage(FLOWS[flowType], "HOOK");
+            if (hookStage) {
+              await saveFlowState(leadId, flowType, startState);
+              await pool.query(
+                "UPDATE wa_leads SET stage = $1 WHERE id = $2",
+                [hookStage.name || "HOOK", leadId],
+              );
+              await executeFlowStage(client, chatId, hookStage);
+              await saveMessage(leadId, "in", text);
+              await saveMessage(leadId, "out", hookStage.text || "[flow hook]");
+              return;
+            }
+          }
+          // If they typed something that isn't 1/2/3, re-send the poll
+          if (!parseNumberedOption(text, 3)) {
+            const startStage = getStage(FLOWS.ASK_LEAD_TYPE, "ASK_LEAD_TYPE");
+            if (startStage) {
+              await executeFlowStage(client, chatId, startStage);
+            }
+            return;
+          }
+        }
+      } catch (e: any) {
+        console.error(`[wa-flow] lead type detection error: ${e?.message}`);
+      }
+    }
+    // ── End option-based flow routing ─────────────────────────────────────
 
     console.log(`[wa] <- +${phone} (from=${from} key=${key}): ${text.slice(0, 80)}`);
 

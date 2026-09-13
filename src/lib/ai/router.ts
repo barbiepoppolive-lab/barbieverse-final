@@ -32,6 +32,7 @@ export type TaskType =
   | "reasoning"
   | "embedding"
   | "vision"
+  | "meta_ads"
   | "fallback";
 
 // How many free models OpenRouter may burn through on a single request
@@ -178,6 +179,13 @@ Write content that converts. Make them feel something.`,
       model: process.env.AI_ROUTE_VISION_MODEL || "google/gemma-4-31b-it:free",
       maxTokens: 1024,
       reason: "Gemini vision primary, OpenRouter as fallback",
+    },
+    meta_ads: {
+      primary: envProvider("AI_ROUTE_META_ADS_PRIMARY", "gemini"),
+      fallback: envProvider("AI_ROUTE_META_ADS_FALLBACK", "openrouter"),
+      model: process.env.AI_ROUTE_META_ADS_MODEL || "google/gemma-4-31b-it:free",
+      maxTokens: 2048,
+      reason: "Gemini for Meta Ads planning (free)",
     },
     fallback: {
       primary: envProvider("AI_ROUTE_FALLBACK_PRIMARY", "gemini"),

@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { SiteLayout } from "@/components/SiteLayout";
 import { trackCreatorApplication } from "@/lib/api/creator-leads.functions";
-import { CheckCircle2, Clock, XCircle, Search } from "lucide-react";
+import { attachPoppoHostId } from "@/lib/api/attribution.functions";
+import { CheckCircle2, Clock, XCircle, Search, Link2 } from "lucide-react";
 
 const searchSchema = z.object({ id: z.string().optional() });
 
@@ -41,10 +42,16 @@ function TrackPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const track = useServerFn(trackCreatorApplication);
+  const attachHost = useServerFn(attachPoppoHostId);
   const [query, setQuery] = useState(search.id || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lead, setLead] = useState<any | null>(null);
+  const [hostId, setHostId] = useState("");
+  const [hostCode, setHostCode] = useState("");
+  const [hostLoading, setHostLoading] = useState(false);
+  const [hostSuccess, setHostSuccess] = useState(false);
+  const [hostError, setHostError] = useState<string | null>(null);
 
   async function lookup(q: string) {
     setLoading(true);
@@ -58,6 +65,32 @@ function TrackPage() {
       setError(e?.message || "Lookup failed.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function submitHostId() {
+    if (!lead?.application_id || !hostId.trim()) return;
+    setHostLoading(true);
+    setHostError(null);
+    setHostSuccess(false);
+    try {
+      const res = await attachHost({
+        data: {
+          application_id: lead.application_id,
+          poppo_host_id: hostId.trim(),
+          poppo_host_code: hostCode.trim() || undefined,
+        },
+      });
+      if (res?.ok) {
+        setHostSuccess(true);
+        setLead({ ...lead, poppo_host_id: hostId.trim(), host_verified_at: new Date().toISOString() });
+      } else {
+        setHostError(res?.message || "Failed to attach Host ID.");
+      }
+    } catch (e: any) {
+      setHostError(e?.message || "Failed to attach Host ID.");
+    } finally {
+      setHostLoading(false);
     }
   }
 
@@ -109,15 +142,48 @@ function TrackPage() {
           </div>
         )}
 
-        {lead && <LeadCard lead={lead} />}
+        {lead && (
+          <LeadCard
+            lead={lead}
+            hostId={hostId}
+            setHostId={setHostId}
+            hostCode={hostCode}
+            setHostCode={setHostCode}
+            hostLoading={hostLoading}
+            hostSuccess={hostSuccess}
+            hostError={hostError}
+            submitHostId={submitHostId}
+          />
+        )}
       </section>
     </SiteLayout>
   );
 }
 
-function LeadCard({ lead }: { lead: any }) {
+function LeadCard({
+  lead,
+  hostId,
+  setHostId,
+  hostCode,
+  setHostCode,
+  hostLoading,
+  hostSuccess,
+  hostError,
+  submitHostId,
+}: {
+  lead: any;
+  hostId: string;
+  setHostId: (v: string) => void;
+  hostCode: string;
+  setHostCode: (v: string) => void;
+  hostLoading: boolean;
+  hostSuccess: boolean;
+  hostError: string | null;
+  submitHostId: () => void;
+}) {
   const stageIdx = STATUS_TO_STAGE[lead.status] ?? 0;
   const rejected = lead.status === "Rejected";
+  const hasHostId = !!lead.poppo_host_id;
 
   return (
     <div className="mt-8 rounded-3xl border border-gold/25 bg-card/60 p-6 backdrop-blur-xl shadow-luxe sm:p-8">
@@ -131,7 +197,7 @@ function LeadCard({ lead }: { lead: any }) {
 
       <dl className="mt-5 grid gap-3 sm:grid-cols-2">
         <Info label="Platform" value={lead.platform === "vone" ? "Vone" : "Poppo/Vone"} />
-        <Info label="Reward Status" value={lead.reward_status} />
+        <Info label="Reward Status" value={lead.reward_status || "Pending"} />
         <Info label="Submitted" value={new Date(lead.created_at).toLocaleString("en-IN")} />
         <Info label="Last Updated" value={new Date(lead.updated_at).toLocaleString("en-IN")} />
       </dl>
@@ -162,6 +228,62 @@ function LeadCard({ lead }: { lead: any }) {
           </p>
         )}
       </div>
+
+      {/* Host ID capture section */}
+      {!hasHostId && !rejected && (
+        <div className="mt-6 rounded-2xl border border-gold/30 bg-gold/5 p-5">
+          <div className="flex items-center gap-2 text-sm font-semibold text-gold">
+            <Link2 className="h-4 w-4" />
+            Link Your Poppo Host ID
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Enter your Poppo Host ID to link your account. You can find this in Poppo under Profile → My Agency.
+          </p>
+          <div className="mt-4 space-y-3">
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Host ID *</label>
+              <input
+                value={hostId}
+                onChange={(e) => setHostId(e.target.value)}
+                placeholder="e.g. 2697095"
+                className="mt-1 h-10 w-full rounded-xl border border-border/60 bg-background/60 px-4 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Host Code (optional)</label>
+              <input
+                value={hostCode}
+                onChange={(e) => setHostCode(e.target.value)}
+                placeholder="Your host code"
+                className="mt-1 h-10 w-full rounded-xl border border-border/60 bg-background/60 px-4 text-sm"
+              />
+            </div>
+            <button
+              onClick={submitHostId}
+              disabled={hostLoading || !hostId.trim()}
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-gradient-gold px-5 text-xs font-semibold text-black disabled:opacity-60"
+            >
+              {hostLoading ? "Linking…" : "Link Host ID"}
+            </button>
+            {hostSuccess && (
+              <div className="flex items-center gap-1.5 text-xs text-emerald-500">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Host ID linked successfully!
+              </div>
+            )}
+            {hostError && (
+              <div className="text-xs text-destructive">{hostError}</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {hasHostId && (
+        <div className="mt-5 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">
+          <CheckCircle2 className="h-4 w-4" />
+          Host ID linked: {lead.poppo_host_id}
+        </div>
+      )}
     </div>
   );
 }
